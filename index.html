@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
-const ADMIN_CODE = 'pea***2026';
+const ADMIN_CODE = 'pea2026';
 const SUPABASE_URL      = 'https://fvjwaazckehsouqnsyqs.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_MzIQ8oLGWD_0r_cy_HSV4A_VRAEiIDA';   // publishable key: ออกแบบมาให้ฝังในหน้าเว็บได้ (ห้ามใส่ secret key ตรงนี้)
 
@@ -2995,6 +2995,11 @@ function openCharacterCreator(name){
 function refreshAfterProfileChange(){
   renderUserHeader();
   render();
+  // the Account tab keeps its own profile card in the page, behind the edit sheet — repaint it too (only while it
+  // is showing the profile, so a login/register form someone is typing into is never wiped)
+  const meSec = document.getElementById('me-profile-section');
+  if(currentUser && meSec && meSec.style.display!=='none') renderMeProfile();
+  try{ renderSearch(); }catch(e){}
 }
 
 function closeCreator(){
