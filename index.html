@@ -5,14 +5,16 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PEADAL LEGEND</title>
-<!-- ข้อความ/รูปที่ขึ้นตอนแชร์ลิงก์ใน LINE, Facebook ฯลฯ — แก้ข้อความได้ที่ content="..." ด้านล่าง (รูปคือไฟล์ preview.png ในโฟลเดอร์เดียวกัน) -->
+<!-- ข้อความ/รูปที่ขึ้นตอนแชร์ลิงก์ใน LINE, Facebook ฯลฯ — แก้ข้อความได้ที่ content="..." ด้านล่าง (รูปคือไฟล์ preview-v2.jpg ในโฟลเดอร์เดียวกัน — ถ้าเปลี่ยนรูป ให้ตั้งชื่อไฟล์ใหม่ เช่น preview-v3.jpg เพราะ LINE จำรูปตามชื่อไฟล์) -->
 <meta name="description" content="แอปบันทึกระยะปั่นจักรยานและวิ่งของพนักงาน PEA ส่งรูปแคปหน้าจอ ระบบอ่านระยะให้อัตโนมัติ สะสม EXP อัปเลเวล แข่งอันดับตามสังกัดและรุ่นอายุ">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PEADAL LEGEND">
 <meta property="og:title" content="PEADAL LEGEND — ปั่น-วิ่งสะสมเลเวล">
 <meta property="og:description" content="แอปบันทึกระยะปั่นจักรยานและวิ่งของพนักงาน PEA ส่งรูปแคปหน้าจอ ระบบอ่านระยะให้อัตโนมัติ สะสม EXP อัปเลเวล แข่งอันดับตามสังกัดและรุ่นอายุ">
 <meta property="og:url" content="https://armteekapol36.github.io/peadal-legend/">
-<meta property="og:image" content="https://armteekapol36.github.io/peadal-legend/preview.png">
+<meta property="og:image" content="https://armteekapol36.github.io/peadal-legend/preview-v2.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="PEADAL LEGEND — ตัวละครนักปั่นและกรอบโปรไฟล์ที่ปลดล็อกตามเลเวล">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="th_TH">
@@ -318,9 +320,9 @@
 </style>
 </head>
 <body>
-<div class="admin-toggle" id="admin-toggle" onclick="toggleAdmin()">โหมดแอดมิน: ปิด</div>
+<div class="admin-toggle" id="admin-toggle" onclick="toggleAdmin()" style="display:none;">โหมดแอดมิน: ปิด</div>
 <div id="app">
-  <div class="eyebrow"><span><span class="dot"></span>PEADAL LEGEND</span><span id="date-now"></span></div>
+  <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><span class="dot"></span>PEADAL LEGEND</span><span id="date-now"></span></div>
   <div id="global-banner" style="display:none;"></div>
   <div class="user-header" id="user-header" onclick="goPage('me')"></div>
 
@@ -1058,6 +1060,7 @@ async function saveCurrentUser(){
 }
 
 function renderUserHeader(){
+  updateAdminButton();
   const el = document.getElementById('user-header');
   if(currentUser){
     const fullName = `${currentUser.firstName} ${currentUser.lastName}`;
@@ -1395,6 +1398,38 @@ function renderSearch(){
     </div>`).join('');
 }
 
+/* The admin toggle is hidden from everyone by default. It appears when ANY of these is true:
+   - the address ends with #admin  (…/peadal-legend/#admin)
+   - the "PEADAL LEGEND" title was tapped 5 times quickly
+   - the logged-in account is flagged is_admin in the database
+   - admin mode is currently on (so it can be switched off)
+   This only tidies the screen; the real gate is still the admin code. */
+function adminButtonShouldShow(){
+  let revealed = false;
+  try{ revealed = sessionStorage.getItem('pea_admin_ui')==='1'; }catch(e){}
+  return !!(adminMode || (currentUser && currentUser.isAdmin) || revealed || String(location.hash).toLowerCase()==='#admin');
+}
+function updateAdminButton(){
+  const b = document.getElementById('admin-toggle');
+  if(b) b.style.display = adminButtonShouldShow() ? 'block' : 'none';
+}
+function revealAdminButton(){
+  try{ sessionStorage.setItem('pea_admin_ui','1'); }catch(e){}
+  updateAdminButton();
+}
+(function(){
+  let taps = 0, timer = null;
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const el = document.getElementById('brand-tap');
+    if(el) el.addEventListener('click', ()=>{
+      taps++; clearTimeout(timer); timer = setTimeout(()=>{ taps = 0; }, 2500);
+      if(taps >= 5){ taps = 0; revealAdminButton(); }
+    });
+    updateAdminButton();
+  });
+  window.addEventListener('hashchange', updateAdminButton);
+})();
+
 function toggleAdmin(){
   if(!adminMode){
     if(!(currentUser && currentUser.isAdmin)){
@@ -1404,6 +1439,10 @@ function toggleAdmin(){
     }
   }
   adminMode = !adminMode;
+  if(!adminMode){   // leaving admin mode hides the button again
+    try{ sessionStorage.removeItem('pea_admin_ui'); }catch(e){}
+    if(String(location.hash).toLowerCase()==='#admin'){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+  }
   const btn = document.getElementById('admin-toggle');
   btn.textContent = 'โหมดแอดมิน: ' + (adminMode?'เปิด':'ปิด');
   btn.classList.toggle('on', adminMode);
@@ -1544,10 +1583,10 @@ function ocrCheckRisky(haystack, matchIndex){
 function ocrDistanceCandidates(text){
   const t = ocrCompactThai(text).replace(/\s+/g,' ');
   const out = [];
-  const re = /(\d{1,4}(?:[.,]\d{1,3})?)\s*\.{0,2}\s*(km|กม|กิโลเมตร|kilometers?)?/gi;
+  const re = /(\d{1,4}(?:\s?[.,]\s?\d{1,3})?)\s*\.{0,2}\s*(km|กม|กิโลเมตร|kilometers?)?/gi;
   let m;
   while((m = re.exec(t))){
-    const raw = m[1].replace(',','.'); const val = parseFloat(raw);
+    const raw = m[1].replace(/\s/g,'').replace(',','.'); const val = parseFloat(raw);
     if(!isFinite(val) || val<=0 || val>1000) continue;
     const after = t.slice(m.index+m[0].length, m.index+m[0].length+14);
     const before = t.slice(Math.max(0,m.index-24), m.index);
@@ -1561,13 +1600,27 @@ function ocrDistanceCandidates(text){
     else if(/[.,]\d$/.test(raw)) score += 1;
     if(/(ระยะทาง|distance)/i.test(t.slice(Math.max(0,m.index-40), m.index)) || /^\s*\.?\s*(ระยะทาง|distance)/i.test(after)) score += 4;
     if(!hasUnit && !/[.,]\d/.test(raw)) continue;                                      // bare integers are too ambiguous
-    if(!hasUnit && score < 6) continue;                                                // a bare decimal needs a label nearby
-    out.push(Object.assign({value:raw, num:val, score, idx:m.index}, ocrCheckRisky(t, m.index)));
+    out.push(Object.assign({value:raw, num:val, score, idx:m.index, bare:!hasUnit}, ocrCheckRisky(t, m.index)));
   }
   return {list:out, text:t};
 }
+function ocrExpectedDistances(text){
+  const t = ocrCompactThai(text).replace(/\s+/g,' ');
+  const durs=[], speeds=[];
+  for(const m of t.matchAll(/\b(\d{1,2}):(\d{2}):(\d{2})\b/g)) durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
+  for(const m of t.matchAll(/(\d{1,2}(?:\s?[.,]\s?\d)?)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  const out=[]; for(const h of durs) for(const v of speeds) out.push(h*v);
+  return out;
+}
 function ocrExtractDistance(text){
-  const {list} = ocrDistanceCandidates(text);
+  const cands = ocrDistanceCandidates(text).list;
+  const expected = ocrExpectedDistances(text);
+  cands.forEach(c=>{
+    c.consistent = expected.some(e=>Math.abs(e-c.num)/e < 0.08);
+    if(c.consistent) c.score += 10;                       // matches duration × speed printed in the same screenshot
+  });
+  // a bare decimal (no unit read) only counts if it has a label nearby or agrees with duration × speed
+  const list = cands.filter(c=>!c.bare || c.score>=6 || c.consistent);
   if(!list.length) return {value:null, risky:false, riskyWord:null};
   list.sort((a,b)=> b.score-a.score || b.num-a.num);
   const best = list[0];
@@ -1617,7 +1670,7 @@ function ocrIso(y,mo,d){
 }
 const OCR_TH_MONTHS = [   // order matters: มี.ค. (Mar) before ม.ค. (Jan)
   [3,'มี[.\\s]{0,3}ค'],[1,'ม[.\\s]{0,3}ค'],[2,'ก[.\\s]{0,3}พ'],[4,'เม[.\\s]{0,3}ย'],[5,'พ[.\\s]{0,3}ค'],[6,'มิ[.\\s]{0,3}ย'],
-  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'ก[\\u0E30-\\u0E4E.\\s]{0,4}ย'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
+  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'ก[\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
 const OCR_EN_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 function ocrExtractDate(text, refMs){
   const ref = new Date(refMs || Date.now());
@@ -1752,6 +1805,7 @@ function renderAiResult(parsed){
     <div class="exif-badge ${cls}">
       🔍 OCR อ่านได้: <b>${distTxt}</b> · วันที่: <b>${dateTxt}</b> · ความมั่นใจ: ${parsed.confidence||'-'}${warnHtml}
       ${parsed.distance_km!=null ? `<br><span style="opacity:.85;">✓ กรอกระยะทางในฟอร์มด้านล่างให้อัตโนมัติแล้ว</span>` : ''}
+      ${(parsed.crossCheckFailed || parsed.risky) ? `<br><span style="opacity:.9;">ถ้าตัวเลขไม่ตรงกับรูป: ลองอัปโหลดรูปใหม่ (แคปเฉพาะหน้าสรุปให้เห็นตัวเลขชัด) หรือกดส่งได้เลย แอดมินจะตรวจและแก้ระยะให้ตามรูป</span>` : ''}
     </div>`;
   applyAiRead();
 }
@@ -4036,6 +4090,27 @@ async function reportEntry(id){
   alert('ส่งเรื่องแจ้งตรวจสอบแล้ว ขอบคุณที่ช่วยกันดูแลความน่าเชื่อถือของข้อมูลครับ');
 }
 
+/* OCR can misread a number. Admins can correct the distance from the photo; the change is written into the entry's
+   flags (who, from → to) so it stays visible, and only the two touched columns are updated. */
+async function adminEditDistance(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  const old = e.distanceKm;
+  const v = prompt(`ระยะทางที่ถูกต้องตามรูป (กม.)\nระบบอ่านได้ ${old} กม.`, String(old));
+  if(v===null) return;
+  const n = parseFloat(String(v).trim().replace(',','.'));
+  if(!isFinite(n) || n<=0 || n>1000){ alert('กรอกตัวเลขระยะทางระหว่าง 0 ถึง 1000 กม.'); return; }
+  if(n===old) return;
+  const who = currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'แอดมิน';
+  const newFlags = (e.flags||[]).concat(`แอดมินแก้ระยะ ${old} → ${n} กม. (โดย ${who})`);
+  try{
+    const {error} = await sb.from('entries').update({distance_km:n, flags:newFlags}).eq('id', id);
+    if(error) throw error;
+  }catch(err){ dbErr('adminEditDistance', err); alert('บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งครับ'); return; }
+  e.distanceKm = n; e.flags = newFlags;
+  render();
+}
+
 async function decide(id, status){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
@@ -4660,6 +4735,7 @@ function render(){
           ${e.aiRead ? `<div class="lb-sub">🤖 AI อ่านได้: ${esc(e.aiRead.distance_km??'-')} กม. · วันที่: ${esc(e.aiRead.activity_date||'-')} · มั่นใจ: ${esc(e.aiRead.confidence||'-')}</div>` : ''}
           ${e.note ? `<div class="lb-sub">โน้ต: ${esc(e.note)}</div>` : ''}
           <div class="queue-actions">
+            <button class="qbtn" style="background:var(--panel-2); color:var(--text);" onclick="adminEditDistance('${escAttr(e.id)}')">✎ แก้ระยะ</button>
             <button class="qbtn approve" onclick="decide('${escAttr(e.id)}','approved')">✓ อนุมัติ</button>
             <button class="qbtn reject" onclick="decide('${escAttr(e.id)}','rejected')">✕ ปฏิเสธ</button>
           </div>
