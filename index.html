@@ -20,6 +20,17 @@
 <meta property="og:locale" content="th_TH">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#7F3F98">
+<!-- PWA: lets a phone user "install" this page as a home-screen app with its own icon, opening full-screen with
+     no browser address bar. Needs manifest.webmanifest + sw.js + the icon-*.png files uploaded alongside this file. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PEADAL LEGEND">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -321,6 +332,11 @@
 </head>
 <body>
 <div class="admin-toggle" id="admin-toggle" onclick="toggleAdmin()" style="display:none;">โหมดแอดมิน: ปิด</div>
+<div id="pwa-install-banner" style="display:none; position:sticky; top:0; z-index:60; background:var(--purple); color:var(--on-accent); padding:10px 14px; align-items:center; gap:10px; font-size:13px;">
+  <span id="pwa-install-text" style="flex:1;">ติดตั้งแอปนี้ลงหน้าจอหลัก เข้าใช้งานได้เร็วขึ้นเหมือนแอปจริง</span>
+  <button id="pwa-install-btn" onclick="pwaInstallClick()" style="display:none; background:#fff; color:var(--purple); border:none; border-radius:8px; padding:6px 14px; font-weight:700; font-size:13px; cursor:pointer;">ติดตั้ง</button>
+  <button onclick="pwaDismissBanner()" aria-label="ปิด" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">✕</button>
+</div>
 <div id="app">
   <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><span class="dot"></span>PEADAL LEGEND</span><span id="date-now"></span></div>
   <div id="global-banner" style="display:none;"></div>
@@ -623,7 +639,7 @@
     <div class="card">
       <h2>📣 ประกาศจากแอดมิน</h2>
       <div class="note-small" style="text-align:left; margin-bottom:8px;">ขึ้นเป็นแบนเนอร์บนสุดของทุกหน้า เห็นได้ทุกคนแม้ยังไม่ล็อกอิน — มีได้ทีละ 1 ข้อความ พิมพ์ใหม่จะทับของเดิม</div>
-      <div class="field"><textarea id="admin-banner-input" rows="2" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; font-family:var(--sans); font-size:14px;" placeholder="เช่น เหลืออีก 3 วันปิดรอบกิจกรรม!"></textarea></div>
+      <div class="field"><textarea id="admin-banner-input" rows="2" maxlength="300" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; font-family:var(--sans); font-size:14px;" placeholder="เช่น เหลืออีก 3 วันปิดรอบกิจกรรม! (ไม่เกิน 300 ตัวอักษร)"></textarea></div>
       <button class="qbtn approve" style="width:100%; margin-top:6px;" onclick="postBanner()">📣 ประกาศ</button>
     </div>
 
@@ -704,6 +720,20 @@ let entries = [];
 function localDateKey(d){ d = d || new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function markEntryDirty(id){ if(!window._dirtyEntries) window._dirtyEntries=new Set(); window._dirtyEntries.add(id); }
 function markAccountDirty(id){ if(!window._dirtyAccounts) window._dirtyAccounts=new Set(); window._dirtyAccounts.add(id); }
+/* The single source of truth for a person's current display name. entries/profiles are linked by employee_id;
+   this is what turns that id back into "First Last" for display — always the CURRENT name in accounts, never a
+   frozen copy. Falls back to whatever name was stored on the row itself only when there's no matching account
+   (legacy pre-migration rows, or an account that's since been deleted) so nothing silently disappears. */
+function nameForEmployee(employeeId, fallbackName){
+  const a = employeeId ? accounts[employeeId] : null;
+  return a ? `${a.firstName} ${a.lastName}`.trim() : (fallbackName || 'ไม่ทราบชื่อ');
+}
+/* the reverse lookup: given a display name, which account does it belong to right now. Used only for the few
+   write paths (saving a profile, reporting) that still work in terms of "name" at the call site. */
+function employeeIdForName(name){
+  const a = Object.values(accounts).find(a=>`${a.firstName} ${a.lastName}`.trim()===name);
+  return a ? a.employeeId : null;
+}
 function markProfileDirty(name){ if(!window._dirtyProfiles) window._dirtyProfiles=new Set(); window._dirtyProfiles.add(name); }
 let boardExpanded = {};
 
@@ -891,20 +921,30 @@ async function saveAccounts(){
 
 async function loadProfiles(){
   try{
-    const data = await fetchAll('profiles', '*', 'name', true);
+    const data = await fetchAll('profiles', '*', 'employee_id', true);
     profiles = {};
-    (data||[]).forEach(r=>{ profiles[r.name] = sanitizeProfile(r.data); });
+    window._profileEmployeeIds = {};   // name -> employee_id, so saveProfiles() writes to the right row after a rename
+    (data||[]).forEach(r=>{
+      const liveName = nameForEmployee(r.employee_id, r.name);
+      profiles[liveName] = sanitizeProfile(r.data);
+      window._profileEmployeeIds[liveName] = r.employee_id;
+    });
   }catch(e){ markLoadError('profiles', e); }
 }
 async function saveProfiles(){
   const dirty = [...(window._dirtyProfiles||new Set())];
   window._dirtyProfiles = new Set();
-  const rows = dirty.filter(name=>profiles[name]).map(name=>({name, data: profiles[name]}));
-  if(!rows.length) return true;
+  const eids = window._profileEmployeeIds || {};
+  const rows = dirty.filter(name=>profiles[name]).map(name=>{
+    const employeeId = eids[name] || employeeIdForName(name);
+    return employeeId ? {employee_id: employeeId, name, data: profiles[name]} : null;
+  }).filter(Boolean);
+  const skipped = dirty.length - rows.length;   // a profile whose name no longer matches any account — can't save until that's fixed
+  if(!rows.length) return skipped===0;
   try{
-    const {error} = await sb.from('profiles').upsert(rows);
+    const {error} = await sb.from('profiles').upsert(rows, {onConflict:'employee_id'});
     if(error){ dbErr('saveProfiles', error); dirty.forEach(markProfileDirty); return false; }
-    return true;
+    return skipped===0;
   }catch(e){ dbErr('saveProfiles', e); dirty.forEach(markProfileDirty); return false; }
 }
 
@@ -912,7 +952,7 @@ async function loadEntries(){
   try{
     const data = await fetchAll('entries', '*', 'submitted_at', false, 'id');
     entries = (data||[]).map(r=>({
-      id:r.id, name:r.name, office:r.office, type:r.type,
+      id:r.id, employeeId:r.employee_id||null, name: nameForEmployee(r.employee_id, r.name), office:r.office, type:r.type,
       distanceKm:r.distance_km, date:r.date, status:r.status,
       flags:r.flags||[], communityFlags:r.community_flags||[],
       note:r.note||'', aiRead:r.ai_read||null,
@@ -941,7 +981,7 @@ async function persist(){
     const e = entries.find(x=>x.id===id);
     if(!e) return null;
     return {
-      id:e.id, name:e.name, office:e.office, type:e.type,
+      id:e.id, employee_id:e.employeeId||null, name:e.name, office:e.office, type:e.type,
       distance_km:e.distanceKm, date:e.date, status:e.status,
       flags:e.flags, community_flags:e.communityFlags,
       note:e.note||null, ai_read:e.aiRead||null,
@@ -1192,9 +1232,9 @@ function registerFormHtml(){
           <option>นาย</option><option>นาง</option><option>นางสาว</option>
         </select>
       </div>
-      <div class="field"><label>ชื่อ</label><input id="reg-first" placeholder="เช่น สมชาย"></div>
+      <div class="field"><label>ชื่อ</label><input id="reg-first" placeholder="เช่น สมชาย" maxlength="60"></div>
     </div>
-    <div class="field"><label>นามสกุล</label><input id="reg-last" placeholder="เช่น ใจดี"></div>
+    <div class="field"><label>นามสกุล</label><input id="reg-last" placeholder="เช่น ใจดี" maxlength="60"></div>
     <div class="field"><label>ปีเกิด (พ.ศ.)</label><input id="reg-birthyear" inputmode="numeric" placeholder="เช่น 2530" oninput="regUpdateAge()"></div>
     <div class="note-small" id="reg-age-preview" style="text-align:left; margin:-8px 0 12px;"></div>
     <div class="field-row">
@@ -1208,7 +1248,7 @@ function registerFormHtml(){
         ${OFFICES.map(o=>`<option>${o}</option>`).join('')}
       </select>
     </div>
-    <div class="field"><label>สังกัดเพิ่มเติม (ไม่บังคับ)</label><input id="reg-department" placeholder="เช่น ผบอ.กบษ.ฝปบ. หรือ กฟจ.ราชบุรี"></div>
+    <div class="field"><label>สังกัดเพิ่มเติม (ไม่บังคับ)</label><input id="reg-department" placeholder="เช่น ผบอ.กบษ.ฝปบ. หรือ กฟจ.ราชบุรี" maxlength="80"></div>
     <div class="checkbox-row">
       <input type="checkbox" id="reg-state-athlete">
       <label for="reg-state-athlete">เคยเป็นนักกีฬารัฐวิสาหกิจ (จะไม่มีสิทธิ์ร่วม "รุ่นท่องเที่ยว สำหรับมือใหม่" แต่ยังได้สิทธิ์รุ่นอายุปกติตามเดิม)</label>
@@ -1430,6 +1470,59 @@ function revealAdminButton(){
   window.addEventListener('hashchange', updateAdminButton);
 })();
 
+/* ===== PWA install banner =====
+   Android/Chrome fires "beforeinstallprompt" once the browser's own install criteria are met (manifest + service
+   worker + a bit of engagement) — capturing it lets us show our own "ติดตั้ง" button instead of relying on Chrome's
+   own UI, which doesn't always appear. iOS Safari has no such event at all; it only supports adding to the home
+   screen manually via the Share sheet, so iOS gets on-screen instructions instead of a button. */
+let pwaDeferredPrompt = null;
+function pwaIsIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function pwaIsStandalone(){
+  try{ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+  catch(e){ return false; }
+}
+function pwaShowBanner(kind){
+  if(pwaIsStandalone()) return;                              // already installed/running as the app — never nag
+  let dismissed = null; try{ dismissed = localStorage.getItem('pea_pwa_dismissed'); }catch(e){}
+  if(dismissed==='1') return;
+  const b = document.getElementById('pwa-install-banner');
+  if(!b) return;
+  document.getElementById('pwa-install-text').textContent = kind==='ios'
+    ? 'เพิ่มแอปนี้ที่หน้าจอหลัก: แตะปุ่มแชร์ (ไอคอน □↑ ด้านล่างจอ) แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"'
+    : 'ติดตั้งแอปนี้ลงหน้าจอหลัก เข้าใช้งานได้เร็วขึ้นเหมือนแอปจริง';
+  document.getElementById('pwa-install-btn').style.display = kind==='android' ? 'inline-block' : 'none';
+  b.style.display = 'flex';
+}
+async function pwaInstallClick(){
+  if(!pwaDeferredPrompt) return;
+  pwaDeferredPrompt.prompt();
+  let outcome = null;
+  try{ outcome = (await pwaDeferredPrompt.userChoice).outcome; }catch(e){}
+  pwaDeferredPrompt = null;
+  document.getElementById('pwa-install-banner').style.display = 'none';
+  if(outcome==='dismissed'){ try{ localStorage.setItem('pea_pwa_dismissed','1'); }catch(e){} }
+}
+function pwaDismissBanner(){
+  try{ localStorage.setItem('pea_pwa_dismissed','1'); }catch(e){}
+  document.getElementById('pwa-install-banner').style.display = 'none';
+}
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  pwaDeferredPrompt = e;
+  pwaShowBanner('android');
+});
+window.addEventListener('appinstalled', ()=>{
+  document.getElementById('pwa-install-banner').style.display = 'none';
+  try{ localStorage.setItem('pea_pwa_dismissed','1'); }catch(e){}
+});
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(pwaIsIOS() && !pwaIsStandalone()) pwaShowBanner('ios');
+  if('serviceWorker' in navigator){
+    // sw.js caches nothing — it only exists so Android/Chrome will offer to install this page
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+});
+
 function toggleAdmin(){
   if(!adminMode){
     if(!(currentUser && currentUser.isAdmin)){
@@ -1565,6 +1658,12 @@ let pendingAiRead = null;
 
 const OCR_CUMULATIVE_HINTS = ['สะสม','เป้าหมาย','total','this month','this week','รวม','ทั้งหมด','ปีนี้','เดือนนี้','ที่เร็วที่สุด','สถิติ','personal record'];
 
+function ocrFixDigitLookalikes(text){
+  return text.replace(/\b[\dOolI]{1,6}(?:[.,][\dOolI]{1,4})?\b/g, tok=>{
+    if(!/\d/.test(tok)) return tok;             // no real digit in this token at all — leave words like "Low" alone
+    return tok.replace(/[Oo]/g,'0').replace(/[Il]/g,'1');
+  });
+}
 function ocrCompactThai(text){
   return text.replace(/([\u0E00-\u0E7F])\s+(?=[\u0E00-\u0E7F])/g,'$1');
 }
@@ -1581,9 +1680,10 @@ function ocrCheckRisky(haystack, matchIndex){
    - a number with a km unit and 2 decimals, or sitting next to the word ระยะทาง/Distance, is most likely the distance
    - clock / duration pieces (05:23) and watts / kcal / metres are never distances */
 function ocrDistanceCandidates(text){
-  const t = ocrCompactThai(text).replace(/\s+/g,' ');
+  let t = ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' ');
+  t = t.replace(/\d+(?:[.,]\d+)?/g, blob => blob.split(/[.,]/)[0].length>=5 ? ' '.repeat(blob.length) : blob);   // a 5+ digit WHOLE-NUMBER part is unreadable garbage (real distances never run that long) — blank the entire number, not just the digit run, so no fragment of it can be picked up as a candidate
   const out = [];
-  const re = /(\d{1,4}(?:\s?[.,]\s?\d{1,3})?)\s*\.{0,2}\s*(km|กม|กิโลเมตร|kilometers?)?/gi;
+  const re = /(?<!\d)(\d{1,4}(?:\s?[.,]\s?\d{1,3})?)(?!\d)\s*\.{0,2}\s*(km|ก[.\s]{0,4}ม|กิโลเมตร|kilometers?)?/gi;
   let m;
   while((m = re.exec(t))){
     const raw = m[1].replace(/\s/g,'').replace(',','.'); const val = parseFloat(raw);
@@ -1605,10 +1705,15 @@ function ocrDistanceCandidates(text){
   return {list:out, text:t};
 }
 function ocrExpectedDistances(text){
-  const t = ocrCompactThai(text).replace(/\s+/g,' ');
+  const t = ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' ');
   const durs=[], speeds=[];
-  for(const m of t.matchAll(/\b(\d{1,2}):(\d{2}):(\d{2})\b/g)) durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
-  for(const m of t.matchAll(/(\d{1,2}(?:\s?[.,]\s?\d)?)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)) durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
+  // digit-run guard (no digit immediately before/after) stops this from grabbing a truncated fragment out of a
+  // longer run — e.g. "321 กม./ชม" (OCR dropped the decimal point in "32.1") would otherwise match just "21".
+  for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:\s?[.,]\s?\d)?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  // cycling/running average speeds are essentially always X.Y (one decimal, 1-60ish km/h) — an undotted 3-digit
+  // run right before the unit ("321", "185") is almost certainly a dropped decimal point, not a literal 3-digit speed
+  for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
   const out=[]; for(const h of durs) for(const v of speeds) out.push(h*v);
   return out;
 }
@@ -1620,19 +1725,30 @@ function ocrExtractDistance(text){
     if(c.consistent) c.score += 10;                       // matches duration × speed printed in the same screenshot
   });
   // a bare decimal (no unit read) only counts if it has a label nearby or agrees with duration × speed
-  const list = cands.filter(c=>!c.bare || c.score>=6 || c.consistent);
+  let list = cands.filter(c=>!c.bare || c.score>=6 || c.consistent);
+  let unitUnconfirmed = false;
+  if(!list.length){
+    // Some screenshots (e.g. Google Maps Timeline) show only a bare headline number with no duration/speed to
+    // cross-check and no "ระยะทาง" label — OCR sometimes also drops the "กม." unit text right next to it. If
+    // there is exactly ONE two-decimal bare number anywhere in the whole text, it's almost certainly the distance
+    // (nothing else on these screens is formatted like ##.## with no unit) — use it, but flag the unit as
+    // unconfirmed so the entry still needs a human to glance at the photo before it counts.
+    const bareTwoDp = cands.filter(c=>c.bare && /[.,]\d{2}$/.test(c.value));
+    if(bareTwoDp.length===1){ list = bareTwoDp; unitUnconfirmed = true; }
+  }
   if(!list.length) return {value:null, risky:false, riskyWord:null};
   list.sort((a,b)=> b.score-a.score || b.num-a.num);
   const best = list[0];
-  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, candidates:list.length};
+  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, candidates:list.length, unitUnconfirmed};
 }
 
 /* rides show a duration and an average speed — distance ≈ hours × km/h. Independent check on the OCR'd distance. */
 function ocrSpeedCheck(text, dist){
-  const t = ocrCompactThai(text).replace(/\s+/g,' ');
+  const t = ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' ');
   const durs=[], speeds=[];
-  for(const m of t.matchAll(/\b(\d{1,2}):(\d{2}):(\d{2})\b/g)) durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
-  for(const m of t.matchAll(/(\d{1,2}(?:[.,]\d)?)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(',','.')));
+  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)) durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
+  for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:[.,]\d)?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(',','.')));
+  for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
   if(!durs.length || !speeds.length) return null;
   let bestOff = Infinity;
   for(const h of durs) for(const v of speeds) bestOff = Math.min(bestOff, Math.abs(h*v-dist)/dist);
@@ -1640,16 +1756,17 @@ function ocrSpeedCheck(text, dist){
 }
 
 function ocrExtractPace(text){
-  const m = ocrCompactThai(text).match(/(\d{1,2}:\d{2})\s*\/?\s*(?:km|กม)/i);
-  return m ? m[1] : null;
+  const t = ocrFixDigitLookalikes(ocrCompactThai(text));
+  const m = t.match(/(\d{1,2}\s*:\s*\d{2})\s*\/?\s*(?:km|กม)/i);
+  return m ? m[1].replace(/\s+/g,'') : null;
 }
 function ocrExtractDuration(text){
   // prefer H:MM:SS; a bare MM:SS in the first ~12 characters is the phone's status-bar clock, not the activity time
-  const t = ocrCompactThai(text);
-  const hms = t.match(/\b(\d{1,2}:\d{2}:\d{2})\b/);
-  if(hms) return hms[1];
-  for(const m of t.matchAll(/\b(\d{1,3}:\d{2}(?:\.\d)?)\b(?!\s*\/?\s*(?:km|กม))/gi)){
-    if(m.index > 12) return m[1];
+  const t = ocrFixDigitLookalikes(ocrCompactThai(text));
+  const hms = t.match(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/);
+  if(hms) return hms[1]+':'+hms[2]+':'+hms[3];
+  for(const m of t.matchAll(/\b(\d{1,3})\s*:\s*(\d{2})(?:\.\d)?\b(?!\s*\/?\s*(?:km|กม))/gi)){
+    if(m.index > 12) return m[1]+':'+m[2];
   }
   return null;
 }
@@ -1670,7 +1787,7 @@ function ocrIso(y,mo,d){
 }
 const OCR_TH_MONTHS = [   // order matters: มี.ค. (Mar) before ม.ค. (Jan)
   [3,'มี[.\\s]{0,3}ค'],[1,'ม[.\\s]{0,3}ค'],[2,'ก[.\\s]{0,3}พ'],[4,'เม[.\\s]{0,3}ย'],[5,'พ[.\\s]{0,3}ค'],[6,'มิ[.\\s]{0,3}ย'],
-  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'ก[\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
+  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'[กค][\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
 const OCR_EN_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 function ocrExtractDate(text, refMs){
   const ref = new Date(refMs || Date.now());
@@ -1708,6 +1825,22 @@ function ocrExtractDate(text, refMs){
   return null;
 }
 
+/* NOTE: ocrCropTop() lives directly in peadal-legend.html (just before ocrPreprocess), not here — it's DOM-only
+   (uses Image/canvas) and doesn't belong in this pure-logic block. Don't let a future sync from this file delete it. */
+
+function ocrCropTop(dataUrl, frac){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const h = Math.max(1, Math.round(img.height*frac));
+      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0,0,img.width,h, 0,0,img.width,h);
+      resolve(cv.toDataURL('image/png'));
+    };
+    img.onerror = ()=>reject(new Error('crop failed'));
+    img.src = dataUrl;
+  });
+}
 function ocrPreprocess(dataUrl){
   return new Promise(resolve=>{
     const img = new Image();
@@ -1745,11 +1878,18 @@ async function runAiRead(dataUrl, refMs){
 
   try{
     const processedUrl = await ocrPreprocess(dataUrl);
+    const topUrl = await ocrCropTop(dataUrl, 0.26).catch(()=>null);
 
-    // one pass: Thai+English OCR with sparse-text mode. (The old second "digits-only" pass ran on the whole page
-    // as one text line and could overwrite a correct distance with garbage.)
-    const {data} = await Tesseract.recognize(processedUrl,'eng+tha',{tessedit_pageseg_mode:'11'});
-    const rawText = data.text||'';
+    // Two passes: the whole page, and just its top slice on its own. A screenshot's headline distance sits in a
+    // banner block (often with an icon/photo mixed in) that whole-page layout analysis sometimes drops entirely
+    // even though everything below reads fine — running the top slice alone recovers it. (No second "digits-only"
+    // pass anymore: it ran on the whole page as one text line and could overwrite a correct distance with garbage.)
+    const [main, top] = await Promise.all([
+      Tesseract.recognize(processedUrl,'eng+tha',{tessedit_pageseg_mode:'11'}),
+      topUrl ? Tesseract.recognize(topUrl,'eng+tha',{tessedit_pageseg_mode:'11'}).catch(()=>null) : null
+    ]);
+    const data = main.data;
+    const rawText = (data.text||'') + (top && top.data && top.data.text ? '\n'+top.data.text : '');
     const distResult = ocrExtractDistance(rawText);
 
     const actDate = ocrExtractDate(rawText, refMs);
@@ -1766,15 +1906,24 @@ async function runAiRead(dataUrl, refMs){
         crossCheck = {expected:expected.toFixed(2), pctOff, ok:pctOff<0.15};
       } else {
         const sc = ocrSpeedCheck(rawText, dv);
-        if(sc) crossCheck = {expected:null, pctOff:sc.pctOff, ok:sc.ok};
+        if(sc){
+          // ocrSpeedCheck only returns the best pctOff it found — recover which candidate distance that came from,
+          // by picking whichever duration×speed combination is numerically closest to it, so the admin (and the
+          // "✎ แก้ระยะ" prompt) can be shown a concrete suggested number instead of just "this looks wrong"
+          const exps = ocrExpectedDistances(rawText);
+          let exp = null, best = Infinity;
+          for(const e of exps){ const off = Math.abs(e-dv)/e; if(off<best){ best=off; exp=e; } }
+          crossCheck = {expected: exp!=null ? exp.toFixed(2) : null, pctOff:sc.pctOff, ok:sc.ok};
+        }
       }
     }
 
     const overallConf = data.confidence;
     const warnings = [];
     if(distResult.risky) warnings.push(`ใกล้คำว่า "${distResult.riskyWord}" อาจเป็นสถิติสะสม ไม่ใช่ทริปนี้`);
+    if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
     if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
-        ? `ระยะทางไม่สอดคล้องกับเวลา/เพซ (ควรเป็น ${crossCheck.expected} กม.) — อาจอ่านผิด`
+        ? `ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป (คำนวณได้ประมาณ ${crossCheck.expected} กม.) — อาจอ่านผิด`
         : 'ระยะทางไม่สอดคล้องกับเวลา × ความเร็วเฉลี่ยในรูป — อาจอ่านผิด');
 
     pendingAiRead = {
@@ -1783,6 +1932,8 @@ async function runAiRead(dataUrl, refMs){
       confidence: overallConf>80 ? 'high' : overallConf>50 ? 'medium' : 'low',
       note: warnings.join(' · ')||'',
       risky: distResult.risky,
+      unitUnconfirmed: !!distResult.unitUnconfirmed,
+      suggestedDistance: (crossCheck && !crossCheck.ok && crossCheck.expected) ? parseFloat(crossCheck.expected) : null,
       crossCheckFailed: crossCheck ? !crossCheck.ok : false,
       crossCheckPassed: crossCheck ? crossCheck.ok : false
     };
@@ -1864,6 +2015,7 @@ async function _submitEntryInner(){
   if(pendingAiRead.risky) flags.push('AI: ตัวเลขอยู่ใกล้ข้อความที่อาจเป็นสถิติสะสม — ' + (pendingAiRead.note||'ตรวจสอบระยะทาง'));
   else if(pendingAiRead.crossCheckFailed) flags.push('AI: ' + (pendingAiRead.note||'ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป'));
   if(pendingAiRead.confidence==='low') flags.push('AI อ่านรูปด้วยความมั่นใจต่ำ');
+  if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
 
   // likely double-submit of the same activity (same person, type, day and ~same distance)
   const dupe = entries.find(x=>x.name===name && x.type===subType && x.date===date && x.status!=='rejected' && Math.abs(x.distanceKm-dist)<0.1);
@@ -1883,6 +2035,7 @@ async function _submitEntryInner(){
 
   entries.push({
     id: entryId,
+    employeeId: currentUser.employeeId,
     name, office, type: subType, date,
     distanceKm: dist,
     note, consent: true,
@@ -2700,9 +2853,10 @@ function chibiHat(style, c){
   if(style==='crown') return `<path d="M56,58 L74,10 L96,44 L130,0 L164,44 L186,10 L204,58 Z" fill="#FFD23D"/>
     <rect x="56" y="52" width="148" height="16" rx="7" fill="#E8A81E"/>
     <circle cx="130" cy="22" r="8" fill="#FF5C5C"/>`;
-  if(style==='santa') return `<path d="M56,58 Q62,-6 132,-6 Q198,-4 204,52 Q140,26 56,58 Z" fill="#E33636"/>
-    <rect x="50" y="48" width="160" height="20" rx="10" fill="#fff"/>
-    <circle cx="206" cy="10" r="16" fill="#fff"/>`;
+  if(style==='santa') return `<path d="M150,-4 Q200,-2 216,34 Q226,56 204,58 Q190,58 186,42 Q178,16 146,4 Q140,-2 150,-4 Z" fill="#C82A2A" stroke="var(--line)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M52,62 Q56,-8 130,-8 Q192,-8 202,34 Z" fill="#E33636" stroke="var(--line)" stroke-width="2.5" stroke-linejoin="round"/>
+    <rect x="48" y="54" width="164" height="22" rx="11" fill="#fff" stroke="var(--line)" stroke-width="2.5"/>
+    <circle cx="206" cy="44" r="16" fill="#fff" stroke="var(--line)" stroke-width="2.5"/>`;
   if(style==='bearears') return `<circle cx="64" cy="42" r="26" fill="${c}"/><circle cx="196" cy="42" r="26" fill="${c}"/>
     <circle cx="64" cy="42" r="13" fill="${shadeHex(c,60)}"/><circle cx="196" cy="42" r="13" fill="${shadeHex(c,60)}"/>`;
   if(style==='bikehelmet') return `<path d="M48,74 Q52,-2 130,-2 Q208,-2 212,74 L204,80 L56,80 Z" fill="${c}"/>
@@ -4096,7 +4250,16 @@ async function adminEditDistance(id){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
   const old = e.distanceKm;
-  const v = prompt(`ระยะทางที่ถูกต้องตามรูป (กม.)\nระบบอ่านได้ ${old} กม.`, String(old));
+  // if a flag already computed a likely-correct value from duration × speed in the same photo, offer that as the
+  // starting point instead of just re-showing the number that was flagged as wrong in the first place
+  const suggestedMatch = (e.flags||[]).map(f=>f.match(/คำนวณได้ประมาณ ([\d.]+) กม\./)).find(Boolean);
+  const suggested = suggestedMatch ? suggestedMatch[1] : null;
+  const v = prompt(
+    suggested
+      ? `ระยะทางที่ถูกต้องตามรูป (กม.)\nระบบอ่านได้ ${old} กม. — จากเวลา×ความเร็วในรูป น่าจะเป็น ${suggested} กม. (ตรวจกับรูปอีกครั้งก่อนยืนยัน)`
+      : `ระยะทางที่ถูกต้องตามรูป (กม.)\nระบบอ่านได้ ${old} กม.`,
+    suggested || String(old)
+  );
   if(v===null) return;
   const n = parseFloat(String(v).trim().replace(',','.'));
   if(!isFinite(n) || n<=0 || n>1000){ alert('กรอกตัวเลขระยะทางระหว่าง 0 ถึง 1000 กม.'); return; }
@@ -4111,9 +4274,18 @@ async function adminEditDistance(id){
   render();
 }
 
+/* One tap on "อนุมัติ" used to approve a flagged entry instantly — including when the flag said the OCR'd
+   distance looked wrong. This surfaces the flag text and makes the admin actively confirm before it goes through. */
+function confirmApproveWithFlags(flags){
+  if(!flags || !flags.length) return true;
+  return confirm('รายการนี้มีข้อสังเกตที่ยังไม่ได้แก้ไข:\n\n' + flags.map(f=>'• '+f).join('\n') +
+    '\n\nยืนยันอนุมัติทั้งที่มีข้อสังเกตนี้หรือไม่?\n(ถ้าตัวเลขในรูปดูไม่ตรง ให้กด "✎ แก้ระยะ" ก่อน)');
+}
+
 async function decide(id, status){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
+  if(status==='approved' && !confirmApproveWithFlags(e.flags)) return;
   const prev = e.status;
   e.status = status;
   const ok = await saveEntryStatus([id], status);
@@ -4140,6 +4312,10 @@ function adminSelectAll(checked){
 }
 
 async function decideBulk(status){
+  if(status==='approved'){
+    const flaggedCount = [...adminSelected].filter(id=>{ const e=entries.find(x=>x.id===id); return e && e.flags && e.flags.length; }).length;
+    if(flaggedCount && !confirm(`มี ${flaggedCount} รายการที่ยังมีข้อสังเกตค้างอยู่ ยืนยันอนุมัติทั้งหมด (รวมรายการที่มีข้อสังเกต) หรือไม่?`)) return;
+  }
   if(adminSelected.size===0){ alert('เลือกอย่างน้อย 1 รายการก่อนนะครับ'); return; }
   const label = status==='approved' ? 'อนุมัติ' : 'ปฏิเสธ';
   if(!confirm(`${label}ทั้งหมด ${adminSelected.size} รายการที่เลือกไว้?`)) return;
@@ -4178,10 +4354,55 @@ function adminAccountsRender(){
         </div>
       </div>
       <div class="queue-actions">
+        <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="adminEditAccount('${escAttr(a.employeeId)}')">✎ แก้ไขชื่อ/สังกัด</button>
         <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminResetPassword('${escAttr(a.employeeId)}')">🔑 รีเซ็ตรหัสผ่าน</button>
         <button class="qbtn reject" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminToggleDisabled('${escAttr(a.employeeId)}')">${a.disabled?'✓ เปิดใช้งานคืน':'🚫 ระงับบัญชี'}</button>
       </div>
     </div>`).join('') : `<div class="empty">ไม่พบบัญชีที่ตรงกับคำค้นหา</div>`;
+}
+
+/* Renaming someone only ever touches this one row in accounts — entries/profiles are linked by employee_id and
+   always resolve the CURRENT name live (see nameForEmployee), so their whole history follows the correction
+   automatically on the next reload. No other table needs to change. */
+async function adminEditAccount(employeeId){
+  const acc = accounts[employeeId];
+  if(!acc) return;
+  const first = prompt(`ชื่อ (รหัสพนักงาน ${employeeId})`, acc.firstName);
+  if(first===null) return;
+  const last = prompt('นามสกุล', acc.lastName);
+  if(last===null) return;
+  const dept = prompt('หน่วยงานเพิ่มเติม (เว้นว่างได้)', acc.department||'');
+  if(dept===null) return;
+  const officeList = OFFICES.map((o,i)=>`${i+1}. ${o}`).join('\n');
+  const curIdx = OFFICES.indexOf(acc.office);
+  const officeAns = prompt(`สังกัด — พิมพ์หมายเลข:\n${officeList}`, curIdx>=0 ? String(curIdx+1) : '1');
+  if(officeAns===null) return;
+  const officeIdx = parseInt(officeAns,10)-1;
+  const office = OFFICES[officeIdx];
+  if(!office){ alert('เลือกสังกัดไม่ถูกต้อง — พิมพ์แค่หมายเลขจากรายการ'); return; }
+
+  const firstName = first.trim(), lastName = last.trim(), department = dept.trim();
+  if(!firstName || !lastName){ alert('ชื่อและนามสกุลห้ามเว้นว่าง'); return; }
+  if(firstName.length>60 || lastName.length>60 || department.length>80){ alert('ชื่อ/นามสกุล/หน่วยงานยาวเกินไป'); return; }
+  if(/[<>]/.test(firstName+lastName+department)){ alert('ชื่อและหน่วยงานห้ามมีเครื่องหมาย < >'); return; }
+  const sameName = Object.values(accounts).find(a=>a.employeeId!==employeeId && a.firstName===firstName && a.lastName===lastName);
+  if(sameName){ alert(`มีสมาชิกชื่อ-นามสกุลนี้อยู่แล้ว (รหัส ${sameName.employeeId}) — ตั้งชื่อซ้ำกันไม่ได้ เพราะระบบใช้ชื่อ-นามสกุลรวมสถิติ`); return; }
+
+  const prevFirst=acc.firstName, prevLast=acc.lastName, prevDept=acc.department, prevOffice=acc.office;
+  Object.assign(acc, {firstName, lastName, department, office});
+  markAccountDirty(employeeId);
+  const saved = await saveAccounts();
+  if(!saved){
+    Object.assign(acc, {firstName:prevFirst, lastName:prevLast, department:prevDept, office:prevOffice});
+    alert('บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งครับ (ยังไม่มีการเปลี่ยนแปลง)');
+    return;
+  }
+  // pull everything fresh so entries/profiles/leaderboards immediately show the corrected name
+  await Promise.all([loadEntries(), loadProfiles(), loadAccounts()]);
+  syncCurrentUser();
+  adminAccountsRender();
+  render();
+  alert('แก้ไขข้อมูลเรียบร้อยแล้ว — ประวัติเดิมทั้งหมดจะแสดงชื่อใหม่ให้อัตโนมัติ');
 }
 
 async function adminResetPassword(employeeId){
@@ -4258,7 +4479,7 @@ async function saveSeasonClose(){
 async function saveThresholds(){
   const r = parseFloat(document.getElementById('admin-th-ride').value);
   const n = parseFloat(document.getElementById('admin-th-run').value);
-  if(!r || !n || r<=0 || n<=0){ alert('กรอกตัวเลขให้ถูกต้องทั้งสองช่อง'); return; }
+  if(!r || !n || r<=0 || n<=0 || r>1000 || n>1000){ alert('กรอกตัวเลขระหว่าง 0-1000 กม./วัน ทั้งสองช่อง'); return; }
   appSettings.thresholdRide = r; appSettings.thresholdRun = n;
   const saved = await saveSettings();
   if(!saved){ alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
@@ -4651,14 +4872,14 @@ function render(){
   }
   const monday = getMonday(new Date());
   const sunday = new Date(monday); sunday.setDate(monday.getDate()+6); sunday.setHours(23,59,59,999);
+  const mondayKey = localDateKey(monday), sundayKey = localDateKey(sunday);
   document.getElementById('week-range-label').textContent =
     `${monday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})}`;
 
   function weekBoard(type){
     const map = {};
     approved.filter(e=>e.type===type).forEach(e=>{
-      const d = new Date(e.date);
-      if(d>=monday && d<=sunday){
+      if(e.date>=mondayKey && e.date<=sundayKey){
         if(!map[e.name]) map[e.name] = {name:e.name, office:e.office, total:0};
         map[e.name].total += e.distanceKm;
       }
@@ -4774,10 +4995,11 @@ document.addEventListener('visibilitychange', async ()=>{
   if(busy) return;
   _lastLoad = Date.now();
   window._loadError = false;
-  await Promise.all([loadEntries(), loadProfiles(), loadAccounts(), loadSettings()]);
+  await loadAccounts();
+  await Promise.all([loadEntries(), loadProfiles(), loadSettings()]);
   syncCurrentUser(); render();
 });
-Promise.all([loadEntries(), loadProfiles(), loadAccounts(), loadSettings(), loadDecisionLog()])
+loadAccounts().then(()=> Promise.all([loadEntries(), loadProfiles(), loadSettings(), loadDecisionLog()]))
   .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); })
   .catch(err=>{
     console.error('initial load failed', err);
