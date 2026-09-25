@@ -752,6 +752,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(c && !DEV_TOOLS) c.style.display = 'none';
 });
 
+// เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
+const BUILD_STAMP = '2026-09-25-01';
+console.log('PEADAL LEGEND build', BUILD_STAMP);
+
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
 const ADMIN_CODE = 'pea2026';
 const SUPABASE_URL      = 'https://fvjwaazckehsouqnsyqs.supabase.co';
@@ -952,7 +956,7 @@ async function loadEntries(){
   try{
     const data = await fetchAll('entries', '*', 'submitted_at', false, 'id');
     entries = (data||[]).map(r=>({
-      id:r.id, employeeId:r.employee_id||null, name: nameForEmployee(r.employee_id, r.name), office:r.office, type:r.type,
+      id:r.id, employeeId:r.employee_id||null, durationMin:r.duration_min||null, name: nameForEmployee(r.employee_id, r.name), office:r.office, type:r.type,
       distanceKm:r.distance_km, date:r.date, status:r.status,
       flags:r.flags||[], communityFlags:r.community_flags||[],
       note:r.note||'', aiRead:r.ai_read||null,
@@ -981,7 +985,7 @@ async function persist(){
     const e = entries.find(x=>x.id===id);
     if(!e) return null;
     return {
-      id:e.id, employee_id:e.employeeId||null, name:e.name, office:e.office, type:e.type,
+      id:e.id, employee_id:e.employeeId||null, duration_min:e.durationMin||null, name:e.name, office:e.office, type:e.type,
       distance_km:e.distanceKm, date:e.date, status:e.status,
       flags:e.flags, community_flags:e.communityFlags,
       note:e.note||null, ai_read:e.aiRead||null,
@@ -1538,6 +1542,7 @@ function toggleAdmin(){
   }
   const btn = document.getElementById('admin-toggle');
   btn.textContent = 'โหมดแอดมิน: ' + (adminMode?'เปิด':'ปิด');
+  btn.title = 'build ' + BUILD_STAMP;
   btn.classList.toggle('on', adminMode);
   document.getElementById('nav-admin').style.display = adminMode ? 'block' : 'none';
   render();
@@ -1700,6 +1705,7 @@ function ocrDistanceCandidates(text){
     else if(/[.,]\d$/.test(raw)) score += 1;
     if(/(ระยะทาง|distance)/i.test(t.slice(Math.max(0,m.index-40), m.index)) || /^\s*\.?\s*(ระยะทาง|distance)/i.test(after)) score += 4;
     if(!hasUnit && !/[.,]\d/.test(raw)) continue;                                      // bare integers are too ambiguous
+    if(/[.,]\d{3}$/.test(raw)) score -= 8;               // 3 decimal digits (e.g. "45.671") — no app shows km to that precision; almost always a stray extra digit from OCR
     out.push(Object.assign({value:raw, num:val, score, idx:m.index, bare:!hasUnit}, ocrCheckRisky(t, m.index)));
   }
   return {list:out, text:t};
@@ -1785,6 +1791,10 @@ function ocrIso(y,mo,d){
   if(dt.getFullYear()!==y || dt.getMonth()!==mo-1 || dt.getDate()!==d) return null;
   return localDateKey(dt);
 }
+const OCR_TH_MONTHS_FULL = [   // full spelled-out month names (Apple Health/Fitness and others show these, not
+  // abbreviations). Checked before the abbreviated list since a full-word match is far less ambiguous.
+  [1,'มกราคม'],[2,'กุมภาพันธ์'],[3,'มีนาคม'],[4,'เมษายน'],[5,'พฤษภาคม'],[6,'มิถุนายน'],
+  [7,'กรกฎาคม'],[8,'สิงหาคม'],[9,'กันยายน'],[10,'ตุลาคม'],[11,'พฤศจิกายน'],[12,'ธันวาคม']];
 const OCR_TH_MONTHS = [   // order matters: มี.ค. (Mar) before ม.ค. (Jan)
   [3,'มี[.\\s]{0,3}ค'],[1,'ม[.\\s]{0,3}ค'],[2,'ก[.\\s]{0,3}พ'],[4,'เม[.\\s]{0,3}ย'],[5,'พ[.\\s]{0,3}ค'],[6,'มิ[.\\s]{0,3}ย'],
   [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'[กค][\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
@@ -1800,15 +1810,23 @@ function ocrExtractDate(text, refMs){
     return iso;
   };
   let m;
-  // 1) ISO
+  // 1) ISO (2-digit month/day, zero-padded — "2026-09-23")
   if((m = t.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/))){ const r = ocrIso(+m[1],+m[2],+m[3]); if(r) return r; }
+  // 1b) year-first, month/day NOT zero-padded, slash or dash separated — "2026/9/23" (seen on some cycling-computer
+  //      apps' Thai-locale display). A 4-digit leading number makes this unambiguous vs. the day-first case below.
+  if((m = t.match(/\b(20\d{2})[\/\-|](\d{1,2})[\/\-|](\d{1,2})\b/))){ const r = ocrIso(+m[1],+m[2],+m[3]); if(r) return r; }
   // 2) d/m/y (day first, Thai convention), Buddhist or Christian year
   if((m = t.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})\b/))){
     const r = fixYear(m[3], +m[2], +m[1]); if(r) return r;
   }
-  // 3) Thai month names, year optional
+  // 3) Thai full month names ("23 กันยายน 2569"), year optional
+  for(const [mo,name] of OCR_TH_MONTHS_FULL){
+    const re = new RegExp('(?<![\\d.])(\\d{1,2})\\s*'+name+'\\.?(?:\\s*(\\d{4}|\\d{2})(?![\\d:.,/]))?');
+    if((m = t.match(re))){ const r = fixYear(m[2]||null, mo, +m[1]); if(r) return r; }
+  }
+  // 3b) Thai abbreviated month names, year optional
   for(const [mo,pat] of OCR_TH_MONTHS){
-    const re = new RegExp('(\\d{1,2})\\s*'+pat+'\\.?(?:\\s*(\\d{4}|\\d{2})(?![\\d:.,/]))?');
+    const re = new RegExp('(?<![\\d.])(\\d{1,2})\\s*'+pat+'\\.?(?:\\s*(\\d{4}|\\d{2})(?![\\d:.,/]))?');
     if((m = t.match(re))){ const r = fixYear(m[2]||null, mo, +m[1]); if(r) return r; }
   }
   // 4) English months: "Sep 20, 2026" / "20 Sep 2026" / "Sep 20"
@@ -1833,8 +1851,12 @@ function ocrCropTop(dataUrl, frac){
     const img = new Image();
     img.onload = ()=>{
       const h = Math.max(1, Math.round(img.height*frac));
-      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = h;
-      cv.getContext('2d').drawImage(img, 0,0,img.width,h, 0,0,img.width,h);
+      // upscale a bit — a header this size (date/distance text) reads noticeably cleaner to Tesseract at higher
+      // resolution than the raw screenshot pixels (verified: a real "23 กันยายน 2569" only came out clean once
+      // enlarged; at native size it was mangled into partly-Latin garbage the date parser couldn't recover from)
+      const scale = img.width < 1400 ? 1.6 : 1;
+      const cv = document.createElement('canvas'); cv.width = Math.round(img.width*scale); cv.height = Math.round(h*scale);
+      cv.getContext('2d').drawImage(img, 0,0,img.width,h, 0,0,cv.width,cv.height);
       resolve(cv.toDataURL('image/png'));
     };
     img.onerror = ()=>reject(new Error('crop failed'));
@@ -1878,7 +1900,7 @@ async function runAiRead(dataUrl, refMs){
 
   try{
     const processedUrl = await ocrPreprocess(dataUrl);
-    const topUrl = await ocrCropTop(dataUrl, 0.26).catch(()=>null);
+    const topUrl = await ocrCropTop(dataUrl, 0.42).catch(()=>null);   // widened from 0.26 — some apps (Apple Fitness) put the date well below a quarter of the way down
 
     // Two passes: the whole page, and just its top slice on its own. A screenshot's headline distance sits in a
     // banner block (often with an icon/photo mixed in) that whole-page layout analysis sometimes drops entirely
@@ -1886,10 +1908,11 @@ async function runAiRead(dataUrl, refMs){
     // pass anymore: it ran on the whole page as one text line and could overwrite a correct distance with garbage.)
     const [main, top] = await Promise.all([
       Tesseract.recognize(processedUrl,'eng+tha',{tessedit_pageseg_mode:'11'}),
-      topUrl ? Tesseract.recognize(topUrl,'eng+tha',{tessedit_pageseg_mode:'11'}).catch(()=>null) : null
+      topUrl ? Tesseract.recognize(topUrl,'eng+tha',{tessedit_pageseg_mode:'4'}).catch(()=>null) : null   // psm 4 (not 11): verified it reads a mixed big-headline+small-text block far more reliably than sparse-text mode on real screenshots
     ]);
     const data = main.data;
     const rawText = (data.text||'') + (top && top.data && top.data.text ? '\n'+top.data.text : '');
+    window.__lastRawText = rawText;   // debug hook
     const distResult = ocrExtractDistance(rawText);
 
     const actDate = ocrExtractDate(rawText, refMs);
@@ -1929,6 +1952,7 @@ async function runAiRead(dataUrl, refMs){
     pendingAiRead = {
       distance_km: distResult.value ? parseFloat(distResult.value) : null,
       activity_date: actDate||null,                 // always YYYY-MM-DD or null
+      durationMin: duration ? Math.round(ocrParseMinSec(duration)*10)/10 : null,
       confidence: overallConf>80 ? 'high' : overallConf>50 ? 'medium' : 'low',
       note: warnings.join(' · ')||'',
       risky: distResult.risky,
@@ -2018,7 +2042,7 @@ async function _submitEntryInner(){
   if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
 
   // likely double-submit of the same activity (same person, type, day and ~same distance)
-  const dupe = entries.find(x=>x.name===name && x.type===subType && x.date===date && x.status!=='rejected' && Math.abs(x.distanceKm-dist)<0.1);
+  const dupe = entries.find(x=>(x.employeeId ? x.employeeId===currentUser.employeeId : x.name===name) && x.type===subType && x.date===date && x.status!=='rejected' && Math.abs(x.distanceKm-dist)<0.1);
   if(dupe) flags.push('อาจส่งซ้ำ — มีรายการวันเดียวกัน ประเภทเดียวกัน ระยะใกล้เคียงกันอยู่แล้ว');
 
   // anomaly thresholds (adjustable by admin)
@@ -2036,6 +2060,7 @@ async function _submitEntryInner(){
   entries.push({
     id: entryId,
     employeeId: currentUser.employeeId,
+    durationMin: pendingAiRead.durationMin || null,
     name, office, type: subType, date,
     distanceKm: dist,
     note, consent: true,
@@ -3243,7 +3268,12 @@ let shareState = null;
 function openShareCard(entryId){
   const e = entries.find(x=>x.id===entryId);
   if(!e) return;
-  shareState = { entry:e, photo:null, showStats:false, sx:0.15, sy:0.62, scale:0.70, tpl:1, durMin:'', weight:'' };
+  // pre-fill body weight from what was entered at registration/profile edit — one less thing to retype, and the
+  // calorie estimate is more useful accurate by default than starting from a blank field
+  const acc = currentUser ? accounts[currentUser.employeeId] : null;
+  const prefillWeight = (acc && acc.weight) ? acc.weight : '';
+  const prefillDur = e.durationMin || '';   // only present for entries submitted after duration-tracking was added
+  shareState = { entry:e, photo:null, showStats:false, sx:0.15, sy:0.62, scale:0.70, tpl:1, durMin: prefillDur||0, weight: prefillWeight||0 };
 
   const c = document.getElementById('share-content');
   c.innerHTML = `
@@ -3255,8 +3285,8 @@ function openShareCard(entryId){
     <div class="creator-section-title" style="padding-top:0;">${e.type==='ride'?'🚴 Cycling':'🏃 Running'} · ${e.distanceKm.toFixed(1)} km · ${esc(e.date)}</div>
     <div class="creator-color-section" style="padding-top:0;">
       <div class="field-row">
-        <div class="field"><label>Duration (min) — optional, not saved</label><input type="number" id="sc-dur" placeholder="e.g. 72" oninput="scOnInput()"></div>
-        <div class="field"><label>Body weight (kg) — for calorie estimate</label><input type="number" id="sc-weight" placeholder="e.g. 65" oninput="scOnInput()"></div>
+        <div class="field"><label>Duration (min)${prefillDur?'':' — optional'}</label><input type="number" id="sc-dur" placeholder="e.g. 72" value="${prefillDur!==''?esc(String(prefillDur)):''}" oninput="scOnInput()"></div>
+        <div class="field"><label>Body weight (kg) — for calorie estimate</label><input type="number" id="sc-weight" placeholder="e.g. 65" value="${prefillWeight!==''?esc(String(prefillWeight)):''}" oninput="scOnInput()"></div>
       </div>
       <div class="note-small" style="text-align:left; margin-top:-6px;">Distance comes straight from the AI-read value on this entry and can't be edited here.</div>
     </div>
@@ -3312,23 +3342,57 @@ function scSetTpl(n){
   scDraw();
 }
 
+/* Loads a photo respecting its EXIF orientation tag, returning either the original <img> (orientation 1, the
+   common case, needs no work) or a <canvas> with the pixels already rotated/flipped the right way up. Downstream
+   code (scDraw's "cover" crop) just reads .width/.height and calls ctx.drawImage(), both of which work identically
+   on an <img> or a <canvas>, so nothing else needs to change. */
+function loadOrientedImage(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const finish = (orientation)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        if(!orientation || orientation===1){ URL.revokeObjectURL(url); resolve(img); return; }
+        const swapped = orientation>=5 && orientation<=8;
+        const cv = document.createElement('canvas');
+        cv.width = swapped ? img.height : img.width;
+        cv.height = swapped ? img.width : img.height;
+        const ctx = cv.getContext('2d');
+        switch(orientation){
+          case 2: ctx.transform(-1,0,0,1,cv.width,0); break;
+          case 3: ctx.transform(-1,0,0,-1,cv.width,cv.height); break;
+          case 4: ctx.transform(1,0,0,-1,0,cv.height); break;
+          case 5: ctx.transform(0,1,1,0,0,0); break;
+          case 6: ctx.transform(0,1,-1,0,cv.width,0); break;
+          case 7: ctx.transform(0,-1,-1,0,cv.width,cv.height); break;
+          case 8: ctx.transform(0,-1,1,0,0,cv.height); break;
+        }
+        ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        resolve(cv);
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('เปิดไฟล์รูปไม่ได้')); };
+      img.src = url;
+    };
+    try{
+      EXIF.getData(file, function(){ finish(EXIF.getTag(this,'Orientation')); });
+    }catch(e){ finish(1); }   // EXIF read failed (e.g. PNG with no EXIF at all) — just draw it as-is
+  });
+}
+
 function scHandlePhoto(e){
   const file = e.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ev=>{
-    const img = new Image();
-    img.onload = ()=>{
-      shareState.photo = img;
-      document.getElementById('sc-upload-box').style.display = 'none';
-      document.getElementById('sc-add-btn').style.display = 'block';
-      const dl = document.getElementById('sc-dl');
-      dl.style.opacity = '1'; dl.textContent = '📥 Download JPG';
-      scDraw();
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+  loadOrientedImage(file).then(img=>{
+    shareState.photo = img;
+    document.getElementById('sc-upload-box').style.display = 'none';
+    document.getElementById('sc-add-btn').style.display = 'block';
+    const dl = document.getElementById('sc-dl');
+    dl.style.opacity = '1'; dl.textContent = '📥 Download JPG';
+    scDraw();
+  }).catch(err=>{
+    alert('เปิดไฟล์รูปไม่ได้: '+(err.message||'error'));
+  });
 }
 
 function scAddStats(){
@@ -3385,7 +3449,13 @@ function scComputeStats(){
     } else {
       paceOrSpeed = `${(e.distanceKm/(s.durMin/60)).toFixed(1)} km/h`;
     }
-    const met = e.type==='run' ? 9.8 : 8.0;
+    const kmh = e.distanceKm / (s.durMin/60);
+    let met;
+    if(e.type==='run') met = kmh<8 ? 8.3 : kmh<9.7 ? 9.8 : kmh<11.3 ? 11.0 : kmh<12.9 ? 11.8 : kmh<14.5 ? 12.8 : 14.5;
+    // ride MET calibrated against members' real device readings (Garmin 35.95km/32km/h -> 579 kcal, Strava
+    // 100km/31km/h -> 1,821 kcal), NOT the textbook table — that assumes solo riding and came out ~2x too high
+    // here, since most of these rides are in groups (drafting). Scales gently with speed, tops out around 8.5.
+    else               met = kmh<16 ? 4.0 : kmh<19 ? 5.8 : kmh<22.5 ? 6.8 : kmh<25.7 ? 7.5 : kmh<30.6 ? 8.0 : 8.5;
     const w = s.weight || 65;
     calories = met * w * (s.durMin/60);
   }
@@ -3516,13 +3586,61 @@ function scDraw(){
   }
 }
 
-function scDownload(){
+/* Saving an image on mobile is far less reliable than it looks. The classic <a download> trick this used to rely
+   on entirely fails inside most in-app browsers (LINE, Messenger, Instagram, TikTok — exactly where people open a
+   link shared to them) — those webviews often block both the download attribute and window.open(). This tries, in
+   order: (1) the Web Share API, which hands off to the OS's own share sheet and its native "Save Image" action —
+   the most reliable path on a phone and works inside many in-app browsers too; (2) the old download-link trick,
+   harmless to also try; (3) always ALSO show a real <img> (not a canvas — canvases don't get the OS's native
+   long-press "Save Image" menu the way an <img> does) so a long-press works as a manual fallback no matter what
+   the first two methods did. */
+async function scDownload(){
   if(!shareState || !shareState.photo) return;
   const cv = document.getElementById('sc-canvas');
-  const a = document.createElement('a');
-  a.download = 'peadal-legend-share.jpg';
-  a.href = cv.toDataURL('image/jpeg', 0.92);
-  a.click();
+  const dataUrl = cv.toDataURL('image/jpeg', 0.92);
+
+  let shared = false;
+  try{
+    if(navigator.share && navigator.canShare){
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'peadal-legend-share.jpg', {type:'image/jpeg'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:'PEADAL LEGEND'});
+        shared = true;
+      }
+    }
+  }catch(e){ /* share sheet cancelled, or not supported here — fall through to the other methods below */ }
+
+  if(!shared){
+    try{
+      const a = document.createElement('a');
+      a.download = 'peadal-legend-share.jpg';
+      a.href = dataUrl;
+      document.body.appendChild(a); a.click(); a.remove();
+    }catch(e){}
+  }
+
+  scShowSaveFallback(dataUrl);
+}
+function scShowSaveFallback(dataUrl){
+  let m = document.getElementById('sc-save-fallback');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'sc-save-fallback';
+    m.style.cssText = 'position:fixed; inset:0; background:rgba(20,10,30,.92); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; gap:14px;';
+    m.onclick = (e)=>{ if(e.target===m) m.style.display='none'; };
+    m.innerHTML = `
+      <div style="color:#fff; text-align:center; font-size:14px; line-height:1.6; max-width:320px;">
+        ถ้าปุ่มดาวน์โหลดไม่ได้บันทึกรูปให้ (มักเกิดในแอปแชทอย่าง LINE/Messenger)<br>
+        <b>กดรูปด้านล่างค้างไว้ แล้วเลือก "บันทึกรูปภาพ"</b>
+      </div>
+      <img id="sc-save-fallback-img" style="max-width:90%; max-height:60vh; border-radius:14px; box-shadow:0 8px 30px rgba(0,0,0,.5);">
+      <button onclick="document.getElementById('sc-save-fallback').style.display='none';" style="margin-top:6px; padding:11px 28px; border-radius:11px; border:none; background:#fff; color:#231A2E; font-weight:700; font-size:14px;">ปิด</button>
+    `;
+    document.body.appendChild(m);
+  }
+  document.getElementById('sc-save-fallback-img').src = dataUrl;
+  m.style.display = 'flex';
 }
 if(document.fonts && document.fonts.load){
   document.fonts.load('400 30px "Bebas Neue"').catch(()=>{});
@@ -4202,7 +4320,14 @@ function openDetail(id){
     ${e.note ? `<div class="lb-sub" style="margin-top:4px;">โน้ต: ${esc(e.note)}</div>` : ''}
     ${e.flags && e.flags.length ? `<div class="queue-flags" style="margin-top:10px;">${e.flags.map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : ''}
     ${reports.length ? `<div class="report-list">${reports.map(r=>`<div class="report-item">🚩 ${esc(r.reason)}</div>`).join('')}</div>` : ''}
-    <button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>
+    ${adminMode ? `
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="qbtn" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="adminEditDistance('${escAttr(e.id)}')">✎ แก้ระยะ</button>
+        ${e.status!=='approved' ? `<button class="qbtn approve" style="flex:1;" onclick="decide('${escAttr(e.id)}','approved').then(()=>openDetail('${escAttr(e.id)}'))">✓ อนุมัติ</button>` : ''}
+        ${e.status!=='rejected' ? `<button class="qbtn reject" style="flex:1;" onclick="decide('${escAttr(e.id)}','rejected').then(()=>openDetail('${escAttr(e.id)}'))">✕ ปฏิเสธ</button>` : ''}
+      </div>` : ''}
+    ${(currentUser && e.employeeId && e.employeeId===currentUser.employeeId) ? '' :
+      `<button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>`}
   `;
   document.getElementById('detail-modal').classList.add('open');
   hydratePhotos();
@@ -4220,6 +4345,7 @@ async function reportEntry(id){
   const myName = `${currentUser.firstName} ${currentUser.lastName}`;
   const e = entries.find(x=>x.id===id);
   if(!e) return;
+  if(e.employeeId && e.employeeId===currentUser.employeeId){ alert('แจ้งตรวจสอบรายการของตัวเองไม่ได้ครับ — ถ้าข้อมูลผิด ติดต่อแอดมินให้แก้ไข'); return; }
   if(e.communityFlags && e.communityFlags.some(r=>r.reporterName===myName)){
     alert('คุณแจ้งรายการนี้ไปแล้ว ระบบบันทึกไว้ให้แอดมินพิจารณาแล้วครับ');
     return;
@@ -4272,12 +4398,14 @@ async function adminEditDistance(id){
   }catch(err){ dbErr('adminEditDistance', err); alert('บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งครับ'); return; }
   e.distanceKm = n; e.flags = newFlags;
   render();
+  if(document.getElementById('detail-modal').classList.contains('open')) openDetail(id);
 }
 
 /* One tap on "อนุมัติ" used to approve a flagged entry instantly — including when the flag said the OCR'd
    distance looked wrong. This surfaces the flag text and makes the admin actively confirm before it goes through. */
 function confirmApproveWithFlags(flags){
-  if(!flags || !flags.length) return true;
+  flags = (flags||[]).filter(f=>!/^แอดมินแก้ระยะ/.test(f));
+  if(!flags.length) return true;
   return confirm('รายการนี้มีข้อสังเกตที่ยังไม่ได้แก้ไข:\n\n' + flags.map(f=>'• '+f).join('\n') +
     '\n\nยืนยันอนุมัติทั้งที่มีข้อสังเกตนี้หรือไม่?\n(ถ้าตัวเลขในรูปดูไม่ตรง ให้กด "✎ แก้ระยะ" ก่อน)');
 }
@@ -4313,7 +4441,7 @@ function adminSelectAll(checked){
 
 async function decideBulk(status){
   if(status==='approved'){
-    const flaggedCount = [...adminSelected].filter(id=>{ const e=entries.find(x=>x.id===id); return e && e.flags && e.flags.length; }).length;
+    const flaggedCount = [...adminSelected].filter(id=>{ const e=entries.find(x=>x.id===id); return e && (e.flags||[]).some(f=>!/^แอดมินแก้ระยะ/.test(f)); }).length;
     if(flaggedCount && !confirm(`มี ${flaggedCount} รายการที่ยังมีข้อสังเกตค้างอยู่ ยืนยันอนุมัติทั้งหมด (รวมรายการที่มีข้อสังเกต) หรือไม่?`)) return;
   }
   if(adminSelected.size===0){ alert('เลือกอย่างน้อย 1 รายการก่อนนะครับ'); return; }

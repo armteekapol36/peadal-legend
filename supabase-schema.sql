@@ -58,6 +58,7 @@ create table if not exists entries (
   ai_read        jsonb check (ai_read is null or (jsonb_typeof(ai_read) = 'object' and octet_length(ai_read::text) < 5000)),
   photo_url      text check (photo_url is null or (photo_url ~ '^https://' and char_length(photo_url) <= 500)),  -- Supabase Storage URL
   exif_date      date,           -- date read from the photo's EXIF (shown to admins when reviewing)
+  duration_min   numeric check (duration_min is null or (duration_min > 0 and duration_min <= 2880)),  -- moving/elapsed time read from the photo, when OCR finds one — used to pre-fill the Share Card's calorie estimate
   demo           boolean default false,
   submitted_at   timestamptz default now()
 );
