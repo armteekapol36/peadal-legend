@@ -78,6 +78,14 @@
   .page.active{display:block;}
 
   .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(127,63,152,.06); scroll-margin-top:76px;}
+  .rtl-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .rtl-grid-header{font-size:11px; color:var(--text-dim); text-align:center; margin-bottom:4px;}
+  .rtl-cell{position:relative; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:8px; background:var(--panel-2);}
+  .rtl-cell-empty{background:none;}
+  .rtl-cell-today{outline:2px solid var(--purple);}
+  .rtl-cell-sel{background:var(--purple-pale);}
+  .rtl-daynum{font-size:12px; font-weight:600;}
+  .rtl-dot{width:7px; height:7px; border-radius:50%; margin-top:2px;}
   .stat-grid{display:flex; gap:10px;}
   .stat{flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:10px;}
   .stat .k{font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; font-family:var(--mono);}
@@ -417,6 +425,7 @@
   </div>
 
   <!-- AGE RANKING (own challenge mode) -->
+  <div class="page" id="page-rtl"></div>
   <div class="page" id="page-age">
     <div class="card">
       <h2>🏅 Age Ranking</h2>
@@ -710,6 +719,7 @@
   <div class="nav-item" data-page="age" onclick="goPage('age')"><span class="ic">🏅</span>Age Ranking</div>
   <div class="nav-item" data-page="me" onclick="goPage('me')"><span class="ic">👤</span>Account</div>
   <div class="nav-item" data-page="rules" onclick="goPage('rules')"><span class="ic">📜</span>กติกา</div>
+  <div class="nav-item" data-page="rtl" onclick="goPage('rtl')"><span class="ic">🏆</span>Road to Legend</div>
   <div class="nav-item" id="nav-admin" data-page="admin" onclick="goPage('admin')" style="display:none;"><span class="ic">🛡️</span>ตรวจสอบ</div>
 </div>
 
@@ -738,7 +748,7 @@ function markProfileDirty(name){ if(!window._dirtyProfiles) window._dirtyProfile
 let boardExpanded = {};
 
 /* ===== app-wide settings: banner, season close date, flag thresholds ===== */
-let appSettings = { banner:'', seasonCloseDate:'', thresholdRide:150, thresholdRun:50 };
+let appSettings = { banner:'', seasonCloseDate:'', thresholdRide:150, thresholdRun:50, roadToLegend:{overrides:{}} };
 let decisionLog = [];
 
 /* =================================================================
@@ -753,7 +763,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-26-04';
+const BUILD_STAMP = '2026-09-26-05';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -810,6 +820,7 @@ async function loadSettings(){
       seasonCloseDate: data.season_close_date||'',
       thresholdRide: data.threshold_ride||150,
       thresholdRun: data.threshold_run||50,
+      roadToLegend: (data.road_to_legend && typeof data.road_to_legend==='object') ? data.road_to_legend : {overrides:{}},
     };
   }catch(e){ markLoadError('settings', e); }
 }
@@ -821,6 +832,7 @@ async function saveSettings(){
       season_close_date: appSettings.seasonCloseDate||null,
       threshold_ride: appSettings.thresholdRide,
       threshold_run: appSettings.thresholdRun,
+      road_to_legend: appSettings.roadToLegend || {overrides:{}},
     });
     return !error;
   }catch(e){ dbErr('saveSettings', e); return false; }
@@ -1401,6 +1413,161 @@ function backToMeProfile(){
   renderMeProfile();
 }
 
+/* ===== ROAD TO LEGEND: training calendar counting down to the club's big race ===== */
+const RTL_START = '2026-10-01';                    // training window begins
+const RTL_RACE = ['2027-02-24','2027-02-25'];       // PEA Games race days
+const RTL_TYPE_INFO = {
+  rest:   {label:'พักผ่อน',    emoji:'😴', color:'#B9B0C4'},
+  easy:   {label:'เบา',        emoji:'🟢', color:'#6FBF73'},
+  medium: {label:'ปานกลาง',    emoji:'🟡', color:'#E3B23C'},
+  hard:   {label:'หนัก',       emoji:'🟠', color:'#E3703C'},
+  long:   {label:'ระยะไกล',    emoji:'🔵', color:'#4C8BF5'},
+  race:   {label:'วันแข่ง',    emoji:'🏆', color:'#C9A227'},
+};
+const RTL_PHASE_LABEL = {base:'สร้างพื้นฐาน', build:'เพิ่มความหนัก', peak:'ช่วงพีค', taper:'ลดโหลดก่อนแข่ง'};
+// weekly templates, Sunday-first (index 0=Sun..6=Sat) to match the day labels used elsewhere in this app
+const RTL_BEG_TYPE = {base:["rest","rest","easy","rest","easy","rest","medium"], build:["rest","rest","easy","rest","easy","rest","long"], peak:["rest","rest","easy","easy","easy","rest","long"], taper:["rest","rest","easy","rest","easy","rest","medium"]};
+const RTL_BEG_KM   = {base:[0,0,15,0,15,0,25], build:[0,0,20,0,20,0,35], peak:[0,0,20,10,20,0,40], taper:[0,0,15,0,10,0,20]};
+const RTL_ATH_TYPE = {base:["easy","rest","medium","easy","medium","rest","long"], build:["medium","rest","hard","easy","medium","easy","long"], peak:["easy","rest","hard","medium","easy","rest","long"], taper:["easy","rest","easy","rest","medium","rest","medium"]};
+const RTL_ATH_KM   = {base:[30,0,30,20,30,0,60], build:[40,0,40,25,40,15,80], peak:[20,0,40,30,20,0,100], taper:[15,0,25,0,20,0,40]};
+const RTL_ACTION_LABEL = {easy:'ปั่น/วิ่งจังหวะสบาย', medium:'ซ้อมจังหวะปานกลาง (tempo)', hard:'ซ้อมหนัก/อินเทอร์วัล', long:'ซ้อมระยะไกล'};
+
+function rtlWeekPhase(dateStr){
+  const start = new Date(RTL_START+'T00:00:00');
+  const d = new Date(dateStr+'T00:00:00');
+  const days = Math.round((d-start)/86400000);
+  const week = Math.floor(days/7)+1;
+  const phase = week<=10 ? 'base' : week<=16 ? 'build' : week<=18 ? 'peak' : 'taper';
+  return {week, phase, weekday: d.getDay()};
+}
+function rtlDefaultPlan(level, dateStr){
+  if(RTL_RACE.includes(dateStr)) return {type:'race', note:`วันแข่งขัน PEA Games 2570 (วันที่ ${RTL_RACE.indexOf(dateStr)+1})`};
+  if(dateStr < RTL_START || dateStr > RTL_RACE[1]) return null;   // outside the training window entirely
+  const {phase, weekday} = rtlWeekPhase(dateStr);
+  const typeTbl = level==='athlete' ? RTL_ATH_TYPE : RTL_BEG_TYPE;
+  const kmTbl   = level==='athlete' ? RTL_ATH_KM   : RTL_BEG_KM;
+  const type = typeTbl[phase][weekday], km = kmTbl[phase][weekday];
+  const note = type==='rest' ? 'พักผ่อน หรือยืดเหยียดเบาๆ' : `${RTL_ACTION_LABEL[type]} ${km} กม.`;
+  return {type, note};
+}
+function rtlPlanFor(level, dateStr){
+  const key = level+'|'+dateStr;
+  const ov = appSettings.roadToLegend && appSettings.roadToLegend.overrides ? appSettings.roadToLegend.overrides[key] : null;
+  return ov || rtlDefaultPlan(level, dateStr);
+}
+let rtlState = { level:'beginner', viewYear:2026, viewMonth:9, selected:null };   // viewMonth 0-indexed; Oct=9
+
+function rtlSetLevel(lvl){ rtlState.level = lvl; rtlState.selected = null; renderRTL(); }
+function rtlGoMonth(delta){
+  rtlState.viewMonth += delta;
+  if(rtlState.viewMonth<0){ rtlState.viewMonth=11; rtlState.viewYear--; }
+  if(rtlState.viewMonth>11){ rtlState.viewMonth=0; rtlState.viewYear++; }
+  rtlState.selected = null;
+  renderRTL();
+}
+function rtlSelectDay(dateStr){ rtlState.selected = (rtlState.selected===dateStr) ? null : dateStr; renderRTL(); }
+async function rtlSaveEdit(dateStr){
+  const type = document.getElementById('rtl-edit-type').value;
+  const note = document.getElementById('rtl-edit-note').value.trim().slice(0,200);
+  if(!note){ alert('กรอกรายละเอียดก่อนบันทึกครับ'); return; }
+  appSettings.roadToLegend = appSettings.roadToLegend || {overrides:{}};
+  appSettings.roadToLegend.overrides = appSettings.roadToLegend.overrides || {};
+  const key = rtlState.level+'|'+dateStr;
+  const prev = appSettings.roadToLegend.overrides[key];
+  appSettings.roadToLegend.overrides[key] = {type, note};
+  const ok = await saveSettings();
+  if(!ok){
+    if(prev) appSettings.roadToLegend.overrides[key] = prev; else delete appSettings.roadToLegend.overrides[key];
+    alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return;
+  }
+  renderRTL();
+}
+async function rtlResetDay(dateStr){
+  if(!appSettings.roadToLegend || !appSettings.roadToLegend.overrides) return;
+  const key = rtlState.level+'|'+dateStr;
+  const prev = appSettings.roadToLegend.overrides[key];
+  if(!prev) return;
+  delete appSettings.roadToLegend.overrides[key];
+  const ok = await saveSettings();
+  if(!ok){ appSettings.roadToLegend.overrides[key] = prev; alert('ลบไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+  renderRTL();
+}
+function renderRTL(){
+  const el = document.getElementById('page-rtl'); if(!el) return;
+  const today = localDateKey(new Date());
+  const raceStart = new Date(RTL_RACE[0]+'T00:00:00');
+  const daysLeft = Math.ceil((raceStart - new Date(today+'T00:00:00'))/86400000);
+  const countdown = daysLeft>0 ? `เหลืออีก ${daysLeft} วัน ถึงวันแข่ง` : (daysLeft>=-1 ? 'วันแข่งขัน! สู้ๆ 🏆' : 'จบการแข่งขันแล้ว');
+
+  const y=rtlState.viewYear, m=rtlState.viewMonth;
+  const first = new Date(y,m,1); const startWeekday = first.getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+  let cells = '';
+  for(let i=0;i<startWeekday;i++) cells += `<div class="rtl-cell rtl-cell-empty"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const plan = rtlPlanFor(rtlState.level, dateStr);
+    const info = plan ? RTL_TYPE_INFO[plan.type] : null;
+    const isToday = dateStr===today;
+    const isSel = dateStr===rtlState.selected;
+    cells += `<div class="rtl-cell${isToday?' rtl-cell-today':''}${isSel?' rtl-cell-sel':''}" ${plan?`onclick="rtlSelectDay('${dateStr}')"`:''} style="${plan?'cursor:pointer;':'opacity:.35;'}">
+      <div class="rtl-daynum">${day}</div>
+      ${info ? `<div class="rtl-dot" style="background:${info.color};" title="${esc(info.label)}"></div>` : ''}
+    </div>`;
+  }
+
+  let detail = '';
+  if(rtlState.selected){
+    const plan = rtlPlanFor(rtlState.level, rtlState.selected);
+    const info = plan ? RTL_TYPE_INFO[plan.type] : null;
+    const {week, phase} = rtlWeekPhase(rtlState.selected);
+    const isOverride = appSettings.roadToLegend && appSettings.roadToLegend.overrides && appSettings.roadToLegend.overrides[rtlState.level+'|'+rtlState.selected];
+    detail = `<div class="card" style="border-color:${info?info.color:'var(--line)'};">
+      <div class="eyebrow"><span>${esc(rtlState.selected)}${plan && plan.type!=='race' ? ' · สัปดาห์ที่ '+week+' ('+esc(RTL_PHASE_LABEL[phase])+')' : ''}</span>
+        <span class="link-small" style="cursor:pointer;" onclick="rtlSelectDay('${rtlState.selected}')">ปิด ✕</span></div>
+      ${plan ? `<div style="font-size:15px; font-weight:700; margin-bottom:4px;">${info.emoji} ${esc(info.label)}</div>
+      <div style="color:var(--text-dim); margin-bottom:${adminMode?'12px':'0'};">${esc(plan.note)}</div>` : '<div style="color:var(--text-dim);">ยังไม่มีแผนสำหรับวันนี้</div>'}
+      ${adminMode ? `
+        <div style="border-top:1px solid var(--line); padding-top:10px; margin-top:4px;">
+          <div class="field"><label>ประเภทวันนี้ (${esc(rtlState.level==='athlete'?'นักกีฬา':'มือใหม่')})</label>
+            <select id="rtl-edit-type">${Object.keys(RTL_TYPE_INFO).filter(t=>t!=='race').map(t=>`<option value="${t}" ${plan&&plan.type===t?'selected':''}>${RTL_TYPE_INFO[t].emoji} ${RTL_TYPE_INFO[t].label}</option>`).join('')}</select></div>
+          <div class="field"><label>รายละเอียด</label><textarea id="rtl-edit-note" rows="2" maxlength="200" style="width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; font-family:var(--sans); font-size:14px;">${esc(plan?plan.note:'')}</textarea></div>
+          <div style="display:flex; gap:8px;">
+            <button class="qbtn approve" style="flex:1;" onclick="rtlSaveEdit('${rtlState.selected}')">💾 บันทึก</button>
+            ${isOverride ? `<button class="qbtn reject" style="flex:0 0 auto; padding:8px 14px;" onclick="rtlResetDay('${rtlState.selected}')">↺ ค่าเริ่มต้น</button>` : ''}
+          </div>
+        </div>` : ''}
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="card" style="text-align:center; background:linear-gradient(135deg, var(--purple), var(--purple-dk)); color:#fff; border:none;">
+      <div style="font-size:12px; opacity:.85; letter-spacing:.08em;">🏆 ROAD TO LEGEND · PEA GAMES 2570</div>
+      <div style="font-size:20px; font-weight:800; margin-top:4px;">${countdown}</div>
+      <div style="font-size:12px; opacity:.8; margin-top:2px;">24-25 ก.พ. 2570</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="qbtn ${rtlState.level==='beginner'?'approve':''}" style="flex:1; ${rtlState.level!=='beginner'?'background:var(--panel-2); color:var(--text);':''}" onclick="rtlSetLevel('beginner')">🔰 มือใหม่</button>
+        <button class="qbtn ${rtlState.level==='athlete'?'approve':''}" style="flex:1; ${rtlState.level!=='athlete'?'background:var(--panel-2); color:var(--text);':''}" onclick="rtlSetLevel('athlete')">🏅 นักกีฬา</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <span class="link-small" style="cursor:pointer; font-size:18px;" onclick="rtlGoMonth(-1)">‹</span>
+        <b>${monthNames[m]} ${y+543}</b>
+        <span class="link-small" style="cursor:pointer; font-size:18px;" onclick="rtlGoMonth(1)">›</span>
+      </div>
+      <div class="rtl-grid rtl-grid-header">${['อา','จ','อ','พ','พฤ','ศ','ส'].map(d=>`<div>${d}</div>`).join('')}</div>
+      <div class="rtl-grid">${cells}</div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; font-size:11px; color:var(--text-dim);">
+        ${Object.entries(RTL_TYPE_INFO).map(([k,v])=>`<span><span class="rtl-dot" style="background:${v.color}; display:inline-block; vertical-align:middle;"></span> ${v.label}</span>`).join('')}
+      </div>
+    </div>
+    ${detail}
+  `;
+}
+
 function goPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
@@ -1411,6 +1578,7 @@ function goPage(p){
     renderMeProfile();
     renderSearch();
   }
+  if(p==='rtl') renderRTL();
 }
 
 function renderSearch(){

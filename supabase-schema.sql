@@ -71,6 +71,8 @@ create table if not exists app_settings (
   season_close_date   date,
   threshold_ride      numeric default 150 check (threshold_ride > 0 and threshold_ride <= 1000),
   threshold_run       numeric default 50  check (threshold_run  > 0 and threshold_run  <= 1000),
+  road_to_legend      jsonb not null default '{}'::jsonb
+    check (jsonb_typeof(road_to_legend) = 'object' and octet_length(road_to_legend::text) < 200000),  -- "Road to Legend" training-calendar day overrides (admin-edited days only — the default weekly template lives in the app, not the DB)
   constraint only_one_row check (id = 1)
 );
 insert into app_settings (id) values (1) on conflict do nothing;
