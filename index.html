@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-25-02';
+const BUILD_STAMP = '2026-09-26-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1745,7 +1745,13 @@ function ocrExtractDistance(text){
   if(!list.length) return {value:null, risky:false, riskyWord:null};
   list.sort((a,b)=> b.score-a.score || b.num-a.num);
   const best = list[0];
-  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, candidates:list.length, unitUnconfirmed};
+  // A single day's cycling/running distance this large is exceptionally rare — real case that motivated this: a
+  // 3-column stat row ("Distance | Elevation gain | Time") got merged by OCR into one jumbled line, and "54.40"
+  // came out as "564.40". Nothing about that number LOOKS malformed (clean 2-decimal, has a unit) so none of the
+  // existing checks catch it. Flag anything this large that isn't independently confirmed by the duration×speed
+  // cross-check, rather than silently accepting a number this consequential on faith.
+  const implausible = best.num>300 && !best.consistent && !best.risky;
+  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, implausible, candidates:list.length, unitUnconfirmed};
 }
 
 /* rides show a duration and an average speed — distance ≈ hours × km/h. Independent check on the OCR'd distance. */
@@ -1944,6 +1950,7 @@ async function runAiRead(dataUrl, refMs){
     const overallConf = data.confidence;
     const warnings = [];
     if(distResult.risky) warnings.push(`ใกล้คำว่า "${distResult.riskyWord}" อาจเป็นสถิติสะสม ไม่ใช่ทริปนี้`);
+    if(distResult.implausible) warnings.push('ระยะทางเกิน 300 กม./ครั้ง และไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ (อาจเป็นตัวเลขที่ OCR อ่านตัวเลขหลายค่าปนกัน)');
     if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
     if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
         ? `ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป (คำนวณได้ประมาณ ${crossCheck.expected} กม.) — อาจอ่านผิด`
@@ -1956,6 +1963,7 @@ async function runAiRead(dataUrl, refMs){
       confidence: overallConf>80 ? 'high' : overallConf>50 ? 'medium' : 'low',
       note: warnings.join(' · ')||'',
       risky: distResult.risky,
+      implausibleDistance: !!distResult.implausible,
       unitUnconfirmed: !!distResult.unitUnconfirmed,
       suggestedDistance: (crossCheck && !crossCheck.ok && crossCheck.expected) ? parseFloat(crossCheck.expected) : null,
       crossCheckFailed: crossCheck ? !crossCheck.ok : false,
@@ -2037,6 +2045,7 @@ async function _submitEntryInner(){
   if(!dateEv.ok) dateEv.reasons.forEach(r=>flags.push(r));
 
   if(pendingAiRead.risky) flags.push('AI: ตัวเลขอยู่ใกล้ข้อความที่อาจเป็นสถิติสะสม — ' + (pendingAiRead.note||'ตรวจสอบระยะทาง'));
+  if(pendingAiRead.implausibleDistance) flags.push('AI: ระยะทางเกิน 300 กม./ครั้ง ไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ');
   else if(pendingAiRead.crossCheckFailed) flags.push('AI: ' + (pendingAiRead.note||'ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป'));
   if(pendingAiRead.confidence==='low') flags.push('AI อ่านรูปด้วยความมั่นใจต่ำ');
   if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
