@@ -289,3 +289,61 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 create policy "evidence_read" on storage.objects for select using (bucket_id = 'evidence');
 create policy "evidence_insert" on storage.objects for insert
   with check (bucket_id = 'evidence' and name ~ '^evidence/[A-Za-z0-9_-]+\.(jpg|png)$');
+create policy "evidence_delete" on storage.objects for delete using (bucket_id = 'evidence');  -- lets the 45-day evidence-photo cleanup remove old files
+
+-- =================================================================
+-- Feed: posts (photo-only, no caption), likes, and comments. Same open RLS
+-- posture as the rest of this pre-Auth-migration project (see the note on
+-- entries/accounts above re: auth.uid()).
+-- =================================================================
+create table if not exists posts (
+  id            text primary key check (char_length(id) between 1 and 80),
+  employee_id   text not null references accounts(employee_id),
+  name          text not null check (char_length(name) between 1 and 121),
+  photo_url     text not null check (photo_url ~ '^https://'),
+  created_at    timestamptz not null default now()
+);
+create index if not exists posts_created_idx on posts (created_at desc);
+create index if not exists posts_employee_idx on posts (employee_id);
+
+create table if not exists post_likes (
+  post_id       text not null references posts(id) on delete cascade,
+  employee_id   text not null references accounts(employee_id),
+  created_at    timestamptz not null default now(),
+  primary key (post_id, employee_id)
+);
+
+create table if not exists post_comments (
+  id            text primary key check (char_length(id) between 1 and 80),
+  post_id       text not null references posts(id) on delete cascade,
+  employee_id   text not null references accounts(employee_id),
+  name          text not null check (char_length(name) between 1 and 121),
+  text          text not null check (char_length(text) between 1 and 200),
+  created_at    timestamptz not null default now()
+);
+create index if not exists post_comments_post_idx on post_comments (post_id);
+
+alter table posts enable row level security;
+alter table post_likes enable row level security;
+alter table post_comments enable row level security;
+
+create policy "posts_read" on posts for select using (true);
+create policy "posts_insert" on posts for insert with check (true);
+create policy "posts_delete" on posts for delete using (true);
+create policy "post_likes_read" on post_likes for select using (true);
+create policy "post_likes_insert" on post_likes for insert with check (true);
+create policy "post_likes_delete" on post_likes for delete using (true);
+create policy "post_comments_read" on post_comments for select using (true);
+create policy "post_comments_insert" on post_comments for insert with check (true);
+create policy "post_comments_delete" on post_comments for delete using (true);
+grant select, insert, delete on posts, post_likes, post_comments to anon, authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('posts', 'posts', true, 2097152, array['image/jpeg','image/png'])
+  on conflict (id) do update set public = true, file_size_limit = 2097152,
+                                 allowed_mime_types = array['image/jpeg','image/png'];
+create policy "posts_bucket_read" on storage.objects for select using (bucket_id = 'posts');
+create policy "posts_bucket_insert" on storage.objects for insert
+  with check (bucket_id = 'posts' and name ~ '^posts/[A-Za-z0-9_-]+\.(jpg|png)$');
+create policy "posts_bucket_delete" on storage.objects for delete using (bucket_id = 'posts');
+

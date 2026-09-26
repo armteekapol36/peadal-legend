@@ -351,7 +351,7 @@
   <div class="user-header" id="user-header" onclick="goPage('me')"></div>
 
   <!-- DASHBOARD -->
-  <div class="page active" id="page-dashboard">
+  <div class="page" id="page-dashboard">
     <div class="card" id="demo-card">
       <h2>ข้อมูลตัวอย่าง</h2>
       <div style="display:flex; gap:8px;">
@@ -426,6 +426,7 @@
 
   <!-- AGE RANKING (own challenge mode) -->
   <div class="page" id="page-rtl"></div>
+  <div class="page active" id="page-feed"></div>
   <div class="page" id="page-age">
     <div class="card">
       <h2>🏅 Age Ranking</h2>
@@ -558,6 +559,17 @@
               <li>ไม่เคยมีผลงานการแข่งขันบันทึกไว้ในโปรไฟล์มาก่อน</li>
             </ul>
           </li>
+        </ul>
+      </div>
+
+      <div class="rule-section">
+        <div class="rule-h"><span class="n">11</span>ฟีด — โพสต์รูปกิจกรรม ไลค์ และคอมเมนต์</div>
+        <ul class="rule-list">
+          <li>ทำรูปผ่าน "Share Card" แล้วกดปุ่ม "โพสต์ลงฟีด" — <b>รูปจะแสดงให้สมาชิกทุกคนทุกสังกัดเห็นในหน้าฟีด</b> ระบบจะขอให้ยืนยันทุกครั้งก่อนโพสต์จริง</li>
+          <li>สมาชิกทุกคนกดไลค์และแสดงความคิดเห็นใต้โพสต์ได้ ความคิดเห็นจำกัดไม่เกิน 200 ตัวอักษร</li>
+          <li>ลบโพสต์หรือความคิดเห็นของตัวเองได้ทุกเมื่อ แอดมินลบความคิดเห็นของใครก็ได้หากไม่เหมาะสม</li>
+          <li><b>รูปในฟีดจะถูกลบออกอัตโนมัติเมื่อครบ 30 วัน</b> (ทั้งโพสต์ รวมไลค์และความคิดเห็นทั้งหมดของโพสต์นั้น) เพื่อประหยัดพื้นที่จัดเก็บ</li>
+          <li><b>รูปหลักฐานการปั่น/วิ่งจะถูกลบออกเมื่อครบ 45 วันหลังอนุมัติ</b> เช่นกัน — แต่ลบเฉพาะตัวรูป ตัวเลขระยะทาง วันที่ EXP และประวัติทั้งหมดยังคงอยู่ครบ ไม่กระทบกระดานอันดับใดๆ</li>
         </ul>
       </div>
     </div>
@@ -715,7 +727,8 @@
 </div>
 
 <div class="nav">
-  <div class="nav-item active" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span>แดชบอร์ด</div>
+  <div class="nav-item active" data-page="feed" onclick="goPage('feed')"><span class="ic">🏠</span>ฟีด</div>
+  <div class="nav-item" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span>แดชบอร์ด</div>
   <div class="nav-item" data-page="age" onclick="goPage('age')"><span class="ic">🏅</span>Age Ranking</div>
   <div class="nav-item" data-page="me" onclick="goPage('me')"><span class="ic">👤</span>Account</div>
   <div class="nav-item" data-page="rules" onclick="goPage('rules')"><span class="ic">📜</span>กติกา</div>
@@ -763,7 +776,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-26-07';
+const BUILD_STAMP = '2026-09-26-08';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1012,6 +1025,33 @@ async function persist(){
     if(error){ dbErr('persist', error); dirty.forEach(markEntryDirty); return false; }
     return true;
   }catch(err){ dbErr('persist', err); dirty.forEach(markEntryDirty); return false; }
+}
+
+/* ===== FEED: post storage helpers (mirrors savePhotoBlob's pattern, separate bucket) ===== */
+async function savePostPhoto(id, dataUrl){
+  try{
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const path = `posts/${id}.${ext}`;
+    const {error} = await sb.storage.from('posts').upload(path, blob, {upsert:false, contentType: blob.type || 'image/jpeg'});
+    if(!error){
+      const {data} = sb.storage.from('posts').getPublicUrl(path);
+      return {url: data.publicUrl, path};
+    }
+    dbErr('savePostPhoto upload', error);
+    return null;
+  }catch(e){ dbErr('savePostPhoto', e); return null; }
+}
+function postPhotoPathFromUrl(url){
+  // storage paths aren't stored separately — recovered from the public URL, same trick used for cleanup elsewhere
+  const m = (url||'').match(/\/posts\/([^/?]+)$/);
+  return m ? `posts/${m[1]}` : null;
+}
+async function deleteStorageFile(bucket, path){
+  if(!path) return true;
+  try{ const {error} = await sb.storage.from(bucket).remove([path]); if(error){ dbErr('deleteStorageFile', error); return false; } return true; }
+  catch(e){ dbErr('deleteStorageFile', e); return false; }
 }
 
 async function savePhotoBlob(id, dataUrl){
@@ -1638,6 +1678,165 @@ function renderRTL(){
   `;
 }
 
+/* ===== FEED: state + core actions ===== */
+let feedState = { posts:[], page:0, pageSize:10, loading:false, hasMore:true, likesByPost:{}, commentsByPost:{}, openComments:{} };
+
+async function loadFeedPage(reset){
+  if(feedState.loading) return;
+  if(reset){ feedState.posts=[]; feedState.page=0; feedState.hasMore=true; feedState.likesByPost={}; feedState.commentsByPost={}; }
+  if(!feedState.hasMore) return;
+  feedState.loading = true;
+  try{
+    const from = feedState.page*feedState.pageSize, to = from+feedState.pageSize-1;
+    const {data, error} = await sb.from('posts').select('*').order('created_at',{ascending:false}).range(from,to);
+    if(error){ dbErr('loadFeedPage', error); feedState.loading=false; return; }
+    const rows = data||[];
+    feedState.hasMore = rows.length===feedState.pageSize;
+    feedState.page++;
+    const newPosts = rows.map(r=>({id:r.id, employeeId:r.employee_id, name:nameForEmployee(r.employee_id,r.name), photoUrl:r.photo_url, createdAt:r.created_at}));
+    feedState.posts = feedState.posts.concat(newPosts);
+    if(newPosts.length){
+      const ids = newPosts.map(p=>p.id);
+      const [{data:likes}, {data:comments}] = await Promise.all([
+        sb.from('post_likes').select('*').in('post_id', ids),
+        sb.from('post_comments').select('*').in('post_id', ids).order('created_at',{ascending:true}),
+      ]);
+      (likes||[]).forEach(l=>{ (feedState.likesByPost[l.post_id]=feedState.likesByPost[l.post_id]||[]).push(l.employee_id); });
+      (comments||[]).forEach(c=>{ (feedState.commentsByPost[c.post_id]=feedState.commentsByPost[c.post_id]||[]).push({id:c.id, employeeId:c.employee_id, name:nameForEmployee(c.employee_id,c.name), text:c.text, createdAt:c.created_at}); });
+    }
+  }catch(e){ dbErr('loadFeedPage', e); }
+  feedState.loading = false;
+  renderFeed();
+}
+
+async function submitPost(dataUrl){
+  if(!currentUser) return false;
+  if(!confirm('รูปนี้จะแสดงในฟีดให้เพื่อนร่วมงานทุกคนเห็น ต้องการโพสต์ใช่ไหม?')) return false;
+  const id = 'post_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  const saved = await savePostPhoto(id, dataUrl);
+  if(!saved){ alert('อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return false; }
+  const name = `${currentUser.firstName} ${currentUser.lastName}`;
+  const {error} = await sb.from('posts').insert({id, employee_id:currentUser.employeeId, name, photo_url:saved.url});
+  if(error){ dbErr('submitPost', error); await deleteStorageFile('posts', saved.path); alert('โพสต์ไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return false; }
+  alert('โพสต์เรียบร้อยแล้ว!');
+  await loadFeedPage(true);
+  return true;
+}
+
+async function deletePost(postId){
+  const post = feedState.posts.find(p=>p.id===postId);
+  if(!post) return;
+  if(!currentUser || post.employeeId!==currentUser.employeeId) return;
+  if(!confirm('ลบโพสต์นี้เลยไหม?')) return;
+  const path = postPhotoPathFromUrl(post.photoUrl);
+  const {error} = await sb.from('posts').delete().eq('id', postId);
+  if(error){ dbErr('deletePost', error); alert('ลบไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+  await deleteStorageFile('posts', path);
+  feedState.posts = feedState.posts.filter(p=>p.id!==postId);
+  delete feedState.likesByPost[postId]; delete feedState.commentsByPost[postId];
+  renderFeed();
+}
+
+async function toggleLike(postId){
+  if(!currentUser) return;
+  const liked = (feedState.likesByPost[postId]||[]).includes(currentUser.employeeId);
+  // optimistic UI update, rolled back if the request fails
+  feedState.likesByPost[postId] = feedState.likesByPost[postId] || [];
+  if(liked) feedState.likesByPost[postId] = feedState.likesByPost[postId].filter(id=>id!==currentUser.employeeId);
+  else feedState.likesByPost[postId].push(currentUser.employeeId);
+  renderFeed();
+  const {error} = liked
+    ? await sb.from('post_likes').delete().eq('post_id',postId).eq('employee_id',currentUser.employeeId)
+    : await sb.from('post_likes').insert({post_id:postId, employee_id:currentUser.employeeId});
+  if(error){
+    dbErr('toggleLike', error);
+    if(liked) feedState.likesByPost[postId].push(currentUser.employeeId);
+    else feedState.likesByPost[postId] = feedState.likesByPost[postId].filter(id=>id!==currentUser.employeeId);
+    renderFeed();
+  }
+}
+
+function toggleComments(postId){ feedState.openComments[postId] = !feedState.openComments[postId]; renderFeed(); }
+
+async function addComment(postId){
+  if(!currentUser) return;
+  const input = document.getElementById('comment-input-'+postId);
+  const text = (input.value||'').trim().slice(0,200);
+  if(!text) return;
+  const id = 'cmt_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  const name = `${currentUser.firstName} ${currentUser.lastName}`;
+  input.value = '';
+  const {error} = await sb.from('post_comments').insert({id, post_id:postId, employee_id:currentUser.employeeId, name, text});
+  if(error){ dbErr('addComment', error); alert('แสดงความคิดเห็นไม่สำเร็จ ลองใหม่อีกครั้งครับ'); input.value = text; return; }
+  (feedState.commentsByPost[postId] = feedState.commentsByPost[postId]||[]).push({id, employeeId:currentUser.employeeId, name, text, createdAt:new Date().toISOString()});
+  renderFeed();
+}
+async function deleteComment(postId, commentId){
+  const list = feedState.commentsByPost[postId]||[];
+  const c = list.find(x=>x.id===commentId);
+  if(!c || !currentUser) return;
+  if(c.employeeId!==currentUser.employeeId && !adminMode) return;
+  const {error} = await sb.from('post_comments').delete().eq('id', commentId);
+  if(error){ dbErr('deleteComment', error); return; }
+  feedState.commentsByPost[postId] = list.filter(x=>x.id!==commentId);
+  renderFeed();
+}
+
+/* ===== FEED: expiry cleanup — free tier has no server-side cron, so this runs client-side once per day
+   (tracked via localStorage) the first time anyone opens the app that day. Deletes are idempotent, so it's
+   harmless if two people happen to trigger it around the same time. ===== */
+async function cleanupExpiredContent(){
+  try{
+    const today = localDateKey();
+    if(localStorage.getItem('pea_cleanup_ran') === today) return;
+    localStorage.setItem('pea_cleanup_ran', today);
+    const POST_DAYS = 30, EVIDENCE_DAYS = 45;
+    const postCutoff = new Date(Date.now() - POST_DAYS*86400000).toISOString();
+    const {data: oldPosts} = await sb.from('posts').select('id,photo_url').lt('created_at', postCutoff);
+    for(const p of (oldPosts||[])){
+      await deleteStorageFile('posts', postPhotoPathFromUrl(p.photo_url));
+      await sb.from('posts').delete().eq('id', p.id);
+    }
+    const evidenceCutoff = localDateKey(new Date(Date.now() - EVIDENCE_DAYS*86400000));
+    const {data: oldEvidence} = await sb.from('entries').select('id,photo_url').eq('status','approved').lt('date', evidenceCutoff).not('photo_url','is',null);
+    for(const e of (oldEvidence||[])){
+      const m = (e.photo_url||'').match(/\/evidence\/([^/?]+)$/);
+      await deleteStorageFile('evidence', m ? `evidence/${m[1]}` : null);
+      await sb.from('entries').update({photo_url:null}).eq('id', e.id);
+    }
+  }catch(e){ dbErr('cleanupExpiredContent', e); }   // best-effort — never blocks the app from loading
+}
+
+function renderFeed(){
+  const el = document.getElementById('page-feed'); if(!el) return;
+  const postsHtml = feedState.posts.map(post=>{
+    const likes = feedState.likesByPost[post.id]||[];
+    const iLiked = currentUser && likes.includes(currentUser.employeeId);
+    const comments = feedState.commentsByPost[post.id]||[];
+    const isOpen = !!feedState.openComments[post.id];
+    const canDelete = currentUser && post.employeeId===currentUser.employeeId;
+    return `<div class="card">
+      <div class="eyebrow"><span>🚴 ${esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
+      <img src="${safeImgSrc(post.photoUrl)}" style="width:100%; border-radius:12px; display:block; cursor:pointer;" onclick="openPhotoLightbox(this)">
+      <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
+        <span style="cursor:pointer; font-size:14px;" onclick="toggleLike('${escAttr(post.id)}')">${iLiked?'❤️':'🤍'} ${likes.length}</span>
+        <span style="cursor:pointer; font-size:14px; color:var(--text-dim);" onclick="toggleComments('${escAttr(post.id)}')">💬 ${comments.length} ความคิดเห็น</span>
+      </div>
+      ${isOpen ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+        ${comments.map(c=>`<div style="font-size:13px; margin-bottom:6px;"><b>${esc(c.name)}</b> ${esc(c.text)} ${(currentUser&&(c.employeeId===currentUser.employeeId||adminMode))?`<span class="link-small" style="cursor:pointer; color:var(--red);" onclick="deleteComment('${escAttr(post.id)}','${escAttr(c.id)}')">ลบ</span>`:''}</div>`).join('')}
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <input id="comment-input-${escAttr(post.id)}" maxlength="200" placeholder="แสดงความคิดเห็น..." style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-family:var(--sans); font-size:13px;" onkeydown="if(event.key==='Enter') addComment('${escAttr(post.id)}')">
+          <button class="qbtn approve" style="flex:0 0 auto; padding:8px 14px;" onclick="addComment('${escAttr(post.id)}')">ส่ง</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  el.innerHTML = `
+    ${feedState.posts.length===0 && !feedState.loading ? `<div class="card" style="text-align:center; color:var(--text-dim);">ยังไม่มีโพสต์ในฟีด — ลองสร้าง Share Card แล้วกดโพสต์ดูสิ!</div>` : postsHtml}
+    ${feedState.hasMore ? `<button class="qbtn" style="width:100%; background:var(--panel-2); color:var(--text);" onclick="loadFeedPage(false)" ${feedState.loading?'disabled':''}>${feedState.loading?'กำลังโหลด...':'โหลดเพิ่ม'}</button>` : ''}
+  `;
+}
+
 function goPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
@@ -1649,6 +1848,7 @@ function goPage(p){
     renderSearch();
   }
   if(p==='rtl') renderRTL();
+  if(p==='feed' && feedState.posts.length===0 && !feedState.loading) loadFeedPage(true);
 }
 
 function renderSearch(){
@@ -3589,6 +3789,7 @@ function openShareCard(entryId){
 
     <div class="creator-actions">
       <button class="creator-btn save" id="sc-dl" style="opacity:.4;" onclick="scDownload()">📥 Upload a photo first</button>
+      <button class="creator-btn save" id="sc-post" style="opacity:.4; margin-top:8px; background:var(--purple); color:#fff;" onclick="scPost()" disabled>📣 โพสต์ลงฟีด</button>
     </div>
   `;
   document.getElementById('sc-photo').onchange = scHandlePhoto;
@@ -3670,6 +3871,7 @@ function scHandlePhoto(e){
     document.getElementById('sc-add-btn').style.display = 'block';
     const dl = document.getElementById('sc-dl');
     dl.style.opacity = '1'; dl.textContent = '📥 Download JPG';
+    const postBtn = document.getElementById('sc-post'); postBtn.style.opacity = '1'; postBtn.disabled = false;
     scDraw();
   }).catch(err=>{
     alert('เปิดไฟล์รูปไม่ได้: '+(err.message||'error'));
@@ -3906,6 +4108,13 @@ function scDraw(){
    harmless to also try; (3) always ALSO show a real <img> (not a canvas — canvases don't get the OS's native
    long-press "Save Image" menu the way an <img> does) so a long-press works as a manual fallback no matter what
    the first two methods did. */
+async function scPost(){
+  if(!shareState || !shareState.photo) return;
+  const cv = document.getElementById('sc-canvas');
+  const dataUrl = cv.toDataURL('image/jpeg', 0.8);   // feed copies are compressed harder than the download (0.92) —
+                                                      // bandwidth for a repeatedly-viewed feed matters more than for a one-off download
+  await submitPost(dataUrl);
+}
 async function scDownload(){
   if(!shareState || !shareState.photo) return;
   const cv = document.getElementById('sc-canvas');
@@ -5442,7 +5651,7 @@ document.addEventListener('visibilitychange', async ()=>{
   syncCurrentUser(); render();
 });
 loadAccounts().then(()=> Promise.all([loadEntries(), loadProfiles(), loadSettings(), loadDecisionLog()]))
-  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); })
+  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); loadFeedPage(true); cleanupExpiredContent(); })
   .catch(err=>{
     console.error('initial load failed', err);
     loadCurrentUser(); render();   // still show whatever partial data came back rather than a blank screen
