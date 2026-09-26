@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-26-01';
+const BUILD_STAMP = '2026-09-26-04';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -3419,6 +3419,15 @@ function scHandlePhoto(e){
   if(!file) return;
   loadOrientedImage(file).then(img=>{
     shareState.photo = img;
+    // fit the canvas to the PHOTO's own aspect ratio (portrait, landscape, square — whatever was uploaded) so the
+    // whole image is always used, never cropped to force a square. Longer side capped at 1080px either way — this
+    // is a share-image, not the original file, so no need to keep it any bigger. Clamped to a sane range (0.5–2.0)
+    // in case of a degenerate/corrupt image; nothing normal from a phone camera or a map/fitness-app screenshot
+    // comes anywhere near those extremes.
+    const ar = Math.min(2.0, Math.max(0.5, img.width/img.height));
+    const cv = document.getElementById('sc-canvas');
+    if(ar>=1){ cv.width=1080; cv.height=Math.round(1080/ar); }
+    else     { cv.height=1080; cv.width=Math.round(1080*ar); }
     document.getElementById('sc-upload-box').style.display = 'none';
     document.getElementById('sc-add-btn').style.display = 'block';
     const dl = document.getElementById('sc-dl');
@@ -3446,28 +3455,60 @@ function scSetZoom(v){
   scDraw();
 }
 
+/* One finger drags the stats card around (as before); a second finger touching down mid-drag switches to a
+   two-finger pinch that resizes it instead — the same "scale" the slider below the photo already controls, so
+   pinching and the slider stay perfectly in sync (each updates the same shareState.scale, and moving the slider
+   after a pinch — or vice versa — just continues from wherever the other one left off). Lifting one finger during
+   a pinch drops back to single-finger drag from the current position, with no jump. */
 function scBindDrag(){
   const cv = document.getElementById('sc-canvas');
-  let start = null;
+  const active = new Map();   // pointerId -> {x,y} in canvas pixel space, for every finger currently down
+  let dragStart = null;       // single-finger drag reference point
+  let pinchStart = null;      // two-finger pinch reference: {dist0, scale0}
   const toXY = (clientX, clientY)=>{
     const r = cv.getBoundingClientRect();
     const k = cv.width / r.width;
     return { x:(clientX-r.left)*k, y:(clientY-r.top)*k };
   };
+  const dist = (a,b)=> Math.hypot(a.x-b.x, a.y-b.y);
+  const beginDragFrom = (p)=>{ dragStart = { px:p.x, py:p.y, sx0:shareState.sx, sy0:shareState.sy }; };
+
   cv.onpointerdown = ev=>{
     if(!shareState.showStats) return;
-    const p = toXY(ev.clientX, ev.clientY);
-    start = { px:p.x, py:p.y, sx0:shareState.sx, sy0:shareState.sy };
     cv.setPointerCapture(ev.pointerId);
+    active.set(ev.pointerId, toXY(ev.clientX, ev.clientY));
+    if(active.size===1){
+      beginDragFrom([...active.values()][0]);
+      pinchStart = null;
+    } else if(active.size===2){
+      dragStart = null;
+      const pts = [...active.values()];
+      pinchStart = { dist0: dist(pts[0],pts[1]) || 1, scale0: shareState.scale };
+    }
   };
   cv.onpointermove = ev=>{
-    if(!start) return;
-    const p = toXY(ev.clientX, ev.clientY);
-    shareState.sx = start.sx0 + (p.x-start.px)/cv.width;
-    shareState.sy = start.sy0 + (p.y-start.py)/cv.height;
-    scDraw();
+    if(!active.has(ev.pointerId)) return;
+    active.set(ev.pointerId, toXY(ev.clientX, ev.clientY));
+    if(active.size>=2 && pinchStart){
+      const pts = [...active.values()];
+      const newScale = Math.min(1.30, Math.max(0.30, pinchStart.scale0 * (dist(pts[0],pts[1])/pinchStart.dist0)));
+      shareState.scale = newScale;
+      const slider = document.getElementById('sc-zoom');
+      if(slider) slider.value = Math.round(newScale*100);
+      scDraw();
+    } else if(active.size===1 && dragStart){
+      const p = [...active.values()][0];
+      shareState.sx = dragStart.sx0 + (p.x-dragStart.px)/cv.width;
+      shareState.sy = dragStart.sy0 + (p.y-dragStart.py)/cv.height;
+      scDraw();
+    }
   };
-  const stop = ()=>{ start = null; };
+  const stop = ev=>{
+    active.delete(ev.pointerId);
+    if(active.size<2) pinchStart = null;
+    if(active.size===0) dragStart = null;
+    else if(active.size===1) beginDragFrom([...active.values()][0]);   // one finger left mid-pinch — resume dragging from here, no jump
+  };
   cv.onpointerup = stop;
   cv.onpointercancel = stop;
 }
@@ -3591,14 +3632,13 @@ function scDraw(){
   if(!shareState) return;
   const cv = document.getElementById('sc-canvas');
   const ctx = cv.getContext('2d');
-  const W=1080, H=1080;
+  const W=cv.width, H=cv.height;
   ctx.clearRect(0,0,W,H);
 
   if(shareState.photo){
-    const img = shareState.photo;
-    const scale = Math.max(W/img.width, H/img.height);
-    const dw = img.width*scale, dh = img.height*scale;
-    ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);
+    // canvas is already sized to the photo's own aspect ratio (set once, when the photo was loaded — see
+    // scHandlePhoto), so scaling to exactly fill W×H needs no cropping at all: the whole photo is always visible.
+    ctx.drawImage(shareState.photo, 0, 0, W, H);
   } else {
     ctx.globalAlpha=.08; ctx.fillStyle='#7F3F98';
     ctx.beginPath(); ctx.arc(W*0.85,H*0.10,W*0.30,0,7); ctx.fill();
@@ -3612,7 +3652,7 @@ function scDraw(){
     const octx = off.getContext('2d');
     const usedH = scDrawStatsCard(octx, 1080);
     if(shareState.photo){
-      const dw = 1080*shareState.scale, dh = usedH*shareState.scale;
+      const dw = W*shareState.scale, factor = dw/1080, dh = usedH*factor;
       ctx.drawImage(off, 0,0,1080,usedH, shareState.sx*W, shareState.sy*H, dw, dh);
     } else {
       ctx.drawImage(off, 0,0,1080,usedH, 0,(H-usedH)/2, 1080, usedH);
@@ -4380,7 +4420,9 @@ async function reportEntry(id){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
   if(e.employeeId && e.employeeId===currentUser.employeeId){ alert('แจ้งตรวจสอบรายการของตัวเองไม่ได้ครับ — ถ้าข้อมูลผิด ติดต่อแอดมินให้แก้ไข'); return; }
-  if(e.communityFlags && e.communityFlags.some(r=>r.reporterName===myName)){
+  // matches by employeeId when a past report has one (survives a later rename); only falls back to the name
+  // string for legacy reports filed before reporterId existed
+  if(e.communityFlags && e.communityFlags.some(r=> r.reporterId ? r.reporterId===currentUser.employeeId : r.reporterName===myName)){
     alert('คุณแจ้งรายการนี้ไปแล้ว ระบบบันทึกไว้ให้แอดมินพิจารณาแล้วครับ');
     return;
   }
@@ -4389,7 +4431,7 @@ async function reportEntry(id){
   // the append happens inside the database (report_entry) so two people reporting at once can't overwrite each other
   let res = null;
   try{
-    const {data, error} = await sb.rpc('report_entry', {p_id:id, p_reason:reason.trim().slice(0,300), p_reporter:myName});
+    const {data, error} = await sb.rpc('report_entry', {p_id:id, p_reason:reason.trim().slice(0,300), p_reporter:myName, p_reporter_id:currentUser.employeeId});
     if(error) throw error;
     res = data;
   }catch(err){

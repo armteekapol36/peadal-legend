@@ -195,7 +195,10 @@ grant execute on function check_login(text, text) to anon, authenticated;
 -- Community report: appended inside the database so two people reporting at once (or an admin approving from a
 -- stale page) can't overwrite each other. Returns null if this person already reported it (or the entry is gone),
 -- otherwise the entry's new status and full list of reports.
-create or replace function report_entry(p_id text, p_reason text, p_reporter text)
+-- reporterId lets the dedup check (below) survive a rename: a renamed member can't report the same entry twice
+-- just because their display name changed. Legacy rows from before this column existed have no reporterId, so
+-- the check falls back to matching by name for those specifically — never breaks old data.
+create or replace function report_entry(p_id text, p_reason text, p_reporter text, p_reporter_id text default null)
 returns jsonb
 language plpgsql
 security definer
@@ -208,16 +211,20 @@ begin
     community_flags = coalesce(e.community_flags, '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
         'reason', left(coalesce(nullif(trim(p_reason), ''), 'ไม่ระบุเหตุผล'), 300),
         'at', now(),
-        'reporterName', left(p_reporter, 121))),
+        'reporterName', left(p_reporter, 121),
+        'reporterId', p_reporter_id)),
     status = case when e.status = 'approved' then 'flagged' else e.status end
   where e.id = p_id
-    and not exists (select 1 from jsonb_array_elements(coalesce(e.community_flags, '[]'::jsonb)) f
-                    where f->>'reporterName' = p_reporter)
+    and not exists (
+      select 1 from jsonb_array_elements(coalesce(e.community_flags, '[]'::jsonb)) f
+      where (p_reporter_id is not null and f->>'reporterId' = p_reporter_id)
+         or (f->>'reporterId' is null and f->>'reporterName' = p_reporter)
+    )
   returning jsonb_build_object('status', e.status, 'community_flags', e.community_flags) into r;
   return r;
 end;
 $$;
-grant execute on function report_entry(text, text, text) to anon, authenticated;
+grant execute on function report_entry(text, text, text, text) to anon, authenticated;
 
 
 -- =================================================================
