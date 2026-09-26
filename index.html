@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-25-01';
+const BUILD_STAMP = '2026-09-25-02';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2100,10 +2100,35 @@ async function _submitEntryInner(){
 const DEMO_PHOTO = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='220'><rect width='400' height='220' fill='#F2ECF7'/><text x='200' y='115' font-family='monospace' font-size='16' fill='#7B6E89' text-anchor='middle'>ตัวอย่างรูปหลักฐาน</text></svg>`);
 const PHOTO_PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='#F2ECF7'/><text x='150' y='86' font-family='monospace' font-size='13' fill='#7B6E89' text-anchor='middle'>กำลังโหลดรูป…</text></svg>`);
 
+/* Full-screen view of an evidence photo — admins need to actually zoom in and read the numbers on a photo to
+   check it, and the small thumbnail in the queue/detail view is nowhere near big enough for that. Tapping any
+   evidence photo anywhere in the app opens it here; tapping the backdrop or ✕ closes it again. */
+function openPhotoLightbox(imgEl){
+  const src = imgEl.currentSrc || imgEl.src;
+  if(!src || src===PHOTO_PLACEHOLDER) return;   // still loading — nothing to show yet, avoid popping up a blank/placeholder view
+  let m = document.getElementById('photo-lightbox');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'photo-lightbox';
+    m.style.cssText = 'position:fixed; inset:0; background:rgba(15,8,20,.94); z-index:120; display:flex; align-items:center; justify-content:center; padding:18px;';
+    m.onclick = (ev)=>{ if(ev.target===m) closePhotoLightbox(); };
+    m.innerHTML = `<img id="photo-lightbox-img" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:10px; touch-action:pinch-zoom;">
+      <button onclick="closePhotoLightbox()" aria-label="ปิด" style="position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; border:none; background:rgba(255,255,255,.18); color:#fff; font-size:20px; cursor:pointer; line-height:1;">✕</button>
+      <div style="position:absolute; bottom:18px; left:0; right:0; text-align:center; color:rgba(255,255,255,.65); font-size:12px;">แตะพื้นหลังหรือปุ่ม ✕ เพื่อปิด</div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('photo-lightbox-img').src = src;
+  m.style.display = 'flex';
+}
+function closePhotoLightbox(){
+  const m = document.getElementById('photo-lightbox');
+  if(m) m.style.display = 'none';
+}
 function entryPhotoImg(e, cls, style){
-  if(e.demo) return `<img class="${cls||''}" src="${DEMO_PHOTO}" style="${style||''}">`;
-  if(e.photoUrl) return `<img class="${cls||''}" src="${safeImgSrc(e.photoUrl)}" style="${style||''}">`;
-  return `<img class="${cls||''}" data-photo-key="${esc(e.id)}" src="${PHOTO_PLACEHOLDER}" style="${style||''}">`;
+  const zoomable = 'cursor:pointer;'+(style||'');
+  if(e.demo) return `<img class="${cls||''}" src="${DEMO_PHOTO}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
+  if(e.photoUrl) return `<img class="${cls||''}" src="${safeImgSrc(e.photoUrl)}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
+  return `<img class="${cls||''}" data-photo-key="${esc(e.id)}" src="${PHOTO_PLACEHOLDER}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
 }
 
 async function seedDemo(){
