@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-26-05';
+const BUILD_STAMP = '2026-09-26-06';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1426,11 +1426,84 @@ const RTL_TYPE_INFO = {
 };
 const RTL_PHASE_LABEL = {base:'สร้างพื้นฐาน', build:'เพิ่มความหนัก', peak:'ช่วงพีค', taper:'ลดโหลดก่อนแข่ง'};
 // weekly templates, Sunday-first (index 0=Sun..6=Sat) to match the day labels used elsewhere in this app
-const RTL_BEG_TYPE = {base:["rest","rest","easy","rest","easy","rest","medium"], build:["rest","rest","easy","rest","easy","rest","long"], peak:["rest","rest","easy","easy","easy","rest","long"], taper:["rest","rest","easy","rest","easy","rest","medium"]};
-const RTL_BEG_KM   = {base:[0,0,15,0,15,0,25], build:[0,0,20,0,20,0,35], peak:[0,0,20,10,20,0,40], taper:[0,0,15,0,10,0,20]};
-const RTL_ATH_TYPE = {base:["easy","rest","medium","easy","medium","rest","long"], build:["medium","rest","hard","easy","medium","easy","long"], peak:["easy","rest","hard","medium","easy","rest","long"], taper:["easy","rest","easy","rest","medium","rest","medium"]};
-const RTL_ATH_KM   = {base:[30,0,30,20,30,0,60], build:[40,0,40,25,40,15,80], peak:[20,0,40,30,20,0,100], taper:[15,0,25,0,20,0,40]};
-const RTL_ACTION_LABEL = {easy:'ปั่น/วิ่งจังหวะสบาย', medium:'ซ้อมจังหวะปานกลาง (tempo)', hard:'ซ้อมหนัก/อินเทอร์วัล', long:'ซ้อมระยะไกล'};
+const RTL_PLAN = {
+  athlete: {
+    base: [
+      {type:'easy',  note:'ปั่นฟื้นฟูเบา (Z1-Z2) 27.5 กม.'},
+      {type:'rest',  note:'พักผ่อนเต็มที่'},
+      {type:'medium',note:'ปั่นจังหวะ Tempo ต่อเนื่อง (Z3) 40.5 กม. คุมจังหวะให้สม่ำเสมอ'},
+      {type:'easy',  note:'ปั่นฟื้นฟูเบา (Z1-Z2) 22 กม.'},
+      {type:'medium',note:'ปั่นจังหวะ Tempo ต่อเนื่อง (Z3) 33.75 กม.'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'long',  note:'ปั่นระยะไกลสร้างพื้นฐาน (Z2) 75 กม. คุมจังหวะ ไม่เร่ง'},
+    ],
+    build: [
+      {type:'easy',  note:'ปั่นฟื้นฟูเบา 22 กม.'},
+      {type:'rest',  note:'พักผ่อนเต็มที่'},
+      {type:'hard',  note:'อุ่นเครื่อง 15 นาที → 5 x 4 นาที หนัก (Z4-Z5) พัก 3 นาที → คูลดาวน์ (รวม ~30 กม.)'},
+      {type:'easy',  note:'ปั่นฟื้นฟูเบา 16.5 กม.'},
+      {type:'medium',note:'ปั่น Tempo ต่อเนื่อง (Z3) 40.5 กม.'},
+      {type:'easy',  note:'ปั่นเบา 16.5 กม. แทรกสปรินต์สั้น 4 x 10 วินาทีสุดแรง พักเต็มที่ระหว่างครั้ง'},
+      {type:'long',  note:'ปั่นระยะไกล 68.75 กม. แทรกช่วงเร่งจังหวะแข่ง 3-4 ครั้ง ครั้งละ 5-8 นาที'},
+    ],
+    peak: [
+      {type:'easy',  note:'ปั่นฟื้นฟูเบา 27.5 กม.'},
+      {type:'rest',  note:'พักผ่อนเต็มที่'},
+      {type:'hard',  note:'อุ่นเครื่อง 20 นาที → 6 x 3 นาที หนักเต็มที่ (Z5) พัก 3 นาที → คูลดาวน์ 15 นาที (รวม ~30 กม.)'},
+      {type:'easy',  note:'ปั่นฟื้นฟูเบามาก (Z1) 16.5 กม.'},
+      {type:'medium',note:'อุ่นเครื่อง 15 นาที → 2 x 15 นาที Threshold (Z4) พัก 5 นาที → รวม ~39 กม.'},
+      {type:'easy',  note:'ปั่นเบา 30 นาที แทรก 4 x 30 วินาทีหนักมาก + 2 x 10 วินาทีสปรินต์เต็มแรง พักเต็มที่ (รวม ~15 กม.)'},
+      {type:'long',  note:'ซ้อมจำลองสภาพแข่งจริง 67.5 กม. (ใกล้เคียงระยะแข่งจริง 60-70 กม.) ความเร็วผันแปรเหมือนแข่งจริง มีเนินให้ไต่ จบด้วยสปรินต์'},
+    ],
+    taper: [
+      {type:'easy',  note:'ปั่นเบา 22 กม.'},
+      {type:'rest',  note:'พักผ่อนเต็มที่'},
+      {type:'hard',  note:'อุ่นเครื่อง 15 นาที → 4 x 1 นาที หนักเต็มที่ พัก 4 นาที → คูลดาวน์ (สั้นแต่คม ไม่สะสมความเหนื่อย, รวม ~18 กม.)'},
+      {type:'easy',  note:'ปั่นเบามาก 10 กม. หรือพักถ้ารู้สึกเมื่อย'},
+      {type:'medium',note:'ปั่น Tempo สั้นๆ (Z3 30 นาที) รวม ~26 กม.'},
+      {type:'rest',  note:'พักเต็มที่ก่อนซ้อมสุดท้าย'},
+      {type:'long',  note:'ปั่นเบา 43.75 กม. แทรกช่วงจังหวะแข่งสั้นๆ 3-4 ครั้ง ปลุกขาให้พร้อม ไม่ทำให้เหนื่อย'},
+    ],
+  },
+  beginner: {
+    base: [
+      {type:'easy', note:'ปั่นเบาๆ สบายๆ 18 กม. เน้นความสม่ำเสมอ ไม่ต้องเร่ง'},
+      {type:'rest', note:'พักผ่อน'},
+      {type:'easy', note:'ปั่นเบาๆ 18 กม.'},
+      {type:'rest', note:'พักผ่อน'},
+      {type:'easy', note:'ปั่นเบาๆ 18 กม.'},
+      {type:'rest', note:'พักผ่อน'},
+      {type:'long', note:'ปั่นระยะยาวกว่าปกติ 60 กม. ปั่นช้าๆ พักได้ตามต้องการ เป้าหมายคือปั่นจบให้ได้'},
+    ],
+    build: [
+      {type:'easy',  note:'ปั่นเบาๆ 18 กม.'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'medium',note:'ปั่นจังหวะสบาย เพิ่มความเร็วนิดหน่อยจากปกติ 22 กม.'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'medium',note:'ปั่นจังหวะสบาย 22 กม.'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'long',  note:'ปั่นระยะไกล 60 กม. ลองรักษาความเร็วให้สม่ำเสมอมากขึ้น'},
+    ],
+    peak: [
+      {type:'easy',  note:'ปั่นเบาๆ 18 กม.'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'medium',note:'ปั่นจังหวะกลางๆ 16.5 กม. ซ้อมคุมจังหวะให้นิ่ง'},
+      {type:'rest',  note:'พักผ่อน'},
+      {type:'medium',note:'ปั่นจังหวะกลาง 22 กม.'},
+      {type:'easy',  note:'ปั่นเบาๆ 13.5 กม. แทรกเร่งสั้นๆ 3-4 ครั้ง ครั้งละ 15-20 วินาที ปลุกขาเบาๆ'},
+      {type:'long',  note:'ซ้อมจำลองระยะแข่งจริง 55 กม. ลองปั่นในจังหวะที่ตั้งใจใช้วันแข่งจริง'},
+    ],
+    taper: [
+      {type:'easy', note:'ปั่นเบาๆ 13.5 กม.'},
+      {type:'rest', note:'พักผ่อน'},
+      {type:'easy', note:'ปั่นเบามาก 9 กม. หรือพัก'},
+      {type:'rest', note:'พักผ่อน'},
+      {type:'easy', note:'ปั่นเบาๆ 13.5 กม.'},
+      {type:'rest', note:'พักเต็มที่ก่อนซ้อมสุดท้าย'},
+      {type:'long', note:'ปั่นเบา 40 กม. แทรกจังหวะเร็วสั้นๆ 2-3 ครั้ง ปลุกขา ไม่เหนื่อย เตรียมพร้อมวันแข่ง'},
+    ],
+  },
+};
 
 function rtlWeekPhase(dateStr){
   const start = new Date(RTL_START+'T00:00:00');
@@ -1444,11 +1517,8 @@ function rtlDefaultPlan(level, dateStr){
   if(RTL_RACE.includes(dateStr)) return {type:'race', note:`วันแข่งขัน PEA Games 2570 (วันที่ ${RTL_RACE.indexOf(dateStr)+1})`};
   if(dateStr < RTL_START || dateStr > RTL_RACE[1]) return null;   // outside the training window entirely
   const {phase, weekday} = rtlWeekPhase(dateStr);
-  const typeTbl = level==='athlete' ? RTL_ATH_TYPE : RTL_BEG_TYPE;
-  const kmTbl   = level==='athlete' ? RTL_ATH_KM   : RTL_BEG_KM;
-  const type = typeTbl[phase][weekday], km = kmTbl[phase][weekday];
-  const note = type==='rest' ? 'พักผ่อน หรือยืดเหยียดเบาๆ' : `${RTL_ACTION_LABEL[type]} ${km} กม.`;
-  return {type, note};
+  const day = RTL_PLAN[level][phase][weekday];
+  return {type: day.type, note: day.note};
 }
 function rtlPlanFor(level, dateStr){
   const key = level+'|'+dateStr;
