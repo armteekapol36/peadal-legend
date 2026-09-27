@@ -351,7 +351,7 @@
   <div class="user-header" id="user-header" onclick="goPage('me')"></div>
 
   <!-- DASHBOARD -->
-  <div class="page" id="page-dashboard">
+  <div class="page active" id="page-dashboard">
     <div class="card" id="demo-card">
       <h2>ข้อมูลตัวอย่าง</h2>
       <div style="display:flex; gap:8px;">
@@ -426,7 +426,7 @@
 
   <!-- AGE RANKING (own challenge mode) -->
   <div class="page" id="page-rtl"></div>
-  <div class="page active" id="page-feed"></div>
+  <div class="page" id="page-feed"></div>
   <div class="page" id="page-age">
     <div class="card">
       <h2>🏅 Age Ranking</h2>
@@ -727,12 +727,12 @@
 </div>
 
 <div class="nav">
-  <div class="nav-item active" data-page="feed" onclick="goPage('feed')"><span class="ic">🏠</span>ฟีด</div>
-  <div class="nav-item" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span>แดชบอร์ด</div>
+  <div class="nav-item active" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span>แดชบอร์ด</div>
   <div class="nav-item" data-page="age" onclick="goPage('age')"><span class="ic">🏅</span>Age Ranking</div>
+  <div class="nav-item" data-page="feed" onclick="goPage('feed')"><span class="ic">🏠</span>ฟีด</div>
+  <div class="nav-item" data-page="rtl" onclick="goPage('rtl')"><span class="ic">🏆</span>Road to Legend</div>
   <div class="nav-item" data-page="me" onclick="goPage('me')"><span class="ic">👤</span>Account</div>
   <div class="nav-item" data-page="rules" onclick="goPage('rules')"><span class="ic">📜</span>กติกา</div>
-  <div class="nav-item" data-page="rtl" onclick="goPage('rtl')"><span class="ic">🏆</span>Road to Legend</div>
   <div class="nav-item" id="nav-admin" data-page="admin" onclick="goPage('admin')" style="display:none;"><span class="ic">🛡️</span>ตรวจสอบ</div>
 </div>
 
@@ -776,7 +776,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-26-08';
+const BUILD_STAMP = '2026-09-27-02';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -4847,8 +4847,7 @@ function openDetail(id){
         ${e.status!=='approved' ? `<button class="qbtn approve" style="flex:1;" onclick="decide('${escAttr(e.id)}','approved').then(()=>openDetail('${escAttr(e.id)}'))">✓ อนุมัติ</button>` : ''}
         ${e.status!=='rejected' ? `<button class="qbtn reject" style="flex:1;" onclick="decide('${escAttr(e.id)}','rejected').then(()=>openDetail('${escAttr(e.id)}'))">✕ ปฏิเสธ</button>` : ''}
       </div>` : ''}
-    ${(currentUser && e.employeeId && e.employeeId===currentUser.employeeId) ? '' :
-      `<button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>`}
+    <button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>
   `;
   document.getElementById('detail-modal').classList.add('open');
   hydratePhotos();
@@ -4866,9 +4865,10 @@ async function reportEntry(id){
   const myName = `${currentUser.firstName} ${currentUser.lastName}`;
   const e = entries.find(x=>x.id===id);
   if(!e) return;
-  if(e.employeeId && e.employeeId===currentUser.employeeId){ alert('แจ้งตรวจสอบรายการของตัวเองไม่ได้ครับ — ถ้าข้อมูลผิด ติดต่อแอดมินให้แก้ไข'); return; }
   // matches by employeeId when a past report has one (survives a later rename); only falls back to the name
-  // string for legacy reports filed before reporterId existed
+  // string for legacy reports filed before reporterId existed. Self-reporting is intentionally allowed during the
+  // testing phase — a tester flagging their OWN entry (e.g. "AI read the wrong distance") is useful bug-report
+  // signal for the admin, not something to block here.
   if(e.communityFlags && e.communityFlags.some(r=> r.reporterId ? r.reporterId===currentUser.employeeId : r.reporterName===myName)){
     alert('คุณแจ้งรายการนี้ไปแล้ว ระบบบันทึกไว้ให้แอดมินพิจารณาแล้วครับ');
     return;
