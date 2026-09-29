@@ -567,7 +567,7 @@
         <ul class="rule-list">
           <li>ทำรูปผ่าน "Share Card" แล้วกดปุ่ม "โพสต์ลงฟีด" — <b>รูปจะแสดงให้สมาชิกทุกคนทุกสังกัดเห็นในหน้าฟีด</b> ระบบจะขอให้ยืนยันทุกครั้งก่อนโพสต์จริง</li>
           <li>สมาชิกทุกคนกดไลค์และแสดงความคิดเห็นใต้โพสต์ได้ ความคิดเห็นจำกัดไม่เกิน 200 ตัวอักษร</li>
-          <li>ลบโพสต์หรือความคิดเห็นของตัวเองได้ทุกเมื่อ แอดมินลบความคิดเห็นของใครก็ได้หากไม่เหมาะสม</li>
+          <li>ลบโพสต์หรือความคิดเห็นของตัวเองได้ทุกเมื่อ แอดมินลบโพสต์และความคิดเห็นของใครก็ได้หากไม่เหมาะสม</li>
           <li><b>รูปในฟีดจะถูกลบออกอัตโนมัติเมื่อครบ 30 วัน</b> (ทั้งโพสต์ รวมไลค์และความคิดเห็นทั้งหมดของโพสต์นั้น) เพื่อประหยัดพื้นที่จัดเก็บ</li>
           <li><b>รูปหลักฐานการปั่น/วิ่งจะถูกลบออกเมื่อครบ 45 วันหลังอนุมัติ</b> เช่นกัน — แต่ลบเฉพาะตัวรูป ตัวเลขระยะทาง วันที่ EXP และประวัติทั้งหมดยังคงอยู่ครบ ไม่กระทบกระดานอันดับใดๆ</li>
         </ul>
@@ -696,6 +696,15 @@
       <div class="note-small" style="text-align:left; margin-bottom:10px;">ดาวน์โหลด 1 ไฟล์ มีหลายชีท: ข้อมูลกิจกรรมทั้งหมด, อันดับสังกัด, อันดับบุคคล, Age Ranking ครบ 11 รุ่น และข้อมูลส่วนตัวสมาชิก</div>
       <button class="qbtn approve" style="width:100%;" onclick="exportExcel()">📥 ดาวน์โหลด Excel (.xlsx)</button>
     </div>
+
+    <div class="card">
+      <h2>💾 สำรอง / กู้คืนข้อมูล</h2>
+      <div class="note-small" style="text-align:left; margin-bottom:10px;">Supabase แบบฟรีไม่มีระบบสำรองข้อมูลให้ แนะนำกดสำรองเก็บไว้สัปดาห์ละครั้ง ไฟล์มีทุกตาราง (สมาชิก โปรไฟล์ รายการปั่น/วิ่ง ประวัติการอนุมัติ ตั้งค่า ฟีด) แต่<b>ไม่รวมตัวไฟล์รูป</b>และรหัสผ่าน<br>การกู้คืน<b>เพิ่มกลับเฉพาะข้อมูลที่หายไป ไม่ทับข้อมูลที่มีอยู่</b> กู้ไฟล์เก่าซ้ำกี่ครั้งก็ไม่ทำให้ข้อมูลใหม่เสียหาย</div>
+      <button class="qbtn approve" style="width:100%;" onclick="backupAllData()">💾 ดาวน์โหลดไฟล์สำรองข้อมูล (.json)</button>
+      <button class="qbtn" style="width:100%; margin-top:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="document.getElementById('restore-file').click()">♻️ กู้คืนจากไฟล์สำรอง</button>
+      <input type="file" id="restore-file" accept=".json,application/json" style="display:none;" onchange="restoreFromBackupFile(this)">
+      <div id="backup-status" class="note-small" style="text-align:left; margin-top:8px;"></div>
+    </div>
   </div>
 </div>
 
@@ -776,7 +785,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-09-27-02';
+const BUILD_STAMP = '2026-09-29-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1034,7 +1043,7 @@ async function savePostPhoto(id, dataUrl){
     const blob = await res.blob();
     const ext = blob.type.includes('png') ? 'png' : 'jpg';
     const path = `posts/${id}.${ext}`;
-    const {error} = await sb.storage.from('posts').upload(path, blob, {upsert:false, contentType: blob.type || 'image/jpeg'});
+    const {error} = await sb.storage.from('posts').upload(path, blob, {upsert:false, cacheControl:'31536000', contentType: blob.type || 'image/jpeg'});
     if(!error){
       const {data} = sb.storage.from('posts').getPublicUrl(path);
       return {url: data.publicUrl, path};
@@ -1061,7 +1070,7 @@ async function savePhotoBlob(id, dataUrl){
     const blob = await res.blob();
     const ext = blob.type.includes('png') ? 'png' : 'jpg';
     const path = `evidence/${id}.${ext}`;
-    const {error} = await sb.storage.from('evidence').upload(path, blob, {upsert:false, contentType: blob.type || 'image/jpeg'});
+    const {error} = await sb.storage.from('evidence').upload(path, blob, {upsert:false, cacheControl:'31536000', contentType: blob.type || 'image/jpeg'});
     if(!error){
       const {data} = sb.storage.from('evidence').getPublicUrl(path);
       return data.publicUrl;
@@ -1566,6 +1575,14 @@ function rtlPlanFor(level, dateStr){
   return ov || rtlDefaultPlan(level, dateStr);
 }
 let rtlState = { level:'beginner', viewYear:2026, viewMonth:9, selected:null };   // viewMonth 0-indexed; Oct=9
+function rtlInitialMonth(){
+  // open on today's month when it falls inside the training window; before it -> Oct 2026, after it -> Feb 2027
+  const now = new Date(), key = now.getFullYear()*12 + now.getMonth();
+  const lo = 2026*12+9, hi = 2027*12+1;
+  const k = Math.min(hi, Math.max(lo, key));
+  return {viewYear: Math.floor(k/12), viewMonth: k%12};
+}
+Object.assign(rtlState, rtlInitialMonth());
 
 function rtlSetLevel(lvl){ rtlState.level = lvl; rtlState.selected = null; renderRTL(); }
 function rtlGoMonth(delta){
@@ -1726,8 +1743,9 @@ async function submitPost(dataUrl){
 async function deletePost(postId){
   const post = feedState.posts.find(p=>p.id===postId);
   if(!post) return;
-  if(!currentUser || post.employeeId!==currentUser.employeeId) return;
-  if(!confirm('ลบโพสต์นี้เลยไหม?')) return;
+  const isOwner = currentUser && post.employeeId===currentUser.employeeId;
+  if(!currentUser || (!isOwner && !adminMode)) return;
+  if(!confirm(isOwner ? 'ลบโพสต์นี้เลยไหม?' : `ลบโพสต์ของ ${post.name} ในฐานะแอดมินใช่ไหม?`)) return;
   const path = postPhotoPathFromUrl(post.photoUrl);
   const {error} = await sb.from('posts').delete().eq('id', postId);
   if(error){ dbErr('deletePost', error); alert('ลบไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
@@ -1737,8 +1755,13 @@ async function deletePost(postId){
   renderFeed();
 }
 
+const likeInFlight = new Set();
 async function toggleLike(postId){
-  if(!currentUser) return;
+  if(!currentUser || likeInFlight.has(postId)) return;
+  likeInFlight.add(postId);
+  try{ await toggleLikeInner(postId); } finally { likeInFlight.delete(postId); }
+}
+async function toggleLikeInner(postId){
   const liked = (feedState.likesByPost[postId]||[]).includes(currentUser.employeeId);
   // optimistic UI update, rolled back if the request fails
   feedState.likesByPost[postId] = feedState.likesByPost[postId] || [];
@@ -1793,31 +1816,38 @@ async function cleanupExpiredContent(){
     const POST_DAYS = 30, EVIDENCE_DAYS = 45;
     const postCutoff = new Date(Date.now() - POST_DAYS*86400000).toISOString();
     const {data: oldPosts} = await sb.from('posts').select('id,photo_url').lt('created_at', postCutoff);
-    for(const p of (oldPosts||[])){
-      await deleteStorageFile('posts', postPhotoPathFromUrl(p.photo_url));
-      await sb.from('posts').delete().eq('id', p.id);
+    if(oldPosts && oldPosts.length){
+      const paths = oldPosts.map(p=>postPhotoPathFromUrl(p.photo_url)).filter(Boolean);
+      for(let i=0;i<paths.length;i+=50) await sb.storage.from('posts').remove(paths.slice(i,i+50));
+      const ids = oldPosts.map(p=>p.id);
+      for(let i=0;i<ids.length;i+=40) await sb.from('posts').delete().in('id', ids.slice(i,i+40));
     }
     const evidenceCutoff = localDateKey(new Date(Date.now() - EVIDENCE_DAYS*86400000));
-    const {data: oldEvidence} = await sb.from('entries').select('id,photo_url').eq('status','approved').lt('date', evidenceCutoff).not('photo_url','is',null);
-    for(const e of (oldEvidence||[])){
-      const m = (e.photo_url||'').match(/\/evidence\/([^/?]+)$/);
-      await deleteStorageFile('evidence', m ? `evidence/${m[1]}` : null);
-      await sb.from('entries').update({photo_url:null}).eq('id', e.id);
+    // approved AND rejected: a rejected entry's photo was never cleaned up before, so it would sit in storage forever
+    const {data: oldEvidence} = await sb.from('entries').select('id,photo_url').in('status',['approved','rejected']).lt('date', evidenceCutoff).not('photo_url','is',null);
+    if(oldEvidence && oldEvidence.length){
+      const paths = oldEvidence.map(e=>{ const m=(e.photo_url||'').match(/\/evidence\/([^/?]+)$/); return m ? `evidence/${m[1]}` : null; }).filter(Boolean);
+      for(let i=0;i<paths.length;i+=50) await sb.storage.from('evidence').remove(paths.slice(i,i+50));
+      const ids = oldEvidence.map(e=>e.id);
+      for(let i=0;i<ids.length;i+=40) await sb.from('entries').update({photo_url:null}).in('id', ids.slice(i,i+40));
+      ids.forEach(id=>{ const loc=entries.find(x=>x.id===id); if(loc) loc.photoUrl=null; });
     }
   }catch(e){ dbErr('cleanupExpiredContent', e); }   // best-effort — never blocks the app from loading
 }
 
 function renderFeed(){
   const el = document.getElementById('page-feed'); if(!el) return;
+  const drafts = {}; let focusedId = null;
+  el.querySelectorAll('input[id^="comment-input-"]').forEach(inp=>{ if(inp.value) drafts[inp.id]=inp.value; if(inp===document.activeElement) focusedId=inp.id; });
   const postsHtml = feedState.posts.map(post=>{
     const likes = feedState.likesByPost[post.id]||[];
     const iLiked = currentUser && likes.includes(currentUser.employeeId);
     const comments = feedState.commentsByPost[post.id]||[];
     const isOpen = !!feedState.openComments[post.id];
-    const canDelete = currentUser && post.employeeId===currentUser.employeeId;
+    const canDelete = currentUser && (post.employeeId===currentUser.employeeId || adminMode);
     return `<div class="card">
       <div class="eyebrow"><span>🚴 ${esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
-      <img src="${safeImgSrc(post.photoUrl)}" style="width:100%; border-radius:12px; display:block; cursor:pointer;" onclick="openPhotoLightbox(this)">
+      <img src="${safeImgSrc(post.photoUrl)}" loading="lazy" style="width:100%; border-radius:12px; display:block; cursor:pointer; min-height:120px; background:var(--panel-2);" onclick="openPhotoLightbox(this)">
       <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
         <span style="cursor:pointer; font-size:14px;" onclick="toggleLike('${escAttr(post.id)}')">${iLiked?'❤️':'🤍'} ${likes.length}</span>
         <span style="cursor:pointer; font-size:14px; color:var(--text-dim);" onclick="toggleComments('${escAttr(post.id)}')">💬 ${comments.length} ความคิดเห็น</span>
@@ -1835,6 +1865,8 @@ function renderFeed(){
     ${feedState.posts.length===0 && !feedState.loading ? `<div class="card" style="text-align:center; color:var(--text-dim);">ยังไม่มีโพสต์ในฟีด — ลองสร้าง Share Card แล้วกดโพสต์ดูสิ!</div>` : postsHtml}
     ${feedState.hasMore ? `<button class="qbtn" style="width:100%; background:var(--panel-2); color:var(--text);" onclick="loadFeedPage(false)" ${feedState.loading?'disabled':''}>${feedState.loading?'กำลังโหลด...':'โหลดเพิ่ม'}</button>` : ''}
   `;
+  Object.entries(drafts).forEach(([id,v])=>{ const inp=document.getElementById(id); if(inp) inp.value=v; });
+  if(focusedId){ const inp=document.getElementById(focusedId); if(inp) inp.focus(); }
 }
 
 function goPage(p){
@@ -2113,7 +2145,10 @@ function ocrCompactThai(text){
 function ocrCheckRisky(haystack, matchIndex){
   // "ระดับความสูงสะสม" (total elevation) sits right next to the distance on Strava — that isn't a distance warning
   const nearby = haystack.slice(Math.max(0,matchIndex-30), matchIndex).toLowerCase()
-    .replace(/ระดับความสูงสะสม|ความสูงสะสม|elevation gain|total elevation/g,'');
+    .replace(/ระดับความสูงสะสม|ความสูงสะสม|elevation gain|total elevation/g,'')
+    // "ภาพรวม" = the "Overview" tab name (Garmin/Xingzhe put it right above the distance), "รวมถึงการหยุด" = "including
+    // stops", "...ทั้งหมด" = total calories/climb for THIS ride — none of these mean a cumulative multi-ride distance
+    .replace(/ภาพรวม|overview|รวมถึงการหยุด|รวมเวลา|เผาผลาญทั้งหมด|ขึ้นทั้งหมด|ลงทั้งหมด|ขึ้นสูงทั้งหมด/g,'');
   const hit = OCR_CUMULATIVE_HINTS.find(w=>nearby.includes(w));
   return {risky:!!hit, riskyWord:hit||null};
 }
@@ -2142,7 +2177,8 @@ function ocrDistanceCandidates(text){
     if(/[.,]\d{2}$/.test(raw)) score += 2;                                             // distances show 2 decimals: 100.06
     else if(/[.,]\d$/.test(raw)) score += 1;
     if(/(ระยะทาง|distance)/i.test(t.slice(Math.max(0,m.index-40), m.index)) || /^\s*\.?\s*(ระยะทาง|distance)/i.test(after)) score += 4;
-    if(!hasUnit && !/[.,]\d/.test(raw)) continue;                                      // bare integers are too ambiguous
+    if(!hasUnit && !/[.,]\d/.test(raw)) continue;
+    if(/^0\d/.test(raw.replace(/\s/g,''))) continue;   // "08", "012": no app prints a distance like this — it's the tail of a shattered number                                      // bare integers are too ambiguous
     if(/[.,]\d{3}$/.test(raw)) score -= 8;               // 3 decimal digits (e.g. "45.671") — no app shows km to that precision; almost always a stray extra digit from OCR
     out.push(Object.assign({value:raw, num:val, score, idx:m.index, bare:!hasUnit}, ocrCheckRisky(t, m.index)));
   }
@@ -2160,6 +2196,45 @@ function ocrExpectedDistances(text){
   for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
   const out=[]; for(const h of durs) for(const v of speeds) out.push(h*v);
   return out;
+}
+/* When OCR shatters a big headline number ("50.08" -> "50 08", "5 0.08", "50.0 8"...), the fragments no longer parse
+   as the right value — but the SAME screenshot usually prints duration and average speed, whose product says what the
+   distance must be. Glue neighbouring digit fragments back together, try the decimal point in each plausible place,
+   and keep a reconstruction only if it lands within 3% of that expected distance. Never guesses without that
+   independent confirmation, so it can't invent a number the photo doesn't support. */
+function ocrRecoverFromExpected(text, expected){
+  if(!expected || !expected.length) return null;
+  const t = ocrFixDigitLookalikes(ocrCompactThai(text));
+  let best = null;
+  for(const m of t.matchAll(/\d[\d \t.,|]{0,6}\d/g)){
+    const D = m[0].replace(/\D/g,'');
+    if(D.length<2 || D.length>5) continue;
+    for(const div of [100, 10, 1]){
+      const v = parseInt(D,10)/div;
+      if(!(v>0 && v<=1000)) continue;
+      for(const e of expected){
+        const off = Math.abs(v-e)/e;
+        if(off<0.03 && (!best || off<best.off)) best = {value: div===100 ? v.toFixed(2) : div===10 ? v.toFixed(1) : String(v), num:v, off};
+      }
+    }
+  }
+  return best;
+}
+/* OCR commonly swaps look-alike digits (3<->5, 3<->8, 5<->6, 6<->8, 0<->8, 1<->7, 8<->9). If changing exactly ONE digit
+   of a read number lands within 1% of duration x speed, that's the true value — e.g. "55.95" vs expected 35.97 -> "35.95".
+   Requires a single unambiguous fix; if two different swaps both fit, nothing is changed. */
+const OCR_DIGIT_CONFUSIONS = {'0':'8','1':'7','3':'58','5':'36','6':'58','7':'1','8':'3690','9':'8'};
+function ocrFixOneDigit(value, expected){
+  if(!expected || !expected.length) return null;
+  const hits = new Set();
+  for(let i=0;i<value.length;i++){
+    for(const alt of (OCR_DIGIT_CONFUSIONS[value[i]]||'')){
+      const cand = value.slice(0,i)+alt+value.slice(i+1);
+      const v = parseFloat(cand);
+      if(v>0 && expected.some(e=>Math.abs(v-e)/e < 0.01)) hits.add(cand);
+    }
+  }
+  return hits.size===1 ? [...hits][0] : null;
 }
 function ocrExtractDistance(text){
   const cands = ocrDistanceCandidates(text).list;
@@ -2180,14 +2255,29 @@ function ocrExtractDistance(text){
     const bareTwoDp = cands.filter(c=>c.bare && /[.,]\d{2}$/.test(c.value));
     if(bareTwoDp.length===1){ list = bareTwoDp; unitUnconfirmed = true; }
   }
+  if(!list.length || !list.some(c=>c.consistent)){
+    const rec = ocrRecoverFromExpected(text, expected);
+    const top = list.length ? [...list].sort((a,b)=> b.score-a.score || b.num-a.num)[0] : null;
+    if(rec && (!top || !top.consistent)) return {value:rec.value, risky:false, riskyWord:null, implausible:false, candidates:list.length, unitUnconfirmed:false, recovered:true};
+  }
   if(!list.length) return {value:null, risky:false, riskyWord:null};
   list.sort((a,b)=> b.score-a.score || b.num-a.num);
   const best = list[0];
+  // "50.08" read as "50.0 8": the 50.0 already passes the cross-check, but the stray "8" right after it is the lost
+  // last digit — prefer the more precise reassembly when it simply extends the number we already trust
+  if(best.consistent){
+    const rec = ocrRecoverFromExpected(text, expected);
+    if(rec && rec.value.length > best.value.length && rec.value.startsWith(best.value)) best.value = rec.value;
+  }
   // A single day's cycling/running distance this large is exceptionally rare — real case that motivated this: a
   // 3-column stat row ("Distance | Elevation gain | Time") got merged by OCR into one jumbled line, and "54.40"
   // came out as "564.40". Nothing about that number LOOKS malformed (clean 2-decimal, has a unit) so none of the
   // existing checks catch it. Flag anything this large that isn't independently confirmed by the duration×speed
   // cross-check, rather than silently accepting a number this consequential on faith.
+  if(!best.consistent){
+    const fixed = ocrFixOneDigit(best.value, expected);
+    if(fixed) return {value:fixed, risky:false, riskyWord:null, implausible:false, candidates:list.length, unitUnconfirmed:false, recovered:true};
+  }
   const implausible = best.num>300 && !best.consistent && !best.risky;
   return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, implausible, candidates:list.length, unitUnconfirmed};
 }
@@ -2387,7 +2477,11 @@ async function runAiRead(dataUrl, refMs){
 
     const overallConf = data.confidence;
     const warnings = [];
+    // a cumulative total (monthly km, PR list...) can't also equal THIS ride's duration × avg speed — when the cross-check
+    // independently confirms the number, the nearby-word warning is a false alarm and shouldn't hold the entry for review
+    if(distResult.risky && crossCheck && crossCheck.ok) distResult.risky = false;
     if(distResult.risky) warnings.push(`ใกล้คำว่า "${distResult.riskyWord}" อาจเป็นสถิติสะสม ไม่ใช่ทริปนี้`);
+    if(distResult.recovered) warnings.push('ตัวเลขระยะทางในรูปอ่านได้ไม่ครบ ระบบประกอบกลับจากเวลา × ความเร็วในรูปเดียวกัน');
     if(distResult.implausible) warnings.push('ระยะทางเกิน 300 กม./ครั้ง และไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ (อาจเป็นตัวเลขที่ OCR อ่านตัวเลขหลายค่าปนกัน)');
     if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
     if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
@@ -2545,6 +2639,7 @@ async function _submitEntryInner(){
 }
 
 const DEMO_PHOTO = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='220'><rect width='400' height='220' fill='#F2ECF7'/><text x='200' y='115' font-family='monospace' font-size='16' fill='#7B6E89' text-anchor='middle'>ตัวอย่างรูปหลักฐาน</text></svg>`);
+const PHOTO_EXPIRED = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='#F2ECF7'/><text x='150' y='80' font-family='sans-serif' font-size='13' fill='#7B6E89' text-anchor='middle'>รูปหลักฐานถูกลบแล้ว</text><text x='150' y='100' font-family='sans-serif' font-size='11' fill='#9A8FA8' text-anchor='middle'>(เก็บไว้ 45 วันตามกติกา)</text></svg>`);
 const PHOTO_PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='300' height='160'><rect width='300' height='160' fill='#F2ECF7'/><text x='150' y='86' font-family='monospace' font-size='13' fill='#7B6E89' text-anchor='middle'>กำลังโหลดรูป…</text></svg>`);
 
 /* Full-screen view of an evidence photo — admins need to actually zoom in and read the numbers on a photo to
@@ -2552,7 +2647,7 @@ const PHOTO_PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg 
    evidence photo anywhere in the app opens it here; tapping the backdrop or ✕ closes it again. */
 function openPhotoLightbox(imgEl){
   const src = imgEl.currentSrc || imgEl.src;
-  if(!src || src===PHOTO_PLACEHOLDER) return;   // still loading — nothing to show yet, avoid popping up a blank/placeholder view
+  if(!src || src===PHOTO_PLACEHOLDER || src===PHOTO_EXPIRED) return;   // still loading — nothing to show yet, avoid popping up a blank/placeholder view
   let m = document.getElementById('photo-lightbox');
   if(!m){
     m = document.createElement('div');
@@ -2575,7 +2670,8 @@ function entryPhotoImg(e, cls, style){
   const zoomable = 'cursor:pointer;'+(style||'');
   if(e.demo) return `<img class="${cls||''}" src="${DEMO_PHOTO}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
   if(e.photoUrl) return `<img class="${cls||''}" src="${safeImgSrc(e.photoUrl)}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
-  return `<img class="${cls||''}" data-photo-key="${esc(e.id)}" src="${PHOTO_PLACEHOLDER}" style="${zoomable}" onclick="openPhotoLightbox(this)">`;
+  // no photoUrl on a real entry = its evidence photo was removed by the 45-day cleanup (every submission uploads one)
+  return `<img class="${cls||''}" src="${PHOTO_EXPIRED}" style="${style||''}">`;
 }
 
 async function seedDemo(){
@@ -4108,8 +4204,17 @@ function scDraw(){
    harmless to also try; (3) always ALSO show a real <img> (not a canvas — canvases don't get the OS's native
    long-press "Save Image" menu the way an <img> does) so a long-press works as a manual fallback no matter what
    the first two methods did. */
+let scPosting = false;
 async function scPost(){
-  if(!shareState || !shareState.photo) return;
+  if(!shareState || !shareState.photo || scPosting) return;
+  scPosting = true;
+  const btn = document.getElementById('sc-post'); if(btn){ btn.disabled = true; btn.textContent = '⏳ กำลังโพสต์...'; }
+  try{ await scPostInner(); } finally {
+    scPosting = false;
+    if(btn){ btn.disabled = false; btn.textContent = '📣 โพสต์ลงฟีด'; }
+  }
+}
+async function scPostInner(){
   const cv = document.getElementById('sc-canvas');
   const dataUrl = cv.toDataURL('image/jpeg', 0.8);   // feed copies are compressed harder than the download (0.92) —
                                                       // bandwidth for a repeatedly-viewed feed matters more than for a one-off download
@@ -5287,14 +5392,109 @@ function renderAdminStats(){
 }
 
 /* ===== Export Excel ===== */
+/* ===== BACKUP / RESTORE (free tier has no automatic backups) =====
+   Backup: every table the app can read, as one JSON file. Photos stay in Storage (only their URLs are included) and
+   password hashes are unreadable by design, so neither is in the file.
+   Restore is ADD-MISSING-ONLY: each row is inserted with "on conflict do nothing", so restoring an older file never
+   overwrites newer edits — it only puts back rows that were deleted. Safe to run more than once. */
+const BACKUP_TABLES = [
+  // [table, select, order column, conflict key used on restore (null = not restored as-is)]
+  ['accounts', 'employee_id, title, first_name, last_name, office, department, birth_year, weight, height, is_state_athlete, consent, is_admin, disabled, created_at', 'employee_id', null],
+  ['profiles', '*', 'employee_id', 'employee_id'],
+  ['entries', '*', 'id', 'id'],
+  ['app_settings', '*', 'id', null],
+  ['decision_log', '*', 'id', null],
+  ['posts', '*', 'id', 'id'],
+  ['post_likes', '*', 'post_id', 'post_id,employee_id'],
+  ['post_comments', '*', 'id', 'id'],
+];
+function backupStatus(msg){ const el=document.getElementById('backup-status'); if(el) el.textContent = msg; }
+async function backupAllData(){
+  if(!adminMode) return;
+  backupStatus('กำลังดึงข้อมูล...');
+  const tables = {}, counts = [];
+  try{
+    for(const [t, cols, order, , pk] of BACKUP_TABLES.map(x=>[...x, x[0]==='post_likes'?'employee_id':null])){
+      tables[t] = await fetchAll(t, cols, order, true, pk);
+      counts.push(`${t} ${tables[t].length}`);
+    }
+  }catch(e){ dbErr('backupAllData', e); backupStatus('สำรองข้อมูลไม่สำเร็จ: '+(e.message||e)); return; }
+  const payload = { app:'PEADAL LEGEND', kind:'backup', version:1, build:BUILD_STAMP, exportedAt:new Date().toISOString(), tables };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `peadal-legend-backup-${localDateKey()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  backupStatus('สำรองเรียบร้อย: ' + counts.join(' · '));
+}
+async function restoreInsertMissing(table, rows, conflict){
+  // insert-if-absent in batches; a batch that fails (e.g. one row breaks a constraint) is retried row by row so one bad
+  // row can't block the rest
+  let added = 0, failed = 0;
+  for(let i=0; i<rows.length; i+=200){
+    const batch = rows.slice(i, i+200);
+    const {data, error} = await sb.from(table).upsert(batch, {onConflict:conflict, ignoreDuplicates:true}).select();
+    if(!error){ added += (data||[]).length; continue; }
+    for(const row of batch){
+      const r = await sb.from(table).upsert([row], {onConflict:conflict, ignoreDuplicates:true}).select();
+      if(r.error) failed++; else added += (r.data||[]).length;
+    }
+  }
+  return {added, failed};
+}
+async function restoreFromBackupFile(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file || !adminMode) return;
+  let payload;
+  try{ payload = JSON.parse(await file.text()); }catch(e){ alert('อ่านไฟล์ไม่ได้ — ต้องเป็นไฟล์ .json ที่ได้จากปุ่มสำรองข้อมูล'); return; }
+  if(!payload || payload.app!=='PEADAL LEGEND' || payload.kind!=='backup' || !payload.tables){ alert('ไฟล์นี้ไม่ใช่ไฟล์สำรองของ PEADAL LEGEND'); return; }
+  const T = payload.tables;
+  const summary = BACKUP_TABLES.map(([t])=>`${t}: ${(T[t]||[]).length} แถว`).join('\n');
+  if(!confirm(`กู้คืนจากไฟล์สำรองวันที่ ${String(payload.exportedAt||'').slice(0,10)}?\n\n${summary}\n\nระบบจะเพิ่มกลับเฉพาะข้อมูลที่หายไป ข้อมูลที่มีอยู่แล้วจะไม่ถูกแก้ไข`)) return;
+
+  backupStatus('กำลังกู้คืน...');
+  const report = [];
+  try{
+    // accounts can't be recreated from a backup (password hashes are never exported) — list any that are missing
+    const current = await fetchAll('accounts', 'employee_id', 'employee_id', true);
+    const have = new Set(current.map(a=>a.employee_id));
+    const missingAccounts = (T.accounts||[]).filter(a=>!have.has(a.employee_id));
+
+    for(const [t, , , conflict] of BACKUP_TABLES){
+      if(!conflict || !(T[t]||[]).length) continue;
+      const r = await restoreInsertMissing(t, T[t], conflict);
+      report.push(`${t}: เพิ่มกลับ ${r.added}${r.failed?`, ไม่สำเร็จ ${r.failed}`:''}`);
+    }
+    // decision_log has an auto-numbered id, so rows are matched on (entry, status, time) and re-inserted without the
+    // old id — inserting old ids directly would leave the id counter behind and break the next approve/reject
+    if((T.decision_log||[]).length){
+      const cur = await fetchAll('decision_log', 'entry_id,status,decided_at', 'id', true);
+      const key = r=>`${r.entry_id}|${r.status}|${new Date(r.decided_at).getTime()}`;
+      const seen = new Set(cur.map(key));
+      const toAdd = T.decision_log.filter(r=>!seen.has(key(r))).map(({id, ...rest})=>rest);
+      let added = 0;
+      for(let i=0;i<toAdd.length;i+=200){ const {error} = await sb.from('decision_log').insert(toAdd.slice(i,i+200)); if(!error) added += Math.min(200, toAdd.length-i); }
+      report.push(`decision_log: เพิ่มกลับ ${added}`);
+    }
+    if(missingAccounts.length) report.push(`⚠️ บัญชีที่หายไป ${missingAccounts.length} บัญชี (${missingAccounts.map(a=>a.employee_id).join(', ')}) กู้คืนอัตโนมัติไม่ได้ เพราะไฟล์สำรองไม่มีรหัสผ่าน — ให้สมาชิกสมัครใหม่ด้วยรหัสพนักงานเดิม แล้วกดกู้คืนไฟล์นี้อีกรอบ รายการเก่าของเขาจะกลับมา`);
+  }catch(e){ dbErr('restoreFromBackup', e); backupStatus('กู้คืนไม่สำเร็จ: '+(e.message||e)); return; }
+
+  await Promise.all([loadEntries(), loadProfiles(), loadDecisionLog ? loadDecisionLog() : null]);
+  render();
+  backupStatus('กู้คืนเสร็จ — ' + report.join(' · '));
+  alert('กู้คืนเสร็จแล้ว\n\n' + report.join('\n'));
+}
+
 function exportExcel(){
   if(typeof XLSX === 'undefined'){ alert('ไลบรารี Excel ยังโหลดไม่เสร็จ รอสักครู่แล้วลองใหม่'); return; }
   const wb = XLSX.utils.book_new();
   const approved = entries.filter(e=>e.status==='approved');
 
   // Sheet 1: all approved entries
-  const actRows = [['ชื่อ','สังกัด','ประเภท','วันที่','ระยะทาง (กม.)','สถานะ']];
-  approved.forEach(e=>actRows.push([e.name, e.office, e.type==='ride'?'ปั่นจักรยาน':'วิ่ง', e.date, e.distanceKm, e.status]));
+  const actRows = [['รหัสพนักงาน','ชื่อ','สังกัด','ประเภท','วันที่','ระยะทาง (กม.)','เวลา (นาที)','สถานะ']];
+  approved.forEach(e=>actRows.push([e.employeeId||'', e.name, e.office, e.type==='ride'?'ปั่นจักรยาน':'วิ่ง', e.date, e.distanceKm, e.durationMin||'', e.status]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(actRows), 'กิจกรรมทั้งหมด');
 
   // Sheet 2: office ranking
@@ -5651,7 +5851,7 @@ document.addEventListener('visibilitychange', async ()=>{
   syncCurrentUser(); render();
 });
 loadAccounts().then(()=> Promise.all([loadEntries(), loadProfiles(), loadSettings(), loadDecisionLog()]))
-  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); loadFeedPage(true); cleanupExpiredContent(); })
+  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); cleanupExpiredContent(); })
   .catch(err=>{
     console.error('initial load failed', err);
     loadCurrentUser(); render();   // still show whatever partial data came back rather than a blank screen
