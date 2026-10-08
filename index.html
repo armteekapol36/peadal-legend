@@ -155,7 +155,8 @@
   .global-banner .x{cursor:pointer; opacity:.85; font-size:14px; flex:0 0 auto;}
   .winners-banner{background:linear-gradient(90deg,#E8B33E,#C98E1E); color:#3A2600; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; box-shadow:0 2px 10px rgba(200,140,20,.3);}
   /* ===== weekly podium (top of dashboard) ===== */
-  #sec-weekly-podium{background:linear-gradient(165deg,#8A48A6,#4A2060); border-radius:16px; padding:18px 10px 14px; color:#fff; box-shadow:0 6px 20px rgba(90,40,110,.25);}
+  #sec-weekly-podium, .wp-box{background:linear-gradient(165deg,#8A48A6,#4A2060); border-radius:16px; padding:18px 10px 14px; color:#fff; box-shadow:0 6px 20px rgba(90,40,110,.25);}
+  .wp-box{margin:2px 0 0;}
   .wp-eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.8; text-align:center;}
   .wp-title{font-size:16px; font-weight:800; text-align:center; margin:3px 0 1px;}
   .wp-sub{font-size:11px; text-align:center; opacity:.85; margin-bottom:14px; font-family:var(--mono);}
@@ -808,7 +809,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-08-02';
+const BUILD_STAMP = '2026-10-08-03';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1733,7 +1734,7 @@ async function loadFeedPage(reset){
     const rows = data||[];
     feedState.hasMore = rows.length===feedState.pageSize;
     feedState.page++;
-    const newPosts = rows.map(r=>({id:r.id, employeeId:r.employee_id, name:nameForEmployee(r.employee_id,r.name), photoUrl:r.photo_url, createdAt:r.created_at}));
+    const newPosts = rows.map(r=>({id:r.id, employeeId:r.employee_id, name:nameForEmployee(r.employee_id,r.name), photoUrl:r.photo_url, createdAt:r.created_at, kind:r.kind||'photo', payload:r.payload||null}));
     feedState.posts = feedState.posts.concat(newPosts);
     if(newPosts.length){
       const ids = newPosts.map(p=>p.id);
@@ -1766,7 +1767,7 @@ async function submitPost(dataUrl){
 async function deletePost(postId){
   const post = feedState.posts.find(p=>p.id===postId);
   if(!post) return;
-  const isOwner = currentUser && post.employeeId===currentUser.employeeId;
+  const isOwner = currentUser && post.employeeId && post.employeeId===currentUser.employeeId;
   if(!currentUser || (!isOwner && !adminMode)) return;
   if(!confirm(isOwner ? 'ลบโพสต์นี้เลยไหม?' : `ลบโพสต์ของ ${post.name} ในฐานะแอดมินใช่ไหม?`)) return;
   const path = postPhotoPathFromUrl(post.photoUrl);
@@ -1838,7 +1839,8 @@ async function cleanupExpiredContent(){
     localStorage.setItem('pea_cleanup_ran', today);
     const POST_DAYS = 30, EVIDENCE_DAYS = 45;
     const postCutoff = new Date(Date.now() - POST_DAYS*86400000).toISOString();
-    const {data: oldPosts} = await sb.from('posts').select('id,photo_url').lt('created_at', postCutoff);
+    const {data: oldPostsAll} = await sb.from('posts').select('*').lt('created_at', postCutoff);
+    const oldPosts = (oldPostsAll||[]).filter(p=>p.kind!=='podium');   // weekly-podium announcements are tiny (no photo) and stay as history
     if(oldPosts && oldPosts.length){
       const paths = oldPosts.map(p=>postPhotoPathFromUrl(p.photo_url)).filter(Boolean);
       for(let i=0;i<paths.length;i+=50) await sb.storage.from('posts').remove(paths.slice(i,i+50));
@@ -1858,6 +1860,13 @@ async function cleanupExpiredContent(){
   }catch(e){ dbErr('cleanupExpiredContent', e); }   // best-effort — never blocks the app from loading
 }
 
+function feedPodiumHtml(post){
+  const pl = post.payload || {};
+  const board = Array.isArray(pl.board) ? pl.board.slice(0,5).map((p,i)=>({name:String(p.name||'').slice(0,121), total:Number(p.total)||0, rank:i+1, gear:p.gear})) : [];
+  if(board.length < WP_MIN_PARTICIPANTS) return '';
+  return `<div class="wp-box">${wpPodiumHtml(board, 'ประกาศผลแชมป์ประจำสัปดาห์ — ปั่นจักรยาน', String(pl.label||'').slice(0,40), 'ผลสรุปสุดท้ายของสัปดาห์ · รวมทุกสังกัด', false)}</div>`;
+}
+
 function renderFeed(){
   const el = document.getElementById('page-feed'); if(!el) return;
   const drafts = {}; let focusedId = null;
@@ -1869,8 +1878,8 @@ function renderFeed(){
     const isOpen = !!feedState.openComments[post.id];
     const canDelete = currentUser && (post.employeeId===currentUser.employeeId || adminMode);
     return `<div class="card">
-      <div class="eyebrow"><span>🚴 ${esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
-      <img src="${safeImgSrc(post.photoUrl)}" loading="lazy" style="width:100%; border-radius:12px; display:block; cursor:pointer; min-height:120px; background:var(--panel-2);" onclick="openPhotoLightbox(this)">
+      <div class="eyebrow"><span>${post.kind==='podium'?'📢 ประกาศ':'🚴 '+esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
+      ${post.kind==='podium' ? feedPodiumHtml(post) : `<img src="${safeImgSrc(post.photoUrl)}" loading="lazy" style="width:100%; border-radius:12px; display:block; cursor:pointer; min-height:120px; background:var(--panel-2);" onclick="openPhotoLightbox(this)">`}
       <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
         <span style="cursor:pointer; font-size:14px;" onclick="toggleLike('${escAttr(post.id)}')">${iLiked?'❤️':'🤍'} ${likes.length}</span>
         <span style="cursor:pointer; font-size:14px; color:var(--text-dim);" onclick="toggleComments('${escAttr(post.id)}')">💬 ${comments.length} ความคิดเห็น</span>
@@ -3775,54 +3784,104 @@ function wpCharacterWithRegalia(gear, rank){
   return svg.replace('</svg>', overlay + '</svg>');
 }
 
-/* top-5 weekly cycling podium — ranked by ride km, all offices combined, current Mon-Sun week.
-   Needs at least WP_MIN_PARTICIPANTS distinct riders that week or it shows an empty state instead. */
+/* top-5 weekly cycling podium — ranked by ride km, all offices combined, Mon-Sun weeks.
+   Needs at least WP_MIN_PARTICIPANTS distinct riders that week or it shows an empty state instead.
+   SCHEDULE: a finished week's podium is held on screen Mon-Wed (WP_HOLD_DAYS). The new week's km keep being
+   collected as normal but stay hidden; from Thursday (day 4) the dashboard shows the new week live. When the
+   hold is over, that finished week is also archived into the feed as a permanent announcement post (kind='podium'),
+   frozen as a snapshot — by then the admins have had 3 days to approve late entries. */
 const WP_MIN_PARTICIPANTS = 5;
+const WP_HOLD_DAYS = 3;
+function wpMondayOf(d){ const x=new Date(d); const day=x.getDay(); x.setDate(x.getDate()+(day===0?-6:1-day)); x.setHours(0,0,0,0); return x; }
+function wpWeek(monday){
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  return { mondayKey: localDateKey(monday), sundayKey: localDateKey(sunday),
+    label: `${monday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})}` };
+}
+function wpBoardFor(week){
+  const map = {};
+  entries.filter(e=>e.status==='approved' && e.type==='ride' && e.date>=week.mondayKey && e.date<=week.sundayKey)
+    .forEach(e=>{ if(!map[e.name]) map[e.name]={name:e.name, total:0}; map[e.name].total += e.distanceKm; });
+  return Object.values(map).sort((a,b)=>b.total-a.total).slice(0,5).map((p,i)=>({name:p.name, total:p.total, rank:i+1}));
+}
+/* gear that came back from the database (feed snapshot) is untrusted text that ends up inside SVG attributes —
+   keep only known keys with plain scalar values */
+function wpSanitizeGear(g){
+  const base = defaultGear(), out = {};
+  Object.keys(base).forEach(k=>{
+    const v = g && g[k];
+    out[k] = (typeof v==='string' && /^[\w#\-. ]{0,40}$/.test(v)) || typeof v==='number' || typeof v==='boolean' ? v : base[k];
+  });
+  return out;
+}
+/* shared markup for the dashboard card and the feed post. board: [{name,total,rank,gear?}] */
+function wpPodiumHtml(board, title, subLabel, foot, clickable){
+  const order = board.length===5 ? [board[3],board[1],board[0],board[2],board[4]] : [...board].reverse();
+  const badges = {1:'👑',2:'🥈',3:'🥉',4:'🎗️',5:'🎗️'};
+  return `
+    <div class="wp-eyebrow">🏆 PEADAL LEGEND</div>
+    <div class="wp-title">${esc(title)}</div>
+    <div class="wp-sub">${esc(subLabel)}</div>
+    <div class="wp-row">${order.map(p=>{
+      const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
+      return `<div class="wp-slot r${p.rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
+        <div class="wp-badge">${badges[p.rank]}</div>
+        <div class="wp-char">${wpCharacterWithRegalia(gear, p.rank)}</div>
+        <div class="wp-step"><span class="n">${p.rank}</span></div>
+        <div class="wp-name">${esc(p.name)}</div>
+        <div class="wp-dist">${Number(p.total).toFixed(1)} กม.</div>
+      </div>`;
+    }).join('')}</div>
+    <div class="wp-foot">${esc(foot)}</div>`;
+}
+const _wpArchiveTried = {};
+async function wpArchiveWeek(week){
+  const key = 'pea_wp_arch_'+week.mondayKey;
+  if(_wpArchiveTried[key]) return;
+  _wpArchiveTried[key] = true;                       // once per page-load, win or lose — never loops on errors
+  try{ if(localStorage.getItem(key)) return; }catch(e){}
+  const board = wpBoardFor(week);
+  const done = ()=>{ try{ localStorage.setItem(key,'1'); }catch(e){} };
+  if(board.length < WP_MIN_PARTICIPANTS){ done(); return; }   // that week never qualified — nothing to announce
+  const payload = { week:week.mondayKey, label:week.label,
+    board: board.map(p=>({name:p.name, total:Math.round(p.total*100)/100, rank:p.rank,
+      gear:Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {})})) };
+  const {error} = await sb.from('posts').insert({id:'wp_'+week.mondayKey, employee_id:null, name:'PEADAL LEGEND', photo_url:null, kind:'podium', payload});
+  if(error && error.code!=='23505'){ dbErr('wpArchiveWeek', error); return; }   // 23505 = someone else already posted it: fine
+  done();
+  if(!error && typeof feedState!=='undefined' && feedState.posts.length) loadFeedPage(true);
+}
 function renderWeeklyPodium(){
   const el = document.getElementById('sec-weekly-podium');
   if(!el) return;
   el.style.display = '';
 
-  const monday = (()=>{ const d=new Date(); const day=d.getDay(); d.setDate(d.getDate()+(day===0?-6:1-day)); d.setHours(0,0,0,0); return d; })();
-  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6); sunday.setHours(23,59,59,999);
-  const mondayKey = localDateKey(monday), sundayKey = localDateKey(sunday);
-  const rangeLabel = `${monday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})}`;
+  const thisMon = wpMondayOf(new Date());
+  const daysIn = Math.round((new Date().setHours(0,0,0,0) - thisMon.getTime())/86400000);   // 0=Mon … 6=Sun
+  const holding = daysIn < WP_HOLD_DAYS;
+  const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate()-7);
+  const shownWeek = wpWeek(holding ? lastMon : thisMon);
+  const board = wpBoardFor(shownWeek);
+  const title = holding ? 'แชมป์ประจำสัปดาห์ที่แล้ว — ปั่นจักรยาน' : 'แชมป์ประจำสัปดาห์ — ปั่นจักรยาน';
 
-  const map = {};
-  entries.filter(e=>e.status==='approved' && e.type==='ride' && e.date>=mondayKey && e.date<=sundayKey)
-    .forEach(e=>{ if(!map[e.name]) map[e.name]={name:e.name, total:0}; map[e.name].total += e.distanceKm; });
-  const board = Object.values(map).sort((a,b)=>b.total-a.total).slice(0,5);
+  // archive the most recent week whose hold is over (catch-up covers nobody opening the app on Thursday)
+  if(entries.length){
+    const archMon = new Date(thisMon); archMon.setDate(thisMon.getDate() - (holding ? 14 : 7));
+    wpArchiveWeek(wpWeek(archMon));
+  }
 
   if(board.length < WP_MIN_PARTICIPANTS){
     el.innerHTML = `
       <div class="wp-eyebrow">🏆 PEADAL LEGEND</div>
-      <div class="wp-title">แชมป์ประจำสัปดาห์ — ปั่นจักรยาน</div>
-      <div class="wp-sub">${esc(rangeLabel)}</div>
-      <div class="wp-empty">สัปดาห์นี้มีผู้ส่งผลปั่นจักรยานแล้ว ${board.length} คน<br>ต้องครบ ${WP_MIN_PARTICIPANTS} คนขึ้นไปก่อนประกาศโพเดียม</div>`;
+      <div class="wp-title">${esc(title)}</div>
+      <div class="wp-sub">${esc(shownWeek.label)}</div>
+      <div class="wp-empty">${holding
+        ? `สัปดาห์ที่แล้วมีผู้ส่งผลปั่นจักรยาน ${board.length} คน — ไม่ครบ ${WP_MIN_PARTICIPANTS} คน จึงไม่มีการประกาศโพเดียม<br>โพเดียมสัปดาห์นี้จะเปิดตัววันพฤหัสบดี`
+        : `สัปดาห์นี้มีผู้ส่งผลปั่นจักรยานแล้ว ${board.length} คน<br>ต้องครบ ${WP_MIN_PARTICIPANTS} คนขึ้นไปก่อนประกาศโพเดียม`}</div>`;
     return;
   }
-
-  board.forEach((p,i)=>{ p.rank = i+1; });
-  const order = board.length===5 ? [board[3],board[1],board[0],board[2],board[4]]
-    : [...board].reverse();   // fewer than 5 (but >= min): just step down left-to-right into rank 1 on the right
-  const badges = {1:'👑',2:'🥈',3:'🥉',4:'🎗️',5:'🎗️'};
-
-  el.innerHTML = `
-    <div class="wp-eyebrow">🏆 PEADAL LEGEND</div>
-    <div class="wp-title">แชมป์ประจำสัปดาห์ — ปั่นจักรยาน</div>
-    <div class="wp-sub">${esc(rangeLabel)}</div>
-    <div class="wp-row">${order.map(p=>{
-      const gear = Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
-      const svg = wpCharacterWithRegalia(gear, p.rank);
-      return `<div class="wp-slot r${p.rank}" onclick="openAthlete('${escAttr(p.name)}')">
-        <div class="wp-badge">${badges[p.rank]}</div>
-        <div class="wp-char">${svg}</div>
-        <div class="wp-step"><span class="n">${p.rank}</span></div>
-        <div class="wp-name">${esc(p.name)}</div>
-        <div class="wp-dist">${p.total.toFixed(1)} กม.</div>
-      </div>`;
-    }).join('')}</div>
-    <div class="wp-foot">รวมทุกสังกัด · อันดับปั่นจักรยานรายสัปดาห์</div>`;
+  el.innerHTML = wpPodiumHtml(board, title, shownWeek.label,
+    holding ? 'ผลสัปดาห์นี้กำลังสะสม · เปิดตัววันพฤหัสบดี' : 'รวมทุกสังกัด · อันดับปั่นจักรยานรายสัปดาห์', true);
 }
 
 function svgBike(gear){
