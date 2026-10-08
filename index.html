@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-08-01';
+const BUILD_STAMP = '2026-10-08-02';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2170,8 +2170,67 @@ function ocrCompactThai(text){
    which silently turns the pace into a (wildly wrong) duration. Also check for the word "Pace"/"เพซ" sitting right
    before the time: that label is larger, clearer text and a much more reliable signal when the suffix is lost. */
 function ocrIsPaceContext(t, idx, matchLen){
-  if(/^[^\d]{0,4}(?:km|กม\.?)\b/i.test(t.slice(idx+matchLen, idx+matchLen+6))) return true;
+  const after = t.slice(idx+matchLen, idx+matchLen+24);
+  if(/^[^\d]{0,4}(?:km|กม\.?)\b/i.test(after.slice(0,6))) return true;
+  // spelled-out unit under/after the number: "นาที/กิโลเมตร", "นาที/กม.", "min/km" (GOALS-FITNESS prints the full word)
+  if(/^\s*(?:[^\d\s]{0,3}\s*)?(?:(?:นาที|min)\.?\s*)?[\/\\]?\s*(?:km|กม|กิโลเมตร|kilomet)/i.test(after)) return true;
   if(/(?:\bpace\b|เพซ)[^\d]{0,6}$/i.test(t.slice(Math.max(0,idx-16), idx))) return true;
+  return false;
+}
+/* shared normaliser + token helpers so duration / pace / expected-distance all read the text the same way */
+function ocrNorm(text){ return ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' '); }
+const OCR_DUR_LABEL = /(?:เวลารวม|ระยะเวลา|เวลา|duration|elapsed|moving|total time|\btime\b|รวมถึงการหยุด)/i;
+const OCR_DATEISH_BEFORE = /(?:\d{4}[\/\-.]\d{1,2}[\/\-.]\d{1,2}|\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|จันทร์|อังคาร|พุธ|พฤหัส\S*|ศุกร์|เสาร์|อาทิตย์|@|\b(?:mon|tue|wed|thu|fri|sat|sun)\w*\.?|\b(?:am|pm)\b)[^\d]{0,12}$/i;
+/* every duration in the text. H:MM:SS is trusted; a bare MM:SS (rides under an hour: "38:12") only counts when it is
+   not the status-bar clock, not a time-of-day next to a date/weekday ("2026/10/6 อังคาร 18:43"), not a pace, and
+   — for the cross-check — sits next to a time label ("เวลา", "Time"...) */
+function ocrDurationList(t){
+  const out = [];
+  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)){
+    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
+    out.push({str:m[1]+':'+m[2]+':'+m[3], hours:+m[1]+ +m[2]/60+ +m[3]/3600, kind:'hms', labeled:true});
+  }
+  for(const m of t.matchAll(/(?<![\d:])(\d{1,3})\s*:\s*(\d{2})(?:\.\d)?(?![\d:])/g)){
+    if(m.index<=12 || +m[2]>59) continue;
+    if(OCR_DATEISH_BEFORE.test(t.slice(Math.max(0,m.index-18), m.index))) continue;
+    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
+    const labeled = OCR_DUR_LABEL.test(t.slice(Math.max(0,m.index-30), m.index)) || OCR_DUR_LABEL.test(t.slice(m.index+m[0].length, m.index+m[0].length+30));
+    out.push({str:m[1]+':'+m[2], hours:+m[1]/60+ +m[2]/3600, kind:'ms', labeled});
+  }
+  return out;
+}
+/* durations safe to use for duration x speed / duration / pace maths */
+function ocrDurationHours(t){
+  const all = ocrDurationList(t);
+  const hms = all.filter(d=>d.kind==='hms');
+  if(hms.length) return hms.map(d=>d.hours);
+  const lab = all.filter(d=>d.labeled);
+  if(lab.length) return lab.map(d=>d.hours);
+  return all.length===1 ? [all[0].hours] : [];
+}
+/* pace values (minutes per km) — only tokens that carry a pace marker; "00:01:58 /km" is 1.97 min/km */
+function ocrPaceList(t){
+  const out = [];
+  for(const m of t.matchAll(/(?<![\d:])(\d{1,2})\s*:\s*(\d{2})(?:\s*:\s*(\d{2}))?(?![\d:])/g)){
+    if(!ocrIsPaceContext(t, m.index, m[0].length)) continue;
+    const min = m[3]!=null ? (+m[1])*60 + +m[2] + +m[3]/60 : +m[1] + +m[2]/60;
+    if(!(min>=1.5 && min<=25)) continue;
+    out.push({str: m[3]!=null ? m[1]+':'+m[2]+':'+m[3] : m[1]+':'+m[2], min});
+  }
+  return out;
+}
+/* three-way check when the pace unit text was lost: duration / distance should equal some M:SS printed in the same
+   screenshot (real case: 0:36:01, 5.08 km and "7:05" — 36.02/5.08 = 7.09 min/km). Only for 2-decimal distances. */
+function ocrPaceTriangulates(t, dist){
+  if(!(dist>=1)) return false;
+  const durs = ocrDurationHours(t);
+  if(!durs.length) return false;
+  const toks = [...t.matchAll(/(?<![\d:])(\d{1,2})\s*:\s*(\d{2})(?![\d:])/g)].map(m=>+m[1] + +m[2]/60);
+  for(const h of durs){
+    const implied = h*60/dist;
+    if(!(implied>=1.5 && implied<=25)) continue;
+    if(toks.some(v=>Math.abs(v-implied)/implied < 0.015 && Math.abs(v-h*60) > 0.2)) return true;
+  }
   return false;
 }
 function ocrCheckRisky(haystack, matchIndex){
@@ -2225,21 +2284,20 @@ function ocrDistanceCandidates(text){
   return {list:out, text:t};
 }
 function ocrExpectedDistances(text){
-  const t = ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' ');
-  const durs=[], speeds=[];
-  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)){
-    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;   // "Pace 00:01:58 /km" is pace, not duration
-    durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
-  }
+  const t = ocrNorm(text);
+  const durs = ocrDurationHours(t), speeds=[];
   // digit-run guard (no digit immediately before/after) stops this from grabbing a truncated fragment out of a
   // longer run — e.g. "321 กม./ชม" (OCR dropped the decimal point in "32.1") would otherwise match just "21".
-  // Decimal part allows 1 OR 2 digits — "30.45 km/h" (two decimals) is a real format several apps use; requiring
-  // exactly one digit made the regex miss the whole number and lock onto just its last two digits instead.
+  // Decimal part allows 1 OR 2 digits — "30.45 km/h" (two decimals) is a real format several apps use.
   for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:\s?[.,]\s?\d{1,2})?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
-  // cycling/running average speeds are essentially always X.Y (one decimal, 1-60ish km/h) — an undotted 3-digit
-  // run right before the unit ("321", "185") is almost certainly a dropped decimal point, not a literal 3-digit speed
+  // an undotted 3-digit run right before the unit ("321") is almost certainly a dropped decimal point ("32.1")
   for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
-  const out=[]; for(const h of durs) for(const v of speeds) out.push(h*v);
+  const paces = ocrPaceList(t);
+  const out=[];
+  for(const h of durs){
+    for(const v of speeds) out.push(h*v);
+    for(const p of paces) out.push(h*60/p.min);     // runs: distance = time / pace
+  }
   return out;
 }
 /* When OCR shatters a big headline number ("50.08" -> "50 08", "5 0.08", "50.0 8"...), the fragments no longer parse
@@ -2253,7 +2311,7 @@ function ocrRecoverFromExpected(text, expected){
   let best = null;
   for(const m of t.matchAll(/\d[\d \t.,|]{0,6}\d/g)){
     const D = m[0].replace(/\D/g,'');
-    if(D.length<2 || D.length>5) continue;
+    if(D.length<3 || D.length>5) continue;   // 2-digit scraps ('18' out of '18:43') match almost any expected value by luck
     for(const div of [100, 10, 1]){
       const v = parseInt(D,10)/div;
       if(!(v>0 && v<=1000)) continue;
@@ -2268,7 +2326,7 @@ function ocrRecoverFromExpected(text, expected){
 /* OCR commonly swaps look-alike digits (3<->5, 3<->8, 5<->6, 6<->8, 0<->8, 1<->7, 8<->9). If changing exactly ONE digit
    of a read number lands within 1% of duration x speed, that's the true value — e.g. "55.95" vs expected 35.97 -> "35.95".
    Requires a single unambiguous fix; if two different swaps both fit, nothing is changed. */
-const OCR_DIGIT_CONFUSIONS = {'0':'8','1':'7','3':'58','5':'36','6':'58','7':'1','8':'3690','9':'8'};
+const OCR_DIGIT_CONFUSIONS = {'0':'86','1':'7','3':'58','5':'369','6':'580','7':'1','8':'3690','9':'85'};
 function ocrFixOneDigit(value, expected){
   if(!expected || !expected.length) return null;
   const hits = new Set();
@@ -2284,95 +2342,87 @@ function ocrFixOneDigit(value, expected){
 function ocrExtractDistance(text){
   const cands = ocrDistanceCandidates(text).list;
   const expected = ocrExpectedDistances(text);
+  const tn = ocrNorm(text);
   cands.forEach(c=>{
-    c.consistent = expected.some(e=>Math.abs(e-c.num)/e < 0.08);
-    if(c.consistent) c.score += 10;                       // matches duration × speed printed in the same screenshot
+    // "18.55 กม." sometimes comes out as "18.550" — the unit's first glyph read as a stray digit. If dropping that
+    // last digit lands on duration x speed (or time / pace) and the full number doesn't, the trimmed value is the real one.
+    if(/[.,]\d{3}$/.test(c.value) && expected.length){
+      const tv = c.value.slice(0,-1), tnum = parseFloat(tv);
+      if(expected.some(e=>Math.abs(e-tnum)/e < 0.03)){ c.value = tv; c.num = tnum; c.score += 8; }
+    }
+    c.consistent = expected.some(e=>Math.abs(e-c.num)/e < 0.08)
+      || (/[.,]\d{2}$/.test(c.value) && ocrPaceTriangulates(tn, c.num));
+    if(c.consistent) c.score += 10;                       // matches duration x speed / pace printed in the same screenshot
+    if(c.consistent && /[.,]\d{2}$/.test(c.value)) c.score += 4;   // precise beats rounded ('5.08' over the goal title '5 km')
   });
-  // a bare decimal (no unit read) only counts if it has a label nearby or agrees with duration × speed
+  // a bare decimal (no unit read) only counts if it has a label nearby or agrees with duration x speed
   let list = cands.filter(c=>!c.bare || c.score>=6 || c.consistent);
   let unitUnconfirmed = false;
   if(!list.length){
     // Some screenshots (e.g. Google Maps Timeline) show only a bare headline number with no duration/speed to
     // cross-check and no "ระยะทาง" label — OCR sometimes also drops the "กม." unit text right next to it. If
     // there is exactly ONE two-decimal bare number anywhere in the whole text, it's almost certainly the distance
-    // (nothing else on these screens is formatted like ##.## with no unit) — use it, but flag the unit as
-    // unconfirmed so the entry still needs a human to glance at the photo before it counts.
+    // — use it, but flag the unit as unconfirmed so the entry still needs a human to glance at the photo.
     const bareTwoDp = cands.filter(c=>c.bare && /[.,]\d{2}$/.test(c.value));
     if(bareTwoDp.length===1){ list = bareTwoDp; unitUnconfirmed = true; }
   }
   if(!list.length || !list.some(c=>c.consistent)){
     const rec = ocrRecoverFromExpected(text, expected);
-    const top = list.length ? [...list].sort((a,b)=> b.score-a.score || a.num-b.num)[0] : null;   // tie-break toward the SMALLER reading — no basis to assume OCR drift inflates rather than deflates, and understating a result is the lower-risk default for a ranking the number feeds into
+    const top = list.length ? [...list].sort((a,b)=> b.score-a.score || a.num-b.num)[0] : null;   // tie -> the SMALLER reading (no basis to assume OCR drift inflates, and understating is the lower-risk default)
     if(rec && (!top || !top.consistent)) return {value:rec.value, risky:false, riskyWord:null, implausible:false, candidates:list.length, unitUnconfirmed:false, recovered:true};
   }
   if(!list.length) return {value:null, risky:false, riskyWord:null};
-  list.sort((a,b)=> b.score-a.score || a.num-b.num);   // tie-break toward the smaller reading, same reasoning as above
+  list.sort((a,b)=> b.score-a.score || a.num-b.num);
   const best = list[0];
-  let ambiguousDigit = null;
-  // "50.08" read as "50.0 8": the 50.0 already passes the cross-check, but the stray "8" right after it is the lost
-  // last digit — prefer the more precise reassembly when it simply extends the number we already trust
   if(best.consistent){
+    // "50.08" read as "50.0 8": the 50.0 already passes the cross-check, but the stray "8" right after it is the lost
+    // last digit — prefer the more precise reassembly when it simply extends the number we already trust
     const rec = ocrRecoverFromExpected(text, expected);
     if(rec && rec.value.length > best.value.length && rec.value.startsWith(best.value)) best.value = rec.value;
-    else{
-      // Even a "consistent" reading can still be a single misread digit — duration/speed on screen are themselves
-      // rounded, so a wrong digit that lands within a percent or two of the true value sails through the cross-check
-      // unchallenged (real case: screen showed "40.00", one OCR pass read "40.05", and 1:27:24 x 27.5 km/h ~= 40.05
-      // confirmed the WRONG reading). If a single-digit swap of the chosen value also lands within 1% of duration x
-      // speed, that's genuine ambiguity the cross-check can't resolve — surface it for a human instead of staying silent.
-      const altFix = ocrFixOneDigit(best.value, expected);
-      if(altFix && altFix!==best.value) ambiguousDigit = altFix;
+    else if(expected.length){
+      // Trust the OCR number when it is within 1% of duration x speed (the printed speed is itself rounded, so a
+      // gap this small is noise — e.g. 34.34 vs a 34.32 estimate, never worth holding for review). Only when it
+      // is 1-8% off AND exactly one single-digit swap lands within 1% do we switch to that swap.
+      const nearest = Math.min(...expected.map(e=>Math.abs(e-best.num)/e));
+      if(nearest > 0.01){
+        const alt = ocrFixOneDigit(best.value, expected);
+        if(alt && alt!==best.value) return {value:alt, risky:false, riskyWord:null, implausible:false, candidates:list.length, unitUnconfirmed:false, recovered:true};
+      }
     }
   }
-  // A single day's cycling/running distance this large is exceptionally rare — real case that motivated this: a
-  // 3-column stat row ("Distance | Elevation gain | Time") got merged by OCR into one jumbled line, and "54.40"
-  // came out as "564.40". Nothing about that number LOOKS malformed (clean 2-decimal, has a unit) so none of the
-  // existing checks catch it. Flag anything this large that isn't independently confirmed by the duration×speed
-  // cross-check, rather than silently accepting a number this consequential on faith.
+  // A single day's distance this large is exceptionally rare — real case: a 3-column stat row got merged by OCR and
+  // "54.40" came out as "564.40". Flag anything this large that isn't independently confirmed.
   if(!best.consistent){
     const fixed = ocrFixOneDigit(best.value, expected);
     if(fixed) return {value:fixed, risky:false, riskyWord:null, implausible:false, candidates:list.length, unitUnconfirmed:false, recovered:true};
   }
   const implausible = best.num>300 && !best.consistent && !best.risky;
-  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, implausible, candidates:list.length, unitUnconfirmed, ambiguousDigit};
+  return {value:best.value, risky:best.risky, riskyWord:best.riskyWord, implausible, candidates:list.length, unitUnconfirmed};
 }
 
 /* rides show a duration and an average speed — distance ≈ hours × km/h. Independent check on the OCR'd distance. */
 function ocrSpeedCheck(text, dist){
-  const t = ocrFixDigitLookalikes(ocrCompactThai(text)).replace(/\s+/g,' ');
-  const durs=[], speeds=[];
-  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)){
-    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
-    durs.push(+m[1]+ +m[2]/60+ +m[3]/3600);
-  }
-  for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:[.,]\d{1,2})?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(',','.')));
-  for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
-  if(!durs.length || !speeds.length) return null;
+  const exps = ocrExpectedDistances(text);       // duration x speed AND duration / pace
+  if(!exps.length) return null;
   let bestOff = Infinity;
-  for(const h of durs) for(const v of speeds) bestOff = Math.min(bestOff, Math.abs(h*v-dist)/dist);
+  for(const e of exps) bestOff = Math.min(bestOff, Math.abs(e-dist)/dist);
   return {ok: bestOff < 0.10, pctOff: bestOff};
 }
 
 function ocrExtractPace(text){
-  const t = ocrFixDigitLookalikes(ocrCompactThai(text));
-  const m = t.match(/(\d{1,2}\s*:\s*\d{2})\s*\/?\s*(?:km|กม)/i);
-  return m ? m[1].replace(/\s+/g,'') : null;
+  const l = ocrPaceList(ocrNorm(text));
+  return l.length ? l[0].str : null;
 }
 function ocrExtractDuration(text){
-  // prefer H:MM:SS; a bare MM:SS in the first ~12 characters is the phone's status-bar clock, not the activity time.
-  // "Pace 00:01:58 /km" is formatted just like a duration but means per-kilometre time, not total ride time — real
-  // case that motivated this: that pace matched BEFORE the real duration ("Time 01:18:51") appeared later in the
-  // text, so the first-match-wins approach picked the wrong one. Skip any H:MM:SS (or MM:SS) directly followed by
-  // a pace marker (/km, /กม., นาที/กม.) and take the next real candidate instead.
-  const t = ocrFixDigitLookalikes(ocrCompactThai(text));
-  for(const m of t.matchAll(/\b(\d{1,2})\s*:\s*(\d{2})\s*:\s*(\d{2})\b/g)){
-    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
-    return m[1]+':'+m[2]+':'+m[3];
-  }
-  for(const m of t.matchAll(/\b(\d{1,3})\s*:\s*(\d{2})(?:\.\d)?\b(?!\s*\/?\s*(?:km|กม))/gi)){
-    if(m.index > 12) return m[1]+':'+m[2];
-  }
-  return null;
+  // H:MM:SS first (skipping any pace). Otherwise a bare MM:SS — preferring one next to a time label ("เวลา") and
+  // never the status-bar clock or a time-of-day sitting beside a date/weekday ("2026/10/6 อังคาร 18:43"): real case,
+  // the ride date line came before "38:12 เวลา" and was being stored as the ride duration.
+  const all = ocrDurationList(ocrNorm(text));
+  const hms = all.find(d=>d.kind==='hms');
+  if(hms) return hms.str;
+  const ms = all.filter(d=>d.kind==='ms');
+  const pick = ms.find(d=>d.labeled) || ms[0];
+  return pick ? pick.str : null;
 }
 function ocrParseMinSec(str){
   const p = str.split(':').map(parseFloat);
@@ -2548,7 +2598,6 @@ async function runAiRead(dataUrl, refMs){
     if(distResult.recovered) warnings.push('ตัวเลขระยะทางในรูปอ่านได้ไม่ครบ ระบบประกอบกลับจากเวลา × ความเร็วในรูปเดียวกัน');
     if(distResult.implausible) warnings.push('ระยะทางเกิน 300 กม./ครั้ง และไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ (อาจเป็นตัวเลขที่ OCR อ่านตัวเลขหลายค่าปนกัน)');
     if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
-    if(distResult.ambiguousDigit) warnings.push(`ตัวเลขอาจอ่านผิด 1 หลัก (ได้ทั้ง ${distResult.value} และ ${distResult.ambiguousDigit}) — เทียบกับรูปก่อนอนุมัติ`);
     if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
         ? `ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป (คำนวณได้ประมาณ ${crossCheck.expected} กม.) — อาจอ่านผิด`
         : 'ระยะทางไม่สอดคล้องกับเวลา × ความเร็วเฉลี่ยในรูป — อาจอ่านผิด');
@@ -2562,7 +2611,6 @@ async function runAiRead(dataUrl, refMs){
       risky: distResult.risky,
       implausibleDistance: !!distResult.implausible,
       unitUnconfirmed: !!distResult.unitUnconfirmed,
-      ambiguousDigit: distResult.ambiguousDigit || null,
       suggestedDistance: (crossCheck && !crossCheck.ok && crossCheck.expected) ? parseFloat(crossCheck.expected) : null,
       crossCheckFailed: crossCheck ? !crossCheck.ok : false,
       crossCheckPassed: crossCheck ? crossCheck.ok : false
@@ -2643,11 +2691,10 @@ async function _submitEntryInner(){
   if(!dateEv.ok) dateEv.reasons.forEach(r=>flags.push(r));
 
   if(pendingAiRead.risky) flags.push('AI: ตัวเลขอยู่ใกล้ข้อความที่อาจเป็นสถิติสะสม — ' + (pendingAiRead.note||'ตรวจสอบระยะทาง'));
-  if(pendingAiRead.implausibleDistance) flags.push('AI: ระยะทางเกิน 300 กม./ครั้ง ไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ');
+  if(pendingAiRead.implausibleDistance) flags.push('AI: ระยะทางเกิน 300 กม./ครั้ง ' + (pendingAiRead.suggestedDistance ? `และไม่ตรงกับเวลา×ความเร็ว/เพซในรูป (คำนวณได้ประมาณ ${pendingAiRead.suggestedDistance} กม.)` : 'ไม่มีข้อมูลเวลา×ความเร็วยืนยัน') + ' — ตรวจสอบก่อนอนุมัติ');
   else if(pendingAiRead.crossCheckFailed) flags.push('AI: ' + (pendingAiRead.note||'ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป'));
   if(pendingAiRead.confidence==='low') flags.push('AI อ่านรูปด้วยความมั่นใจต่ำ');
   if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
-  if(pendingAiRead.ambiguousDigit) flags.push(`AI: ตัวเลขระยะทางอาจอ่านผิด 1 หลัก (ได้ทั้ง ${pendingAiRead.distance_km} และ ${pendingAiRead.ambiguousDigit} กม.) — เทียบกับรูปก่อนอนุมัติ`);
 
   // likely double-submit of the same activity (same person, type, day and ~same distance)
   const dupe = entries.find(x=>(x.employeeId ? x.employeeId===currentUser.employeeId : x.name===name) && x.type===subType && x.date===date && x.status!=='rejected' && Math.abs(x.distanceKm-dist)<0.1);
@@ -5102,6 +5149,7 @@ function openDetail(id){
       <div class="stat"><div class="k">สถานะ</div><div class="v">${e.status==='approved'?'อนุมัติแล้ว':e.status==='flagged'?'ถูกแจ้งตรวจสอบ':e.status==='rejected'?'ถูกปฏิเสธ':'รอตรวจสอบ'}</div></div>
     </div>
     ${e.aiRead ? `<div class="lb-sub">🤖 AI อ่านได้: ${esc(e.aiRead.distance_km??'-')} กม. · วันที่ในภาพ: ${esc(e.aiRead.activity_date||'-')}</div>` : ''}
+    ${e.aiRead && e.aiRead.suggestedDistance && Math.abs(e.aiRead.suggestedDistance-e.distanceKm)/e.distanceKm>0.03 ? `<div class="lb-sub" style="color:var(--coral);font-weight:700;">💡 ระบบคำนวณจากเวลา×ความเร็ว/เพซในรูปได้ ≈ ${esc(e.aiRead.suggestedDistance)} กม.</div>` : ''}
     <div class="lb-sub" style="margin-top:4px;">📅 วันที่ EXIF ของไฟล์ภาพ: ${esc(e.exifDate||'ไม่พบ')}${e.aiRead && e.aiRead.shot_date ? ` · วันที่แคป/ไฟล์: ${esc(e.aiRead.shot_date)}` : ''}</div>
     ${e.note ? `<div class="lb-sub" style="margin-top:4px;">โน้ต: ${esc(e.note)}</div>` : ''}
     ${e.flags && e.flags.length ? `<div class="queue-flags" style="margin-top:10px;">${e.flags.map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : ''}
@@ -5966,6 +6014,7 @@ function render(){
           ${e.communityFlags && e.communityFlags.length ? `<div class="report-list">${e.communityFlags.map(r=>`<div class="report-item">🚩 ${esc(r.reason)} <span style="opacity:.7;">— แจ้งโดย ${esc(r.reporterName||'ไม่ทราบผู้แจ้ง')}</span></div>`).join('')}</div>` : ''}
           ${entryPhotoImg(e, "queue-img")}
           ${e.aiRead ? `<div class="lb-sub">🤖 AI อ่านได้: ${esc(e.aiRead.distance_km??'-')} กม. · วันที่: ${esc(e.aiRead.activity_date||'-')} · มั่นใจ: ${esc(e.aiRead.confidence||'-')}</div>` : ''}
+          ${e.aiRead && e.aiRead.suggestedDistance && Math.abs(e.aiRead.suggestedDistance-e.distanceKm)/e.distanceKm>0.03 ? `<div class="lb-sub" style="color:var(--coral);font-weight:700;">💡 ระบบคำนวณจากเวลา×ความเร็ว/เพซในรูปได้ ≈ ${esc(e.aiRead.suggestedDistance)} กม.</div>` : ''}
           ${e.note ? `<div class="lb-sub">โน้ต: ${esc(e.note)}</div>` : ''}
           <div class="queue-actions">
             <button class="qbtn" style="background:var(--panel-2); color:var(--text);" onclick="adminEditDistance('${escAttr(e.id)}')">✎ แก้ระยะ</button>
