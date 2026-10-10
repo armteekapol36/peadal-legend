@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-08-03';
+const BUILD_STAMP = '2026-10-10-02';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2292,15 +2292,19 @@ function ocrDistanceCandidates(text){
   for(const c of out) if(freq[c.value]>1) c.score += 1;
   return {list:out, text:t};
 }
-function ocrExpectedDistances(text){
-  const t = ocrNorm(text);
-  const durs = ocrDurationHours(t), speeds=[];
+function ocrSpeedList(t){
+  const speeds=[];
   // digit-run guard (no digit immediately before/after) stops this from grabbing a truncated fragment out of a
   // longer run — e.g. "321 กม./ชม" (OCR dropped the decimal point in "32.1") would otherwise match just "21".
   // Decimal part allows 1 OR 2 digits — "30.45 km/h" (two decimals) is a real format several apps use.
   for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:\s?[.,]\s?\d{1,2})?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
   // an undotted 3-digit run right before the unit ("321") is almost certainly a dropped decimal point ("32.1")
   for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
+  return speeds;
+}
+function ocrExpectedDistances(text){
+  const t = ocrNorm(text);
+  const durs = ocrDurationHours(t), speeds = ocrSpeedList(t);
   const paces = ocrPaceList(t);
   const out=[];
   for(const h of durs){
@@ -2415,6 +2419,23 @@ function ocrSpeedCheck(text, dist){
   if(!exps.length) return null;
   let bestOff = Infinity;
   for(const e of exps) bestOff = Math.min(bestOff, Math.abs(e-dist)/dist);
+  if(bestOff >= 0.10){
+    // The big distance is usually the clearest number on screen, the small average speed the easiest to misread
+    // (real case: 30.3 km/h read as 50.3 -> expected 68.59 km against a correct 41.37). If changing ONE digit of a
+    // printed speed makes duration x speed land within 1.5% of the distance, the speed was the misread one — trust
+    // the distance. Needs an exact-ish coincidence on a known OCR confusion pair, so it can't excuse a wrong distance.
+    const t = ocrNorm(text), durs = ocrDurationHours(t), speeds = ocrSpeedList(t);
+    for(const h of durs) for(const v of speeds){
+      const str = String(v);
+      for(let i=0;i<str.length;i++){
+        if(str[i]==='.') continue;
+        for(const alt of (OCR_DIGIT_CONFUSIONS[str[i]]||'')){
+          const vv = parseFloat(str.slice(0,i)+alt+str.slice(i+1));
+          if(vv>0 && Math.abs(h*vv-dist)/dist < 0.015) return {ok:true, pctOff:Math.abs(h*vv-dist)/dist, speedMisread:true};
+        }
+      }
+    }
+  }
   return {ok: bestOff < 0.10, pctOff: bestOff};
 }
 
@@ -2464,9 +2485,24 @@ function ocrExtractDate(text, refMs){
     if(yStr){ let y = parseInt(yStr,10); if(yStr.length===2) y += 2000; else if(y>2400) y -= 543; return ocrIso(y,mo,d); }
     let y = today.getFullYear(); let iso = ocrIso(y,mo,d);
     if(iso && iso > localDateKey(new Date(today.getTime()+86400000))) iso = ocrIso(y-1,mo,d);   // no year shown: never in the future
+    // ...and not months in the past either: a yearless "3 Jan" read in October is a map label or segment name, not the
+    // activity date. (A genuinely old screenshot then simply has "no date found" and goes to an admin, which is correct.)
+    if(iso && iso < localDateKey(new Date(today.getTime()-60*86400000))) return null;
     return iso;
   };
   let m;
+  // 0) "วันนี้ที่ 07:44" / "เมื่อวานที่ 06:01" / "Today at 7:44" / "Yesterday at 5:23" — Strava's own header. A relative word
+  //    glued to a clock time is an explicit statement of THIS activity's day, so it outranks any other date-looking text in
+  //    the picture (map labels, segment names). Thai tone marks are stripped before matching because OCR drops them
+  //    constantly ("วันนี้ที่" comes back as "วันนีที") — real case: that, plus a map label read as "3 Jan", gave 3 Jan.
+  {
+    const nt = t.replace(/[\u0E48-\u0E4B]/g,'');
+    const clock = '\\s*(?:ท[ีิ]?|at|@)?\\s*\\d{1,2}\\s?[:.]\\s?\\d{2}';
+    if(new RegExp('เมือวาน(?:นี)?'+clock,'i').test(nt) || new RegExp('\\byesterday'+clock,'i').test(nt))
+      return localDateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()-1));
+    if(new RegExp('วันนี'+clock,'i').test(nt) || new RegExp('\\btoday'+clock,'i').test(nt))
+      return localDateKey(ref);
+  }
   // 1) ISO (2-digit month/day, zero-padded — "2026-09-23")
   if((m = t.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/))){ const r = ocrIso(+m[1],+m[2],+m[3]); if(r) return r; }
   // 1b) year-first, month/day NOT zero-padded, slash or dash separated — "2026/9/23" (seen on some cycling-computer
@@ -2495,8 +2531,25 @@ function ocrExtractDate(text, refMs){
     const r = fixYear(m[3]||null, OCR_EN_MONTHS.indexOf(m[2].toLowerCase())+1, +m[1]); if(r) return r;
   }
   // 5) relative words (Strava shows "เมื่อวานที่ 05:23" / "Yesterday at 5:23")
-  if(/เมื่อวาน|yesterday/i.test(t)) return localDateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()-1));
-  if(/วันนี้|today/i.test(t))       return localDateKey(ref);
+  const ntone = t.replace(/[\u0E48-\u0E4B]/g,'');
+  if(/เมือวาน|yesterday/i.test(ntone)) return localDateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()-1));
+  if(/วันนี|today/i.test(ntone))    return localDateKey(ref);
+  // 6) last resort — Garmin Connect style header "10 ต.ค. @ 07:13" whose month letters were mangled by OCR
+  //    ("10 9.0, @ 07:13", "10 ตค @ ..."). The day number and the "@ hh:mm" anchor usually survive even when the
+  //    Thai month abbreviation does not. Month is then inferred as the most recent day-of-month match on/before the
+  //    screenshot date (this month or last, never in the future) — a screenshot of an activity is never from later
+  //    than the moment it was taken, and the date-evidence rule still demands it equals today, so nothing is loosened.
+  if((m = t.match(/(?<![\d:.,\/])(\d{1,2})\s?[^\s@:]{1,6}\s?@\s?\d{1,2}\s?[:.]\s?\d{2}/))){
+    const d = +m[1];
+    if(d>=1 && d<=31){
+      const limit = localDateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()+1));
+      for(let back=0; back<=1; back++){
+        const mi = ref.getMonth()-back, y = ref.getFullYear() + (mi<0 ? -1 : 0), mo = ((mi%12)+12)%12 + 1;
+        const iso = ocrIso(y, mo, d);
+        if(iso && iso <= limit) return iso;
+      }
+    }
+  }
   return null;
 }
 
@@ -2616,6 +2669,7 @@ async function runAiRead(dataUrl, refMs){
       activity_date: actDate||null,                 // always YYYY-MM-DD or null
       durationMin: duration ? Math.round(ocrParseMinSec(duration)*10)/10 : null,
       confidence: overallConf>80 ? 'high' : overallConf>50 ? 'medium' : 'low',
+      rawSnippet: actDate ? null : String(rawText||'').replace(/\s+/g,' ').trim().slice(0,500),   // only when no date was found — lets the admin/dev see what OCR actually read
       note: warnings.join(' · ')||'',
       risky: distResult.risky,
       implausibleDistance: !!distResult.implausible,
@@ -4141,6 +4195,10 @@ function openShareCard(entryId){
       </label>
       <input type="file" id="sc-photo" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;">
 
+      <div id="sc-rot-row" style="display:none; max-width:320px; margin:12px auto 0; gap:8px;">
+        <button class="creator-btn save" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="scRotate(-1)">↺ หมุนซ้าย</button>
+        <button class="creator-btn save" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="scRotate(1)">↻ หมุนขวา</button>
+      </div>
       <button class="creator-btn save" id="sc-add-btn" style="display:none; width:100%; max-width:320px; margin:12px auto 0; display:block;" onclick="scAddStats()">➕ Add stats overlay</button>
       <div id="sc-zoom-row" style="display:none; max-width:320px; margin:12px auto 0; align-items:center; gap:10px;">
         <span style="font-size:16px;">🔍</span>
@@ -4215,6 +4273,30 @@ function loadOrientedImage(file){
   });
 }
 
+function scFitCanvas(){
+  const img = shareState.photo;
+  const ar = Math.min(2.0, Math.max(0.5, img.width/img.height));
+  const cv = document.getElementById('sc-canvas');
+  if(ar>=1){ cv.width=1080; cv.height=Math.round(1080/ar); }
+  else     { cv.height=1080; cv.width=Math.round(1080*ar); }
+}
+/* Rotate the share photo by 90° (dir = 1 clockwise, -1 counter-clockwise). Some phones/apps save a photo sideways
+   with no usable EXIF orientation tag, so automatic orientation can't fix it — this is the manual fix. The photo is
+   physically re-drawn rotated (not just flagged), so the preview, the downloaded JPG and the feed post all agree. */
+function scRotate(dir){
+  if(!shareState || !shareState.photo) return;
+  const src = shareState.photo, w = src.width, h = src.height;
+  const c = document.createElement('canvas');
+  c.width = h; c.height = w;
+  const x = c.getContext('2d');
+  x.translate(h/2, w/2);
+  x.rotate(dir>0 ? Math.PI/2 : -Math.PI/2);
+  x.drawImage(src, -w/2, -h/2);
+  shareState.photo = c;
+  scFitCanvas();
+  scDraw();
+}
+
 function scHandlePhoto(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -4225,12 +4307,10 @@ function scHandlePhoto(e){
     // is a share-image, not the original file, so no need to keep it any bigger. Clamped to a sane range (0.5–2.0)
     // in case of a degenerate/corrupt image; nothing normal from a phone camera or a map/fitness-app screenshot
     // comes anywhere near those extremes.
-    const ar = Math.min(2.0, Math.max(0.5, img.width/img.height));
-    const cv = document.getElementById('sc-canvas');
-    if(ar>=1){ cv.width=1080; cv.height=Math.round(1080/ar); }
-    else     { cv.height=1080; cv.width=Math.round(1080*ar); }
+    scFitCanvas();
     document.getElementById('sc-upload-box').style.display = 'none';
     document.getElementById('sc-add-btn').style.display = 'block';
+    document.getElementById('sc-rot-row').style.display = 'flex';
     const dl = document.getElementById('sc-dl');
     dl.style.opacity = '1'; dl.textContent = '📥 Download JPG';
     const postBtn = document.getElementById('sc-post'); postBtn.style.opacity = '1'; postBtn.disabled = false;
