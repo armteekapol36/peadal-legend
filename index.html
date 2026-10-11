@@ -155,8 +155,10 @@
   .global-banner .x{cursor:pointer; opacity:.85; font-size:14px; flex:0 0 auto;}
   .winners-banner{background:linear-gradient(90deg,#E8B33E,#C98E1E); color:#3A2600; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:13px; font-weight:700; cursor:pointer; text-align:center; box-shadow:0 2px 10px rgba(200,140,20,.3);}
   /* ===== weekly podium (top of dashboard) ===== */
-  #sec-weekly-podium, .wp-box{background:linear-gradient(165deg,#8A48A6,#4A2060); border-radius:16px; padding:18px 10px 14px; color:#fff; box-shadow:0 6px 20px rgba(90,40,110,.25);}
+  #sec-weekly-podium, #sec-weekly-podium-run, .wp-box{background:linear-gradient(165deg,#8A48A6,#4A2060); border-radius:16px; padding:18px 10px 14px; color:#fff; box-shadow:0 6px 20px rgba(90,40,110,.25);}
+  #sec-weekly-podium-run, .wp-box.wp-run{background:linear-gradient(165deg,#2E9C8E,#17564F); box-shadow:0 6px 20px rgba(23,86,79,.25);}
   .wp-box{margin:2px 0 0;}
+  .wp-slot.empty{cursor:default;}
   .wp-eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.8; text-align:center;}
   .wp-title{font-size:16px; font-weight:800; text-align:center; margin:3px 0 1px;}
   .wp-sub{font-size:11px; text-align:center; opacity:.85; margin-bottom:14px; font-family:var(--mono);}
@@ -375,6 +377,7 @@
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div class="card" id="sec-weekly-podium" style="display:none;"></div>
+    <div class="card" id="sec-weekly-podium-run" style="display:none;"></div>
 
     <div class="card" id="demo-card">
       <h2>ข้อมูลตัวอย่าง</h2>
@@ -514,7 +517,7 @@
         <div class="rule-h"><span class="n">5</span>ระบบเลเวลและ EXP</div>
         <ul class="rule-list">
           <li>ปั่นจักรยาน 1 กม. = 1 EXP</li>
-          <li>วิ่ง 1 กม. = 2 EXP (ใช้แท่งสะสมเดียวกันในการอัพเลเวล)</li>
+          <li>วิ่ง 1 กม. = 3 EXP (ใช้แท่งสะสมเดียวกันในการอัพเลเวล)</li>
           <li>เลเวลสูงสุด 99 — ยิ่งเลเวลสูง ยิ่งต้องใช้ EXP มากขึ้นเรื่อยๆ ต่อ 1 เลเวล</li>
         </ul>
       </div>
@@ -809,7 +812,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-11-01';
+const BUILD_STAMP = '2026-10-11-03';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1862,9 +1865,10 @@ async function cleanupExpiredContent(){
 
 function feedPodiumHtml(post){
   const pl = post.payload || {};
+  const type = pl.type==='run' ? 'run' : 'ride';                       // posts made before the running podium existed carry no type: they are riding
   const board = Array.isArray(pl.board) ? pl.board.slice(0,5).map((p,i)=>({name:String(p.name||'').slice(0,121), total:Number(p.total)||0, rank:i+1, gear:p.gear})) : [];
-  if(board.length < WP_MIN_PARTICIPANTS) return '';
-  return `<div class="wp-box">${wpPodiumHtml(board, 'ประกาศผลแชมป์ประจำสัปดาห์ — ปั่นจักรยาน', String(pl.label||'').slice(0,40), 'ผลสรุปสุดท้ายของสัปดาห์ · รวมทุกสังกัด', false)}</div>`;
+  if(!board.length) return '';
+  return `<div class="wp-box ${type==='run'?'wp-run':''}">${wpPodiumHtml(board, 'ประกาศผลแชมป์ประจำสัปดาห์ — '+WP_TYPES[type].label, String(pl.label||'').slice(0,40), 'ผลสรุปสุดท้ายของสัปดาห์ · รวมทุกสังกัด', false)}</div>`;
 }
 
 function renderFeed(){
@@ -2903,7 +2907,7 @@ async function seedDemo(){
 
       const isRun = Math.random() < 0.4;
       const type = isRun ? 'run' : 'ride';
-      // run gives 2 EXP per km, ride gives 1
+      // run gives 3 EXP per km, ride gives 1
       let distanceKm = +(share / EXP_PER_KM[type]).toFixed(1);
       if(distanceKm < 0.5) distanceKm = 0.5;
       // keep single sessions within believable limits
@@ -3092,9 +3096,9 @@ function defaultGear(){
 }
 
 /* ===== EXP / level system =====
-   ride 1 km = 1 EXP · run 1 km = 2 EXP
+   ride 1 km = 1 EXP · run 1 km = 3 EXP
    level L -> L+1 costs L EXP, so total EXP to reach level L = L(L-1)/2  */
-const EXP_PER_KM = {ride:1, run:2};
+const EXP_PER_KM = {ride:1, run:3};
 const MAX_LEVEL = 99;
 
 function expOfEntry(e){ return e.distanceKm * (EXP_PER_KM[e.type] || 1); }
@@ -3855,23 +3859,25 @@ function wpCharacterWithRegalia(gear, rank){
   return svg.replace('</svg>', overlay + '</svg>');
 }
 
-/* top-5 weekly cycling podium — ranked by ride km, all offices combined, Mon-Sun weeks.
-   Needs at least WP_MIN_PARTICIPANTS distinct riders that week or it shows an empty state instead.
-   SCHEDULE: a finished week's podium is held on screen Mon-Wed (WP_HOLD_DAYS). The new week's km keep being
-   collected as normal but stay hidden; from Thursday (day 4) the dashboard shows the new week live. When the
-   hold is over, that finished week is also archived into the feed as a permanent announcement post (kind='podium'),
-   frozen as a snapshot — by then the admins have had 3 days to approve late entries. */
-const WP_MIN_PARTICIPANTS = 5;
-const WP_HOLD_DAYS = 3;
+/* top-5 WEEKLY podiums — one for riding, one for running — ranked by km, all offices combined, Mon-Sun weeks.
+   SCHEDULE: a finished week's podium is held on screen for WP_HOLD_DAYS (Monday only). From Tuesday the dashboard
+   switches to the new week, which has been collecting km all along. Once the hold is over, the finished week is
+   archived into the feed as a permanent announcement post — one post per sport (kind='podium', frozen snapshot).
+   A podium is always drawn with all 5 steps; steps nobody has earned yet are simply left empty (no character, no name). */
+const WP_HOLD_DAYS = 1;
+const WP_TYPES = {
+  ride:{label:'ปั่นจักรยาน', elId:'sec-weekly-podium',     idSuffix:''},
+  run: {label:'วิ่ง',         elId:'sec-weekly-podium-run', idSuffix:'_run'}
+};
 function wpMondayOf(d){ const x=new Date(d); const day=x.getDay(); x.setDate(x.getDate()+(day===0?-6:1-day)); x.setHours(0,0,0,0); return x; }
 function wpWeek(monday){
   const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
   return { mondayKey: localDateKey(monday), sundayKey: localDateKey(sunday),
     label: `${monday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('th-TH',{day:'numeric',month:'short'})}` };
 }
-function wpBoardFor(week){
+function wpBoardFor(week, type){
   const map = {};
-  entries.filter(e=>e.status==='approved' && e.type==='ride' && e.date>=week.mondayKey && e.date<=week.sundayKey)
+  entries.filter(e=>e.status==='approved' && e.type===(type||'ride') && e.date>=week.mondayKey && e.date<=week.sundayKey)
     .forEach(e=>{ if(!map[e.name]) map[e.name]={name:e.name, total:0}; map[e.name].total += e.distanceKm; });
   return Object.values(map).sort((a,b)=>b.total-a.total).slice(0,5).map((p,i)=>({name:p.name, total:p.total, rank:i+1}));
 }
@@ -3885,74 +3891,74 @@ function wpSanitizeGear(g){
   });
   return out;
 }
-/* shared markup for the dashboard card and the feed post. board: [{name,total,rank,gear?}] */
+/* shared markup for the dashboard card and the feed post. board: [{name,total,rank,gear?}] — may hold 0-5 people;
+   the 5 steps are always drawn in the order 4-2-1-3-5 and the unfilled ones are left blank. */
 function wpPodiumHtml(board, title, subLabel, foot, clickable){
-  const order = board.length===5 ? [board[3],board[1],board[0],board[2],board[4]] : [...board].reverse();
+  const byRank = {}; board.forEach(p=>{ byRank[p.rank] = p; });
   const badges = {1:'👑',2:'🥈',3:'🥉',4:'🎗️',5:'🎗️'};
+  const slot = rank=>{
+    const p = byRank[rank];
+    if(!p) return `<div class="wp-slot r${rank} empty">
+        <div class="wp-badge">&nbsp;</div>
+        <div class="wp-char"><svg viewBox="0 0 260 470" style="visibility:hidden" aria-hidden="true"></svg></div>
+        <div class="wp-step"><span class="n">${rank}</span></div>
+        <div class="wp-name">&nbsp;</div>
+        <div class="wp-dist">&nbsp;</div>
+      </div>`;
+    const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
+    return `<div class="wp-slot r${rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
+        <div class="wp-badge">${badges[rank]}</div>
+        <div class="wp-char">${wpCharacterWithRegalia(gear, rank)}</div>
+        <div class="wp-step"><span class="n">${rank}</span></div>
+        <div class="wp-name">${esc(p.name)}</div>
+        <div class="wp-dist">${Number(p.total).toFixed(1)} กม.</div>
+      </div>`;
+  };
   return `
     <div class="wp-eyebrow">🏆 PEADAL LEGEND</div>
     <div class="wp-title">${esc(title)}</div>
     <div class="wp-sub">${esc(subLabel)}</div>
-    <div class="wp-row">${order.map(p=>{
-      const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
-      return `<div class="wp-slot r${p.rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
-        <div class="wp-badge">${badges[p.rank]}</div>
-        <div class="wp-char">${wpCharacterWithRegalia(gear, p.rank)}</div>
-        <div class="wp-step"><span class="n">${p.rank}</span></div>
-        <div class="wp-name">${esc(p.name)}</div>
-        <div class="wp-dist">${Number(p.total).toFixed(1)} กม.</div>
-      </div>`;
-    }).join('')}</div>
+    <div class="wp-row">${[4,2,1,3,5].map(slot).join('')}</div>
     <div class="wp-foot">${esc(foot)}</div>`;
 }
 const _wpArchiveTried = {};
-async function wpArchiveWeek(week){
-  const key = 'pea_wp_arch_'+week.mondayKey;
+async function wpArchiveWeek(week, type){
+  const T = WP_TYPES[type];
+  const key = 'pea_wp_arch_'+week.mondayKey+T.idSuffix;      // the ride key is unchanged from the first version, so an already-posted week is not posted twice
   if(_wpArchiveTried[key]) return;
-  _wpArchiveTried[key] = true;                       // once per page-load, win or lose — never loops on errors
+  _wpArchiveTried[key] = true;                               // once per page-load, win or lose — never loops on errors
   try{ if(localStorage.getItem(key)) return; }catch(e){}
-  const board = wpBoardFor(week);
+  const board = wpBoardFor(week, type);
   const done = ()=>{ try{ localStorage.setItem(key,'1'); }catch(e){} };
-  if(board.length < WP_MIN_PARTICIPANTS){ done(); return; }   // that week never qualified — nothing to announce
-  const payload = { week:week.mondayKey, label:week.label,
+  if(!board.length){ done(); return; }                       // nobody took part that week — nothing to announce
+  const payload = { type, week:week.mondayKey, label:week.label,
     board: board.map(p=>({name:p.name, total:Math.round(p.total*100)/100, rank:p.rank,
       gear:Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {})})) };
-  const {error} = await sb.from('posts').insert({id:'wp_'+week.mondayKey, employee_id:null, name:'PEADAL LEGEND', photo_url:null, kind:'podium', payload});
+  const {error} = await sb.from('posts').insert({id:'wp_'+week.mondayKey+T.idSuffix, employee_id:null, name:'PEADAL LEGEND', photo_url:null, kind:'podium', payload});
   if(error && error.code!=='23505'){ dbErr('wpArchiveWeek', error); return; }   // 23505 = someone else already posted it: fine
   done();
   if(!error && typeof feedState!=='undefined' && feedState.posts.length) loadFeedPage(true);
 }
 function renderWeeklyPodium(){
-  const el = document.getElementById('sec-weekly-podium');
-  if(!el) return;
-  el.style.display = '';
-
   const thisMon = wpMondayOf(new Date());
   const daysIn = Math.round((new Date().setHours(0,0,0,0) - thisMon.getTime())/86400000);   // 0=Mon … 6=Sun
   const holding = daysIn < WP_HOLD_DAYS;
   const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate()-7);
   const shownWeek = wpWeek(holding ? lastMon : thisMon);
-  const board = wpBoardFor(shownWeek);
-  const title = holding ? 'แชมป์ประจำสัปดาห์ที่แล้ว — ปั่นจักรยาน' : 'แชมป์ประจำสัปดาห์ — ปั่นจักรยาน';
+  const archMon = new Date(thisMon); archMon.setDate(thisMon.getDate() - (holding ? 14 : 7));   // most recent week whose hold is over
+  const holdEndDay = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][(1+WP_HOLD_DAYS)%7];
 
-  // archive the most recent week whose hold is over (catch-up covers nobody opening the app on Thursday)
-  if(entries.length){
-    const archMon = new Date(thisMon); archMon.setDate(thisMon.getDate() - (holding ? 14 : 7));
-    wpArchiveWeek(wpWeek(archMon));
-  }
-
-  if(board.length < WP_MIN_PARTICIPANTS){
-    el.innerHTML = `
-      <div class="wp-eyebrow">🏆 PEADAL LEGEND</div>
-      <div class="wp-title">${esc(title)}</div>
-      <div class="wp-sub">${esc(shownWeek.label)}</div>
-      <div class="wp-empty">${holding
-        ? `สัปดาห์ที่แล้วมีผู้ส่งผลปั่นจักรยาน ${board.length} คน — ไม่ครบ ${WP_MIN_PARTICIPANTS} คน จึงไม่มีการประกาศโพเดียม<br>โพเดียมสัปดาห์นี้จะเปิดตัววันพฤหัสบดี`
-        : `สัปดาห์นี้มีผู้ส่งผลปั่นจักรยานแล้ว ${board.length} คน<br>ต้องครบ ${WP_MIN_PARTICIPANTS} คนขึ้นไปก่อนประกาศโพเดียม`}</div>`;
-    return;
-  }
-  el.innerHTML = wpPodiumHtml(board, title, shownWeek.label,
-    holding ? 'ผลสัปดาห์นี้กำลังสะสม · เปิดตัววันพฤหัสบดี' : 'รวมทุกสังกัด · อันดับปั่นจักรยานรายสัปดาห์', true);
+  Object.entries(WP_TYPES).forEach(([type,T])=>{
+    const el = document.getElementById(T.elId);
+    if(!el) return;
+    el.style.display = '';
+    const board = wpBoardFor(shownWeek, type);
+    const title = (holding ? 'แชมป์ประจำสัปดาห์ที่แล้ว — ' : 'แชมป์ประจำสัปดาห์ — ') + T.label;
+    if(entries.length) wpArchiveWeek(wpWeek(archMon), type);   // catch-up covers nobody opening the app on the first day after the hold
+    const foot = board.length ? (holding ? 'ผลสัปดาห์นี้กำลังสะสม · เปิดตัววัน'+holdEndDay : 'รวมทุกสังกัด · อันดับ'+T.label+'รายสัปดาห์')
+      : (holding ? 'สัปดาห์ที่แล้วไม่มีผู้ส่งผล · โพเดียมสัปดาห์นี้เปิดตัววัน'+holdEndDay : 'ยังไม่มีผู้ส่งผลสัปดาห์นี้ · คนแรกที่ส่งจะได้ขึ้นโพเดียม');
+    el.innerHTML = wpPodiumHtml(board, title, shownWeek.label, foot, true);
+  });
 }
 
 function svgBike(gear){
@@ -4177,7 +4183,10 @@ function openShareCard(entryId){
   // calorie estimate is more useful accurate by default than starting from a blank field
   const acc = currentUser ? accounts[currentUser.employeeId] : null;
   const prefillWeight = (acc && acc.weight) ? acc.weight : '';
-  const prefillDur = e.durationMin || '';   // only present for entries submitted after duration-tracking was added
+  const prefillDur = e.durationMin || '';
+  // shown as hours + minutes (people read "2 ชม. 5 นาที", not "124.6"); the total in minutes is still what the maths uses
+  const _pt = prefillDur ? Math.round(Number(prefillDur)) : 0;
+  const prefillH = prefillDur ? Math.floor(_pt/60) : '', prefillM = prefillDur ? _pt%60 : '';   // only present for entries submitted after duration-tracking was added
   shareState = { entry:e, photo:null, showStats:false, sx:0.15, sy:0.62, scale:0.70, tpl:1, durMin: prefillDur||0, weight: prefillWeight||0 };
 
   const c = document.getElementById('share-content');
@@ -4190,7 +4199,12 @@ function openShareCard(entryId){
     <div class="creator-section-title" style="padding-top:0;">${e.type==='ride'?'🚴 Cycling':'🏃 Running'} · ${e.distanceKm.toFixed(1)} km · ${esc(e.date)}</div>
     <div class="creator-color-section" style="padding-top:0;">
       <div class="field-row">
-        <div class="field"><label>Duration (min)${prefillDur?'':' — optional'}</label><input type="number" id="sc-dur" placeholder="e.g. 72" value="${prefillDur!==''?esc(String(prefillDur)):''}" oninput="scOnInput()"></div>
+        <div class="field"><label>Duration (hr / min)${prefillDur?'':' — optional'}</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="number" inputmode="numeric" min="0" max="48" step="1" id="sc-dur-h" placeholder="0" value="${prefillH!==''?prefillH:''}" oninput="scOnInput()" style="flex:1; min-width:0;"><span style="font-size:12px; color:var(--text-dim);">ชม.</span>
+            <input type="number" inputmode="numeric" min="0" max="59" step="1" id="sc-dur-m" placeholder="0" value="${prefillM!==''?prefillM:''}" oninput="scOnInput()" style="flex:1; min-width:0;"><span style="font-size:12px; color:var(--text-dim);">นาที</span>
+          </div>
+        </div>
         <div class="field"><label>Body weight (kg) — for calorie estimate</label><input type="number" id="sc-weight" placeholder="e.g. 65" value="${prefillWeight!==''?esc(String(prefillWeight)):''}" oninput="scOnInput()"></div>
       </div>
       <div class="note-small" style="text-align:left; margin-top:-6px;">Distance comes straight from the AI-read value on this entry and can't be edited here.</div>
@@ -4241,7 +4255,11 @@ function closeShareCard(){
 }
 
 function scOnInput(){
-  shareState.durMin = parseFloat(document.getElementById('sc-dur').value) || 0;
+  // hours + minutes boxes -> total minutes. Minutes over 59 simply roll into hours ("90" min = 1 h 30), so a person who
+  // types the old way still gets the right total; negatives / junk count as 0.
+  const dh = Math.max(0, parseFloat(document.getElementById('sc-dur-h').value) || 0);
+  const dm = Math.max(0, parseFloat(document.getElementById('sc-dur-m').value) || 0);
+  shareState.durMin = Math.min(48*60, dh*60 + dm);
   shareState.weight = parseFloat(document.getElementById('sc-weight').value) || 0;
   scDraw();
 }
