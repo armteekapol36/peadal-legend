@@ -813,7 +813,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-11-04';
+const BUILD_STAMP = '2026-10-11-05';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2619,6 +2619,86 @@ function ocrPreprocess(dataUrl){
   });
 }
 
+/* BUG FIX (build -05): Tesseract.recognize(img, lang, {tessedit_pageseg_mode}) silently IGNORES the page-seg mode —
+   its 3rd argument is worker options, not recognition parameters — so in production both passes ran tesseract.js's
+   default PSM 6 (single block). On a dark Garmin screen PSM 6 reads "69.09 กม." as "69 ๑ 0 9 กม." and "km/h" as Thai
+   garbage, which is exactly how 69.09 became "9" with no speed cross-check. The modes have to be set on a worker via
+   setParameters. Workers are created once and reused (also saves re-loading the Thai model on every upload). */
+const OCR_PSM = {sparse:'11', block:'4', single:'6'};
+const _ocrWorkers = {}, _ocrQueue = {};
+function ocrWorker(kind){
+  if(!_ocrWorkers[kind]){
+    _ocrWorkers[kind] = (async()=>{
+      const w = await Tesseract.createWorker('eng+tha');
+      await w.setParameters({tessedit_pageseg_mode: OCR_PSM[kind]});
+      return w;
+    })().catch(err=>{ delete _ocrWorkers[kind]; throw err; });   // failed load (offline) → try again next upload
+  }
+  return _ocrWorkers[kind];
+}
+/* kind = which of the two long-lived workers ('sparse' | 'block'); psm = optional one-off page-seg mode for this call
+   (the PSM 6 retry borrows the existing workers instead of loading a third copy of the Thai model — phones run out of
+   memory). Calls on the same worker are queued so a temporary mode switch can never leak into another read. */
+function ocrRecognize(kind, url, psm){
+  const run = async()=>{
+    const w = await ocrWorker(kind);
+    try{
+      if(psm) await w.setParameters({tessedit_pageseg_mode: psm});
+      return await w.recognize(url);
+    }catch(err){   // a crashed worker must not poison every later upload
+      delete _ocrWorkers[kind]; try{ await w.terminate(); }catch(_){}
+      throw err;
+    }finally{
+      if(psm && _ocrWorkers[kind]) try{ await w.setParameters({tessedit_pageseg_mode: OCR_PSM[kind]}); }catch(_){}
+    }
+  };
+  const p = (_ocrQueue[kind] || Promise.resolve()).then(run, run);
+  _ocrQueue[kind] = p.catch(()=>{});
+  return p;
+}
+
+function ocrAnalyze(rawText, refMs){
+  const distResult = ocrExtractDistance(rawText);
+
+  let actDate = ocrExtractDate(rawText, refMs);
+  // an activity can't be in the future — a "date" past tomorrow is a misread (e.g. "2026-10-10" read as "2026-12-18")
+  if(actDate){ const t=new Date(); t.setDate(t.getDate()+1); if(actDate > localDateKey(t)) actDate = null; }
+  const duration = ocrExtractDuration(rawText);
+  const pace = ocrExtractPace(rawText);
+
+  // cross-checks against the same screenshot: runs → duration ÷ pace, rides → duration × average speed
+  let crossCheck = null;
+  if(distResult.value){
+    const dv = parseFloat(distResult.value);
+    if(duration && pace){
+      const expected = ocrParseMinSec(duration) / ocrParseMinSec(pace);
+      const pctOff = Math.abs(expected - dv) / expected;
+      crossCheck = {expected:expected.toFixed(2), pctOff, ok:pctOff<0.15};
+    } else {
+      const sc = ocrSpeedCheck(rawText, dv);
+      if(sc){
+        // ocrSpeedCheck only returns the best pctOff it found — recover which candidate distance that came from,
+        // by picking whichever duration×speed combination is numerically closest to it, so the admin (and the
+        // "✎ แก้ระยะ" prompt) can be shown a concrete suggested number instead of just "this looks wrong"
+        const exps = ocrExpectedDistances(rawText);
+        let exp = null, best = Infinity;
+        for(const e of exps){ const off = Math.abs(e-dv)/e; if(off<best){ best=off; exp=e; } }
+        crossCheck = {expected: exp!=null ? exp.toFixed(2) : null, pctOff:sc.pctOff, ok:sc.ok};
+      }
+    }
+  }
+
+  return {distResult, actDate, duration, pace, crossCheck};
+}
+/* how well-supported a reading is: 3 = cross-checked by time×speed/pace · 2 = decimal distance with its unit ·
+   1 = some number (bare integer / unit missing) · 0 = nothing */
+function ocrReadScore(R){
+  const d = R.distResult;
+  if(!d || !d.value) return 0;
+  if(R.crossCheck && R.crossCheck.ok) return 3;
+  if(/[.,]/.test(d.value) && !d.unitUnconfirmed && !d.implausible && !(R.crossCheck && !R.crossCheck.ok)) return 2;
+  return 1;
+}
 async function runAiRead(dataUrl, refMs){
   pendingAiRead = null;
   const aiDiv = document.getElementById('ai-result');
@@ -2633,39 +2713,36 @@ async function runAiRead(dataUrl, refMs){
     // even though everything below reads fine — running the top slice alone recovers it. (No second "digits-only"
     // pass anymore: it ran on the whole page as one text line and could overwrite a correct distance with garbage.)
     const [main, top] = await Promise.all([
-      Tesseract.recognize(processedUrl,'eng+tha',{tessedit_pageseg_mode:'11'}),
-      topUrl ? Tesseract.recognize(topUrl,'eng+tha',{tessedit_pageseg_mode:'4'}).catch(()=>null) : null   // psm 4 (not 11): verified it reads a mixed big-headline+small-text block far more reliably than sparse-text mode on real screenshots
+      ocrRecognize('sparse', processedUrl),
+      topUrl ? ocrRecognize('block', topUrl).catch(()=>null) : null   // psm 4 (not 11): verified it reads a mixed big-headline+small-text block far more reliably than sparse-text mode on real screenshots
     ]);
-    const data = main.data;
-    const rawText = (data.text||'') + (top && top.data && top.data.text ? '\n'+top.data.text : '');
-    window.__lastRawText = rawText;   // debug hook
-    const distResult = ocrExtractDistance(rawText);
-
-    const actDate = ocrExtractDate(rawText, refMs);
-    const duration = ocrExtractDuration(rawText);
-    const pace = ocrExtractPace(rawText);
-
-    // cross-checks against the same screenshot: runs → duration ÷ pace, rides → duration × average speed
-    let crossCheck = null;
-    if(distResult.value){
-      const dv = parseFloat(distResult.value);
-      if(duration && pace){
-        const expected = ocrParseMinSec(duration) / ocrParseMinSec(pace);
-        const pctOff = Math.abs(expected - dv) / expected;
-        crossCheck = {expected:expected.toFixed(2), pctOff, ok:pctOff<0.15};
-      } else {
-        const sc = ocrSpeedCheck(rawText, dv);
-        if(sc){
-          // ocrSpeedCheck only returns the best pctOff it found — recover which candidate distance that came from,
-          // by picking whichever duration×speed combination is numerically closest to it, so the admin (and the
-          // "✎ แก้ระยะ" prompt) can be shown a concrete suggested number instead of just "this looks wrong"
-          const exps = ocrExpectedDistances(rawText);
-          let exp = null, best = Infinity;
-          for(const e of exps){ const off = Math.abs(e-dv)/e; if(off<best){ best=off; exp=e; } }
-          crossCheck = {expected: exp!=null ? exp.toFixed(2) : null, pctOff:sc.pctOff, ok:sc.ok};
+    let data = main.data;
+    let rawText = (data.text||'') + (top && top.data && top.data.text ? '\n'+top.data.text : '');
+    let R = ocrAnalyze(rawText, refMs);
+    // Weak read (no distance / bare integer / unconfirmed / no date)? Re-read both images in single-block mode (PSM 6).
+    // Each mode fails on different screenshots: PSM 11 reads dark Garmin headlines (69.09) that PSM 6 shatters into
+    // "69 ๑ 0 9", while PSM 6 kept some light-theme headers/share cards that PSM 11 loses. Keep whichever read is
+    // better supported; the date falls back independently.
+    if(ocrReadScore(R) < 3 || !R.actDate){
+      const [m6, t6] = await Promise.all([
+        ocrRecognize('sparse', processedUrl, OCR_PSM.single).catch(()=>null),
+        topUrl ? ocrRecognize('block', topUrl, OCR_PSM.single).catch(()=>null) : null
+      ]);
+      if(m6 && m6.data){
+        const raw6 = (m6.data.text||'') + (t6 && t6.data && t6.data.text ? '\n'+t6.data.text : '');
+        const R6 = ocrAnalyze(raw6, refMs);
+        if(ocrReadScore(R6) > ocrReadScore(R)){
+          const keepDate = R.actDate;
+          R = R6; data = m6.data; rawText = raw6 + '\n' + rawText;
+          if(!R.actDate) R.actDate = keepDate;
+        } else if(!R.actDate && R6.actDate){
+          R.actDate = R6.actDate;
         }
       }
     }
+    window.__lastRawText = rawText;   // debug hook
+    const {distResult, duration, crossCheck} = R;
+    const actDate = R.actDate;
 
     const overallConf = data.confidence;
     const warnings = [];
