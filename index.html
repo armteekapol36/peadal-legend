@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-10-02';
+const BUILD_STAMP = '2026-10-11-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2199,6 +2199,15 @@ function ocrDurationList(t){
     if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
     out.push({str:m[1]+':'+m[2]+':'+m[3], hours:+m[1]+ +m[2]/60+ +m[3]/3600, kind:'hms', labeled:true});
   }
+  // H:MM:SS whose colons came back as dots/semicolons ("3.13.54", "3:13.54") — only next to a time label, so a date like
+  // "13.10.26" or a pace can never be mistaken for a duration
+  for(const m of t.matchAll(/(?<![\d:.\/])(\d{1,2})\s*([:.;])\s*(\d{2})\s*([:.;])\s*(\d{2})(?![\d:.\/])/g)){
+    if(m[2]===':' && m[4]===':') continue;                       // plain form handled above
+    if(+m[1]>23 || +m[3]>59 || +m[5]>59) continue;
+    if(ocrIsPaceContext(t, m.index, m[0].length)) continue;
+    if(!(OCR_DUR_LABEL.test(t.slice(Math.max(0,m.index-30), m.index)) || OCR_DUR_LABEL.test(t.slice(m.index+m[0].length, m.index+m[0].length+30)))) continue;
+    out.push({str:m[1]+':'+m[3]+':'+m[5], hours:+m[1]+ +m[3]/60+ +m[5]/3600, kind:'hms', labeled:true});
+  }
   for(const m of t.matchAll(/(?<![\d:])(\d{1,3})\s*:\s*(\d{2})(?:\.\d)?(?![\d:])/g)){
     if(m.index<=12 || +m[2]>59) continue;
     if(OCR_DATEISH_BEFORE.test(t.slice(Math.max(0,m.index-18), m.index))) continue;
@@ -2269,7 +2278,7 @@ function ocrDistanceCandidates(text){
     const after = t.slice(m.index+m[0].length, m.index+m[0].length+14);
     const before = t.slice(Math.max(0,m.index-24), m.index);
     const hasUnit = !!m[2];
-    if(hasUnit && /^\s*\.?\s*\/\s*(h|ชม|hr)/i.test(after)) continue;                 // km/h, กม./ชม.
+    if(hasUnit && /^\s*\.?\s*[\/\\|]\s*(h|n|ชม|hr)/i.test(after)) continue;                 // km/h, กม./ชม.
     if(!hasUnit && /^\s*\.?\s*(w\b|watt|วัตต์|kcal|แคล|cal\b|ม\.|m\b|°|bpm|rpm|%|วิ|นาที|ชม|km\s*\/|กม\s*\/)/i.test(after)) continue;
     if(/\d:$/.test(before) || /^:\d/.test(after)) continue;                            // part of a clock / duration
     let score = 0;
@@ -2292,14 +2301,16 @@ function ocrDistanceCandidates(text){
   for(const c of out) if(freq[c.value]>1) c.score += 1;
   return {list:out, text:t};
 }
+/* the average-speed unit as OCR actually returns it: "km/h", "km/n", "kmh", "km | h", "kph", "กม./ชม.", "กม/ชม" */
+const OCR_SPEED_UNIT = '(?:km\\s*[\\/\\\\|]?\\s*[hn]\\b|kph|กม\\s*\\.?\\s*[\\/\\\\|]?\\s*ชม)';
 function ocrSpeedList(t){
   const speeds=[];
   // digit-run guard (no digit immediately before/after) stops this from grabbing a truncated fragment out of a
   // longer run — e.g. "321 กม./ชม" (OCR dropped the decimal point in "32.1") would otherwise match just "21".
   // Decimal part allows 1 OR 2 digits — "30.45 km/h" (two decimals) is a real format several apps use.
-  for(const m of t.matchAll(/(?<!\d)(\d{1,2}(?:\s?[.,]\s?\d{1,2})?)(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  for(const m of t.matchAll(new RegExp('(?<!\\d)(\\d{1,2}(?:\\s?[.,]\\s?\\d{1,2})?)(?!\\d)\\s*'+OCR_SPEED_UNIT,'gi'))) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
   // an undotted 3-digit run right before the unit ("321") is almost certainly a dropped decimal point ("32.1")
-  for(const m of t.matchAll(/(?<!\d)(\d)(\d{2})(?!\d)\s*(?:km\s*\/\s*h|kph|กม\s*\.?\s*\/\s*ชม)/gi)) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
+  for(const m of t.matchAll(new RegExp('(?<!\\d)(\\d)(\\d{2})(?!\\d)\\s*'+OCR_SPEED_UNIT,'gi'))) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
   return speeds;
 }
 function ocrExpectedDistances(text){
@@ -2659,6 +2670,10 @@ async function runAiRead(dataUrl, refMs){
     if(distResult.risky) warnings.push(`ใกล้คำว่า "${distResult.riskyWord}" อาจเป็นสถิติสะสม ไม่ใช่ทริปนี้`);
     if(distResult.recovered) warnings.push('ตัวเลขระยะทางในรูปอ่านได้ไม่ครบ ระบบประกอบกลับจากเวลา × ความเร็วในรูปเดียวกัน');
     if(distResult.implausible) warnings.push('ระยะทางเกิน 300 กม./ครั้ง และไม่มีข้อมูลเวลา×ความเร็วยืนยัน — ตรวจสอบก่อนอนุมัติ (อาจเป็นตัวเลขที่ OCR อ่านตัวเลขหลายค่าปนกัน)');
+    // apps print distances with decimals (69.09, 5.08); a bare whole number with nothing else confirming it is usually a
+    // scrap of a bigger number (real case: "69.09" came out as "9") — never auto-approve that on its own
+    const integerOnly = !!distResult.value && !/[.,]/.test(distResult.value) && !(crossCheck && crossCheck.ok);
+    if(integerOnly) warnings.push('ระยะทางที่อ่านได้เป็นเลขจำนวนเต็ม (ไม่มีทศนิยม) ซึ่งแอปออกกำลังกายมักแสดงทศนิยมเสมอ และไม่มีเวลา×ความเร็วยืนยัน — อาจอ่านขาดไปบางหลัก');
     if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
     if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
         ? `ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป (คำนวณได้ประมาณ ${crossCheck.expected} กม.) — อาจอ่านผิด`
@@ -2674,6 +2689,7 @@ async function runAiRead(dataUrl, refMs){
       risky: distResult.risky,
       implausibleDistance: !!distResult.implausible,
       unitUnconfirmed: !!distResult.unitUnconfirmed,
+      integerOnly,
       suggestedDistance: (crossCheck && !crossCheck.ok && crossCheck.expected) ? parseFloat(crossCheck.expected) : null,
       crossCheckFailed: crossCheck ? !crossCheck.ok : false,
       crossCheckPassed: crossCheck ? crossCheck.ok : false
@@ -2757,6 +2773,7 @@ async function _submitEntryInner(){
   if(pendingAiRead.implausibleDistance) flags.push('AI: ระยะทางเกิน 300 กม./ครั้ง ' + (pendingAiRead.suggestedDistance ? `และไม่ตรงกับเวลา×ความเร็ว/เพซในรูป (คำนวณได้ประมาณ ${pendingAiRead.suggestedDistance} กม.)` : 'ไม่มีข้อมูลเวลา×ความเร็วยืนยัน') + ' — ตรวจสอบก่อนอนุมัติ');
   else if(pendingAiRead.crossCheckFailed) flags.push('AI: ' + (pendingAiRead.note||'ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป'));
   if(pendingAiRead.confidence==='low') flags.push('AI อ่านรูปด้วยความมั่นใจต่ำ');
+  if(pendingAiRead.integerOnly) flags.push('AI: ระยะทางที่อ่านได้ ('+pendingAiRead.distance_km+' กม.) เป็นเลขจำนวนเต็มไม่มีทศนิยมและไม่มีเวลา×ความเร็วยืนยัน — ตรวจสอบกับรูปก่อนอนุมัติ');
   if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
 
   // likely double-submit of the same activity (same person, type, day and ~same distance)
