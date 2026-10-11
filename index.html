@@ -528,6 +528,7 @@
           <li>แต่งตัวละครได้อิสระ (ผม/ตา/ปาก/หมวก/แว่น/ต่างหู/เสื้อ/กางเกง/ถุงมือ/ถุงเท้า/รองเท้า/จักรยาน)</li>
           <li>👑 หมวกมงกุฎ — ปลดล็อกที่ <b>เลเวล 50</b> ขึ้นไป</li>
           <li>✨ ออร่าซุปเปอร์ไซย่า — ปลดล็อกที่ <b>เลเวล 90</b> ขึ้นไป</li>
+          <li>👑 มงกุฎทอง — ปลดล็อกเมื่อได้ <b>ที่ 1 ประจำสัปดาห์</b> (ปั่นหรือวิ่ง) ใส่ได้ตลอดไป</li>
           <li>🖼️ กรอบรูปโปรไฟล์ — ปลดล็อกกรอบใหม่ทุกๆ 10 เลเวล ตั้งแต่เลเวล 10 ถึง 99 (รวม 10 แบบ)</li>
         </ul>
       </div>
@@ -812,7 +813,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-11-03';
+const BUILD_STAMP = '2026-10-11-04';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -3090,6 +3091,7 @@ function defaultGear(){
     socks:'none', socksColor:'#F2F5F7',
     bikeFrame:'#7F3F98', bikeTape:'#2E2438', bikeWheel:'#8A8FA3', bikeTire:'#2E2438', bikeBrand:'',
     skin:'none',
+    crown:'none',
     frame:'none',
     avatarMode:'classic'
   };
@@ -3548,6 +3550,19 @@ function auraSvg(){
     </ellipse>
   `;
 }
+function goldCrownSvg(){
+  return `<g class="gold-crown">
+    <path d="M88,40 L92,8 L111,24 L130,8 L149,24 L168,8 L172,40 Q130,50 88,40 Z" fill="#FFD23D" stroke="#B8860B" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M90,33 Q130,43 170,33 L172,40 Q130,50 88,40 Z" fill="#E8A81E"/>
+    <path d="M97,16 L109,27 L116,35 L96,33 Z" fill="#FFF1B0" opacity=".65"/>
+    <circle cx="92" cy="8" r="4" fill="#FFF1B0" stroke="#B8860B" stroke-width="1.6"/>
+    <circle cx="130" cy="8" r="4.6" fill="#FFF1B0" stroke="#B8860B" stroke-width="1.6"/>
+    <circle cx="168" cy="8" r="4" fill="#FFF1B0" stroke="#B8860B" stroke-width="1.6"/>
+    <circle cx="130" cy="34" r="4.5" fill="#E5384B" stroke="#8E1B2A" stroke-width="1.4"/>
+    <circle cx="110" cy="37" r="3" fill="#3AA0E8" stroke="#1D5E96" stroke-width="1.2"/>
+    <circle cx="150" cy="37" r="3" fill="#3AA0E8" stroke="#1D5E96" stroke-width="1.2"/>
+  </g>`;
+}
 function saiyanOverlaySvg(){
   // the golden aura burst around the whole body already sells the effect;
   // no extra shape is added on top of the hair.
@@ -3812,6 +3827,7 @@ function buildCharacterSvg(gear){
 
   ${chibiGlasses(g.glasses, g.glassesColor)}
   ${chibiHat(g.hat, g.hatColor)}
+  ${g.crown==='gold' ? goldCrownSvg() : ''}
 </svg>`;
 }
 
@@ -3883,6 +3899,28 @@ function wpBoardFor(week, type){
 }
 /* gear that came back from the database (feed snapshot) is untrusted text that ends up inside SVG attributes —
    keep only known keys with plain scalar values */
+/* number of weekly #1 titles (ride + run) a person has earned. Only finished Mon-Sun weeks count; ties share the title.
+   Derived from approved entries, so it never needs storing — and once a title is earned the crown stays unlocked
+   even if the person later stops riding (we only ever count weeks that are in the past). */
+function wpChampionTitles(name){
+  const todayKey = localDateKey(new Date());
+  const weeks = {};
+  entries.forEach(e=>{
+    if(e.status!=='approved' || (e.type!=='ride' && e.type!=='run') || !e.date) return;
+    const mk = localDateKey(wpMondayOf(new Date(e.date+'T12:00:00')));
+    const k = mk+'|'+e.type;
+    (weeks[k] = weeks[k] || {})[e.name] = ((weeks[k]||{})[e.name]||0) + e.distanceKm;
+  });
+  let n = 0;
+  Object.keys(weeks).forEach(k=>{
+    const mon = new Date(k.split('|')[0]+'T12:00:00');
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    if(localDateKey(sun) >= todayKey) return; // week not finished
+    const w = weeks[k], top = Math.max.apply(null, Object.keys(w).map(x=>w[x]));
+    if(top>0 && w[name] === top) n++;
+  });
+  return n;
+}
 function wpSanitizeGear(g){
   const base = defaultGear(), out = {};
   Object.keys(base).forEach(k=>{
@@ -4678,6 +4716,7 @@ function renderCreator(){
   const li = levelInfo(name);
   const level = li.level;
   const saiyanUnlocked = level >= SAIYAN_UNLOCK_LEVEL;
+  const crownTitles = wpChampionTitles(name);
   const g = window._creatorGear;
   const cat = creatorCategory;
   const mine = entries.filter(e=>e.name===name && (e.status==='approved'||e.status==='flagged'));
@@ -4754,8 +4793,12 @@ function renderCreator(){
     colorHtml = `<div class="creator-lock">ปลดล็อกกรอบใหม่ทุกๆ 10 เลเวล — ตอนนี้เลเวล ${level}</div>`;
   } else if(cat==='special'){
     optionsHtml = `<div class="creator-opt-card ${g.skin!=='superSaiyan'?'active':''}" onclick="creatorSelect('skin','none')"><span class="opt-ic">🙂</span>ปกติ</div>
-      <div class="creator-opt-card ${g.skin==='superSaiyan'?'active':''}" style="${saiyanUnlocked?'':'opacity:.4;'}" onclick="${saiyanUnlocked?`creatorSelect('skin','superSaiyan')`:''}"><span class="opt-ic">✨</span>ออร่าซุปเปอร์ไซย่า</div>`;
-    if(!saiyanUnlocked) colorHtml = `<div class="creator-lock">🔒 ปลดล็อกออร่าซุปเปอร์ไซย่าที่เลเวล ${SAIYAN_UNLOCK_LEVEL} (ตอนนี้เลเวล ${level})</div>`;
+      <div class="creator-opt-card ${g.skin==='superSaiyan'?'active':''}" style="${saiyanUnlocked?'':'opacity:.4;'}" onclick="${saiyanUnlocked?`creatorSelect('skin','superSaiyan')`:''}"><span class="opt-ic">✨</span>ออร่าซุปเปอร์ไซย่า</div>
+      <div class="creator-opt-card ${g.crown==='gold'?'active':''}" style="${crownTitles?'':'opacity:.4;'}" onclick="${crownTitles?`creatorSelect('crown',window._creatorGear.crown==='gold'?'none':'gold')`:''}"><span class="opt-ic">👑</span>มงกุฎทองแชมป์</div>`;
+    const locks = [];
+    if(!saiyanUnlocked) locks.push(`🔒 ปลดล็อกออร่าซุปเปอร์ไซย่าที่เลเวล ${SAIYAN_UNLOCK_LEVEL} (ตอนนี้เลเวล ${level})`);
+    locks.push(crownTitles ? `👑 คุณเป็นแชมป์ประจำสัปดาห์มาแล้ว ${crownTitles} สมัย — ใส่มงกุฎได้ตลอดไป (กดซ้ำเพื่อถอด)` : '🔒 ปลดล็อกมงกุฎทองเมื่อได้ที่ 1 ประจำสัปดาห์ (ปั่นหรือวิ่ง) ครั้งแรก — ได้แล้วใช้ได้ตลอดไป');
+    colorHtml = locks.map(t=>`<div class="creator-lock">${t}</div>`).join('');
   }
 
   const content = document.getElementById('creator-content');
@@ -4833,6 +4876,7 @@ async function saveCreator(){
   const name = creatorAthleteName;
   if(!profiles[name]) profiles[name] = {avatar:'🚴', age:null, gender:null, ftp:null, achievements:[], photo:null};
   window._creatorGear.avatarMode = 'classic';
+  if(window._creatorGear.crown==='gold' && !wpChampionTitles(name)) window._creatorGear.crown='none';
   profiles[name].gear = window._creatorGear;
   markProfileDirty(name);
   const savedLook = await saveProfiles();
@@ -5013,7 +5057,7 @@ function buildAthleteProfileHtml(name, opts){
       <div class="level-pill">เลเวล ${level}</div>
       <div class="level-bar-track"><div class="level-bar-fill" style="width:${levelProgress.toFixed(0)}%"></div></div>
     </div>
-    <div class="level-title">${levelTitle(level)} · ${level>=MAX_LEVEL ? 'EXP สูงสุดแล้ว' : `EXP ${li.into.toFixed(1)}/${li.need}`} (สะสม ${li.exp.toFixed(1)})${gear.skin==='superSaiyan'?' · ✨ ออร่าซุปเปอร์ไซย่า':''}</div>
+    <div class="level-title">${levelTitle(level)} · ${level>=MAX_LEVEL ? 'EXP สูงสุดแล้ว' : `EXP ${li.into.toFixed(1)}/${li.need}`} (สะสม ${li.exp.toFixed(1)})${gear.skin==='superSaiyan'?' · ✨ ออร่าซุปเปอร์ไซย่า':''}${gear.crown==='gold'?' · 👑 แชมป์ประจำสัปดาห์':''}</div>
     ${badges.length ? `<div class="profile-badges" style="margin-top:10px;">${badges.map(b=>`<span class="profile-badge">${b}</span>`).join('')}</div>` : ''}
     ${owner && missingPersonalInfo ? `<div class="note-small" style="text-align:left; margin:6px 0 0; color:var(--purple-dk);">ℹ️ กรอกข้อมูลส่วนตัว (อายุ/เพศ/น้ำหนัก/ส่วนสูง) ให้ครบ เพื่อดู BMI และเข้ารุ่น Age Ranking ของคุณ — กด "✎ แก้ไขข้อมูลส่วนตัว" ด้านล่าง</div>` : ''}
     <div class="modal-stat-grid" style="margin-top:12px;">
