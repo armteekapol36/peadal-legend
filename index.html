@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>PEADAL LEGEND</title>
 <!-- ข้อความ/รูปที่ขึ้นตอนแชร์ลิงก์ใน LINE, Facebook ฯลฯ — แก้ข้อความได้ที่ content="..." ด้านล่าง (รูปคือไฟล์ preview-v2.jpg ในโฟลเดอร์เดียวกัน — ถ้าเปลี่ยนรูป ให้ตั้งชื่อไฟล์ใหม่ เช่น preview-v3.jpg เพราะ LINE จำรูปตามชื่อไฟล์) -->
 <meta name="description" content="แอปบันทึกระยะปั่นจักรยานและวิ่งของพนักงาน PEA ส่งรูปแคปหน้าจอ ระบบอ่านระยะให้อัตโนมัติ สะสม EXP อัปเลเวล แข่งอันดับตามสังกัดและรุ่นอายุ">
@@ -360,6 +360,74 @@
   .report-btn:active{transform:scale(.98);}
   .admin-toggle{position:fixed; top:74px; right:10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:10px; font-family:var(--mono); color:var(--text-dim); cursor:pointer; z-index:20; box-shadow:0 2px 8px rgba(127,63,152,.12);}
   .admin-toggle.on{color:var(--amber); border-color:var(--amber);}
+
+  /* ===== RESPONSIVE LAYER (build 2026-10-14-01) — one layout for every screen/app: Chrome/Safari, LINE / Facebook /
+     Messenger in-app browsers (often with the phone's "large text" setting on), installed PWA (iPhone notch / Android
+     gesture bar), tablets and desktop. Rules are additive overrides of the styles above. ===== */
+  :root{ --nav-h:66px; --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+         --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px); }
+  html{-webkit-text-size-adjust:100%; text-size-adjust:100%;}
+  /* nothing may push the page sideways (that is what made the whole app look shifted/cut on some phones) */
+  html, body{max-width:100%; overflow-x:hidden;}
+  @supports (overflow:clip){ html, body{overflow-x:clip;} }
+  body{padding-top:calc(var(--nav-h) + 2px); padding-bottom:calc(16px + var(--safe-b));
+       padding-left:var(--safe-l); padding-right:var(--safe-r); overflow-wrap:break-word;}
+  @media (hover:none){ body{background-attachment:scroll;} }      /* fixed backgrounds jank/flicker on iOS + in-app webviews */
+  img, svg, video, canvas{max-width:100%;}
+  .card{scroll-margin-top:calc(var(--nav-h) + 10px); min-width:0;}
+  #app{width:100%;}
+  /* top nav: height follows its content (JS keeps --nav-h in sync), respects the notch, never wraps into 3 lines */
+  .nav{padding-top:var(--safe-t); padding-left:var(--safe-l); padding-right:var(--safe-r); justify-content:center;
+       overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+  .nav::-webkit-scrollbar{display:none;}
+  .nav-item{flex:1 1 0; min-width:40px; max-width:120px; font-size:var(--nav-fs, clamp(9px, 2.6vw, 11px)); line-height:1.2;
+            padding:8px 2px 7px; overflow:hidden; word-break:normal; overflow-wrap:normal;}
+  .nav-item .ic{font-size:clamp(16px, 4.6vw, 20px); line-height:1.15;}
+  .admin-toggle{top:calc(var(--nav-h) + 8px); right:calc(10px + var(--safe-r));}
+  /* flex rows: children may shrink instead of pushing past the card edge */
+  .field-row > *, .lb-row > *, .wp-row > *{min-width:0;}
+  .field input, .field select, .field textarea{max-width:100%; min-width:0;}
+  .field-row{flex-wrap:wrap;}
+  .field-row > .field{flex:1 1 140px;}
+  .qbtn{min-width:0; white-space:normal;}
+  .modal-sheet{max-height:85vh; max-height:85dvh; padding-bottom:calc(16px + var(--safe-b));}
+  .creator-overlay{padding-bottom:var(--safe-b);}
+  table{max-width:100%;}
+  pre, code{white-space:pre-wrap; word-break:break-word;}
+  /* iOS zooms the whole page when an input's text is under 16px — keep form fields at 16px on touch screens */
+  @media (hover:none) and (pointer:coarse){
+    input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea{font-size:16px !important;}
+  }
+  /* narrow phones (iPhone SE, small Androids, or any phone with large text): leaderboard rows drop the bar, keep name+value */
+  @media (max-width:380px){
+    #app{padding-left:10px; padding-right:10px;}
+    .card{padding:12px;}
+    .lb-info{flex:1 1 auto; width:auto;}
+    .lb-bar-track{display:none;}
+    .lb-thumb{width:36px; height:36px; flex-basis:36px;}
+    .lb-row{gap:8px;}
+  }
+  /* admin bulk-action bar: checkbox label on its own line, the two buttons share the next line */
+  #admin-select-all{flex:0 0 auto;}
+  @media (max-width:440px){
+    .admin-bulk-row > label{flex:1 1 100% !important;}
+    .admin-bulk-row > .qbtn{flex:1 1 0 !important;}
+    .admin-filter-row > .field:first-child{flex:1 1 100% !important;}
+    .admin-filter-row > .field{flex:1 1 0 !important;}
+  }
+  /* tablets / desktop: keep the phone-style column but give it a little more room, and centre the nav */
+  @media (min-width:700px){
+    #app{max-width:560px;}
+    .modal-sheet{max-width:560px; border-radius:18px; margin-bottom:24px;}
+    .nav{justify-content:center;}
+  }
+  @media (min-width:1100px){ #app{max-width:600px;} }
+  /* landscape phones: short screen — slimmer nav */
+  @media (max-height:500px) and (orientation:landscape){
+    .nav-item{padding:4px 2px; white-space:nowrap;}
+    .nav-item .ic{display:inline; margin:0 3px 0 0; font-size:15px;}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
 </style>
 </head>
 <body>
@@ -498,7 +566,7 @@
         <ul class="rule-list">
           <li>วันที่ในไฟล์ภาพ (EXIF) ไม่ตรงกับวันที่กรอก หรือไม่พบวันที่ในไฟล์เลย</li>
           <li>ระยะทางที่ AI อ่านได้จากรูป ไม่ตรงกับตัวเลขที่กรอกส่ง</li>
-          <li>ระยะทางเกินเกณฑ์ปกติ (ปั่นเกิน 150 กม./วัน หรือวิ่งเกิน 50 กม./วัน)</li>
+          <li>ระยะทางเกินเกณฑ์ปกติ (ปั่นเกิน 210 กม./วัน หรือวิ่งเกิน 50 กม./วัน)</li>
           <li>มีสมาชิกคนอื่นกดแจ้งว่ารายการนี้น่าสงสัย (ดูข้อ 4)</li>
         </ul>
         <p class="rule-p"><b>สถานะรายการ:</b> รอตรวจสอบ → อนุมัติ (ขึ้นกระดานผู้นำ) / ปฏิเสธ (ไม่นับ) — รายการที่ไม่ติดธงเลยจะได้รับการอนุมัติทันทีโดยไม่ต้องรอแอดมิน</p>
@@ -652,7 +720,7 @@
   <div class="page" id="page-admin">
     <div class="card">
       <h2>คิวรอตรวจสอบ</h2>
-      <div class="field-row" style="margin-bottom:8px;">
+      <div class="field-row admin-filter-row" style="margin-bottom:8px;">
         <div class="field" style="flex:2;"><input id="admin-q" placeholder="ค้นหาชื่อ/สังกัด..." oninput="adminFilterUpdate()"></div>
         <div class="field" style="flex:1;">
           <select id="admin-status" onchange="adminFilterUpdate()">
@@ -669,7 +737,7 @@
           </select>
         </div>
       </div>
-      <div class="field-row" style="align-items:center; margin-bottom:10px;">
+      <div class="field-row admin-bulk-row" style="align-items:center; margin-bottom:10px;">
         <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim); flex:1;">
           <input type="checkbox" id="admin-select-all" onchange="adminSelectAll(this.checked)"> เลือกทั้งหมดที่กรองไว้
         </label>
@@ -798,7 +866,7 @@ function markProfileDirty(name){ if(!window._dirtyProfiles) window._dirtyProfile
 let boardExpanded = {};
 
 /* ===== app-wide settings: banner, season close date, flag thresholds ===== */
-let appSettings = { banner:'', seasonCloseDate:'', thresholdRide:150, thresholdRun:50, roadToLegend:{overrides:{}} };
+let appSettings = { banner:'', seasonCloseDate:'', thresholdRide:210, thresholdRun:50, roadToLegend:{overrides:{}} };
 let decisionLog = [];
 
 /* =================================================================
@@ -807,13 +875,48 @@ let decisionLog = [];
 // Dev-only helpers on the dashboard (seed demo data, one-tap GM admin login, set level).
 // MUST stay false for anything real users can open — the GM button grants admin to whoever taps it.
 const DEV_TOOLS = false;
+
+/* keep body offset == real nav height (nav grows when labels wrap: small phones, large-text setting, admin tab shown) */
+(function(){
+  /* shrink the nav label font until every label fits in at most 2 lines without cutting a word — needed when the
+     phone/in-app browser enlarges text, on 320px screens, and when the admin tab adds a 7th item */
+  let fitting=false;
+  function fitNav(nav){
+    if(fitting) return; fitting=true;
+    try{
+      const root=document.documentElement; root.style.removeProperty('--nav-fs');
+      const items=[...nav.querySelectorAll('.nav-item')].filter(el=>el.offsetParent!==null);
+      const tooBig=()=>items.some(el=>{
+        const ic=el.querySelector('.ic'); const lh=parseFloat(getComputedStyle(el).lineHeight)||12;
+        const textH=el.scrollHeight-(ic?ic.offsetHeight:0)-12;
+        return el.scrollWidth>el.clientWidth+1 || textH>lh*2+2;
+      });
+      let fs=parseFloat(getComputedStyle(items[0]||nav).fontSize)||11;
+      while(tooBig() && fs>7.5){ fs-=0.5; root.style.setProperty('--nav-fs', fs+'px'); }
+    } finally { fitting=false; }
+  }
+  function syncNav(){
+    const nav=document.querySelector('.nav'); if(!nav) return;
+    fitNav(nav);
+    const h=Math.ceil(nav.getBoundingClientRect().height);
+    if(h>0) document.documentElement.style.setProperty('--nav-h', h+'px');
+  }
+  window.__syncNav = syncNav;
+  document.addEventListener('DOMContentLoaded', ()=>{
+    syncNav();
+    const nav=document.querySelector('.nav');
+    if(nav && window.ResizeObserver) new ResizeObserver(syncNav).observe(nav);
+    window.addEventListener('resize', syncNav); window.addEventListener('orientationchange', ()=>setTimeout(syncNav,250));
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(syncNav);
+  });
+})();
 document.addEventListener('DOMContentLoaded', ()=>{
   const c = document.getElementById('demo-card');
   if(c && !DEV_TOOLS) c.style.display = 'none';
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-11-05';
+const BUILD_STAMP = '2026-10-14-03';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -868,7 +971,7 @@ async function loadSettings(){
     if(data) appSettings = {
       banner: data.banner||'',
       seasonCloseDate: data.season_close_date||'',
-      thresholdRide: data.threshold_ride||150,
+      thresholdRide: data.threshold_ride||210,
       thresholdRun: data.threshold_run||50,
       roadToLegend: (data.road_to_legend && typeof data.road_to_legend==='object') ? data.road_to_legend : {overrides:{}},
     };
@@ -2051,7 +2154,7 @@ function toggleAdmin(){
   btn.textContent = 'โหมดแอดมิน: ' + (adminMode?'เปิด':'ปิด');
   btn.title = 'build ' + BUILD_STAMP;
   btn.classList.toggle('on', adminMode);
-  document.getElementById('nav-admin').style.display = adminMode ? 'block' : 'none';
+  document.getElementById('nav-admin').style.display = adminMode ? 'block' : 'none'; if(window.__syncNav) window.__syncNav();
   render();
 }
 
@@ -2313,7 +2416,16 @@ function ocrSpeedList(t){
   // digit-run guard (no digit immediately before/after) stops this from grabbing a truncated fragment out of a
   // longer run — e.g. "321 กม./ชม" (OCR dropped the decimal point in "32.1") would otherwise match just "21".
   // Decimal part allows 1 OR 2 digits — "30.45 km/h" (two decimals) is a real format several apps use.
-  for(const m of t.matchAll(new RegExp('(?<!\\d)(\\d{1,2}(?:\\s?[.,]\\s?\\d{1,2})?)(?!\\d)\\s*'+OCR_SPEED_UNIT,'gi'))) speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  for(const m of t.matchAll(new RegExp('(?<!\\d)(\\d{1,2}(?:\\s?[.,]\\s?\\d{1,2})?)(?!\\d)\\s*'+OCR_SPEED_UNIT,'gi'))){
+    // a LONE single digit right after another number ("33 4 กม./ชม.") is the tail of a number whose decimal point OCR
+    // lost — real case: 33.4 read as "33 4" gave speed 4 → "expected 6.41 กม." on a 53.60 km ride. Skip it; the pair
+    // rule below reads the real value.
+    if(/^\d$/.test(m[1]) && /(?:^|[^\d:.,])\d{1,2}[ \t]+$/.test(t.slice(Math.max(0,m.index-4), m.index))) continue;
+    speeds.push(parseFloat(m[1].replace(/\s/g,'').replace(',','.')));
+  }
+  // …and that space-for-decimal-point pair is the real speed: "33 4" → 33.4 (only a single trailing digit, and never
+  // the end of a clock/duration like "1:36:12 4")
+  for(const m of t.matchAll(new RegExp('(?<![\\d.,:])(\\d{1,2})[ \\t]+(\\d)(?![\\d.,])\\s*'+OCR_SPEED_UNIT,'gi'))) speeds.push(parseFloat(m[1]+'.'+m[2]));
   // an undotted 3-digit run right before the unit ("321") is almost certainly a dropped decimal point ("32.1")
   for(const m of t.matchAll(new RegExp('(?<!\\d)(\\d)(\\d{2})(?!\\d)\\s*'+OCR_SPEED_UNIT,'gi'))) speeds.push(parseFloat(m[1]+m[2][0]+'.'+m[2][1]));
   return speeds;
@@ -2989,7 +3101,7 @@ async function seedDemo(){
       let distanceKm = +(share / EXP_PER_KM[type]).toFixed(1);
       if(distanceKm < 0.5) distanceKm = 0.5;
       // keep single sessions within believable limits
-      const cap = type === 'ride' ? 150 : 42;
+      const cap = type === 'ride' ? 210 : 42;
       if(distanceKm > cap) distanceKm = cap;
 
       const dObj = new Date();
@@ -4010,11 +4122,9 @@ function wpSanitizeGear(g){
    the 5 steps are always drawn in the order 4-2-1-3-5 and the unfilled ones are left blank. */
 function wpPodiumHtml(board, title, subLabel, foot, clickable){
   const byRank = {}; board.forEach(p=>{ byRank[p.rank] = p; });
-  const badges = {1:'👑',2:'🥈',3:'🥉',4:'🎗️',5:'🎗️'};
   const slot = rank=>{
     const p = byRank[rank];
     if(!p) return `<div class="wp-slot r${rank} empty">
-        <div class="wp-badge">&nbsp;</div>
         <div class="wp-char"><svg viewBox="0 0 260 470" style="visibility:hidden" aria-hidden="true"></svg></div>
         <div class="wp-step"><span class="n">${rank}</span></div>
         <div class="wp-name">&nbsp;</div>
@@ -4022,7 +4132,6 @@ function wpPodiumHtml(board, title, subLabel, foot, clickable){
       </div>`;
     const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
     return `<div class="wp-slot r${rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
-        <div class="wp-badge">${badges[rank]}</div>
         <div class="wp-char">${wpCharacterWithRegalia(gear, rank)}</div>
         <div class="wp-step"><span class="n">${rank}</span></div>
         <div class="wp-name">${esc(p.name)}</div>
