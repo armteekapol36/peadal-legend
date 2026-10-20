@@ -932,7 +932,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-05';
+const BUILD_STAMP = '2026-10-20-07';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -3539,7 +3539,7 @@ const FRAME_FX = `
 const FRAMES = [
 {id:'none', lv:1, name:'ไม่มีกรอบ', art:''},
 
-{id:'ice', lv:10, name:'คริสตัลน้ำแข็ง', art:`${FRAME_FX}
+{id:'ice', lv:10, name:'คริสตัลน้ำแข็ง', box:[34, 34, 132, 132, 11], art:`${FRAME_FX}
 <defs>
  <linearGradient id="icA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#F2FDFF"/><stop offset="28%" stop-color="#9BE3FF"/>
@@ -3562,7 +3562,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'verdant', lv:20, name:'พฤกษาไพร', art:`${FRAME_FX}
+{id:'verdant', lv:20, name:'พฤกษาไพร', box:[34, 34, 132, 132, 14], art:`${FRAME_FX}
 <defs>
  <linearGradient id="vdA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#DFFCE7"/><stop offset="30%" stop-color="#7FE3A0"/>
@@ -3584,7 +3584,7 @@ const FRAMES = [
  <g filter="url(#fxGlow)"><circle cx="100" cy="26" r="5" fill="#FFE27A"/><circle cx="100" cy="174" r="5" fill="#FFE27A"/></g>
 </g>`},
 
-{id:'royal', lv:30, name:'ราชสำนักทอง', art:`${FRAME_FX}
+{id:'royal', lv:30, name:'ราชสำนักทอง', box:[33, 33, 134, 134, 6], art:`${FRAME_FX}
 <defs>
  <linearGradient id="ryA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#FFF8D6"/><stop offset="22%" stop-color="#FFE08A"/>
@@ -3607,7 +3607,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'crimson', lv:40, name:'เกราะอสูรเลือด', art:`${FRAME_FX}
+{id:'crimson', lv:40, name:'เกราะอสูรเลือด', box:[35, 35, 130, 130, 5], art:`${FRAME_FX}
 <defs>
  <linearGradient id="crA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#FFD6D6"/><stop offset="26%" stop-color="#F06A6A"/>
@@ -3629,7 +3629,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'tide', lv:50, name:'วารีมนตรา', art:`${FRAME_FX}
+{id:'tide', lv:50, name:'วารีมนตรา', box:[34, 34, 132, 132, 16], art:`${FRAME_FX}
 <defs>
  <linearGradient id="tdA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#EAFDFF"/><stop offset="30%" stop-color="#7FE0F5"/>
@@ -3651,7 +3651,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'inferno', lv:60, name:'เพลิงนิรันดร์', art:`${FRAME_FX}
+{id:'inferno', lv:60, name:'เพลิงนิรันดร์', box:[34, 34, 132, 132, 10], art:`${FRAME_FX}
 <defs>
  <linearGradient id="ifA" x1="0" y1="1" x2="0" y2="0">
   <stop offset="0%" stop-color="#6E1400"/><stop offset="32%" stop-color="#F0521A"/>
@@ -3672,7 +3672,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'seraph', lv:70, name:'ปีกเทวา', art:`${FRAME_FX}
+{id:'seraph', lv:70, name:'ปีกเทวา', box:[36, 42, 128, 124, 11], art:`${FRAME_FX}
 <defs>
  <linearGradient id="srA" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0%" stop-color="#FFFFFF"/><stop offset="40%" stop-color="#EAF1FF"/>
@@ -3693,7 +3693,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'void', lv:80, name:'ห้วงอวกาศมืด', art:`${FRAME_FX}
+{id:'void', lv:80, name:'ห้วงอวกาศมืด', box:[34, 34, 132, 132, 9], art:`${FRAME_FX}
 <defs>
  <linearGradient id="voA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#F0DEFF"/><stop offset="28%" stop-color="#B79BFF"/>
@@ -3720,7 +3720,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'champion', lv:90, name:'ชัยชนะสูงสุด', art:`${FRAME_FX}
+{id:'champion', lv:90, name:'ชัยชนะสูงสุด', box:[37, 45, 126, 120, 8], art:`${FRAME_FX}
 <defs>
  <linearGradient id="chA" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#FFFDF0"/><stop offset="20%" stop-color="#FFE9A8"/>
@@ -3749,7 +3749,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'apex99', lv:99, name:'จักรพรรดิทองคำ', art:`${FRAME_FX}
+{id:'apex99', lv:99, name:'จักรพรรดิทองคำ', box:[35, 43, 130, 124, 9], art:`${FRAME_FX}
 <defs>
  <linearGradient id="apxA" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="200">
   <stop offset="0%" stop-color="#FFFEF5"/><stop offset="18%" stop-color="#FFF3B0"/>
@@ -3797,7 +3797,7 @@ const FRAMES = [
  </g>
 </g>`},
 
-{id:'sponsorPEABC', lv:999, sponsor:true, name:'PEA.BC. ผู้สนับสนุน', art:`${FRAME_FX}
+{id:'sponsorPEABC', lv:999, sponsor:true, name:'PEA.BC. ผู้สนับสนุน', box:[34,34,132,132,11], art:`${FRAME_FX}
 <defs>
  <linearGradient id="spnG" x1="0" y1="0" x2="1" y2="1">
   <stop offset="0%" stop-color="#FFF3B8"/><stop offset="30%" stop-color="#F2C14E"/>
@@ -3805,29 +3805,33 @@ const FRAMES = [
  <linearGradient id="spnP" x1="0" y1="0" x2="0" y2="1">
   <stop offset="0%" stop-color="#8E4FB0"/><stop offset="100%" stop-color="#4A1D66"/></linearGradient>
  <radialGradient id="spnHalo" cx="50%" cy="50%" r="50%">
-  <stop offset="62%" stop-color="#FFD866" stop-opacity="0"/><stop offset="84%" stop-color="#FFD866" stop-opacity=".42"/>
+  <stop offset="60%" stop-color="#FFD866" stop-opacity="0"/><stop offset="84%" stop-color="#FFD866" stop-opacity=".4"/>
   <stop offset="100%" stop-color="#C58BF0" stop-opacity="0"/></radialGradient>
 </defs>
-<circle cx="100" cy="100" r="98" fill="url(#spnHalo)"><animate attributeName="opacity" values=".6;1;.6" dur="2.2s" repeatCount="indefinite"/></circle>
+<ellipse cx="100" cy="100" rx="99" ry="99" fill="url(#spnHalo)"><animate attributeName="opacity" values=".6;1;.6" dur="2.2s" repeatCount="indefinite"/></ellipse>
 <g filter="url(#fxSoft)">
- <circle cx="100" cy="100" r="72" fill="none" stroke="#3A1654" stroke-width="12"/>
- <circle cx="100" cy="100" r="72" fill="none" stroke="url(#spnG)" stroke-width="8.5"/>
- <circle cx="100" cy="100" r="67" fill="none" stroke="#FFFBE6" stroke-width="1.2" opacity=".8"/>
- <circle cx="100" cy="100" r="77" fill="none" stroke="#FFFBE6" stroke-width=".9" stroke-dasharray="2 5" opacity=".85"/>
- <g transform="rotate(0 100 100)"><circle cx="100" cy="100" r="72" fill="none" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="46 407" opacity=".95" filter="url(#fxGlow)">
-  <animateTransform attributeName="transform" type="rotate" from="0 100 100" to="360 100 100" dur="3.2s" repeatCount="indefinite"/></circle></g>
+ <rect x="30" y="30" width="140" height="140" rx="16" fill="none" stroke="#3A1654" stroke-width="12"/>
+ <rect x="30" y="30" width="140" height="140" rx="16" fill="none" stroke="url(#spnG)" stroke-width="8.5"/>
+ <rect x="35" y="35" width="130" height="130" rx="12" fill="none" stroke="#FFFBE6" stroke-width="1.2" opacity=".8"/>
+ <rect x="23" y="23" width="154" height="154" rx="21" fill="none" stroke="#FFFBE6" stroke-width=".9" stroke-dasharray="2 5" opacity=".85"/>
+ <rect x="30" y="30" width="140" height="140" rx="16" fill="none" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="46 487" opacity=".95" filter="url(#fxGlow)">
+  <animate attributeName="stroke-dashoffset" from="533" to="0" dur="3.2s" repeatCount="indefinite"/></rect>
  <g fill="url(#spnG)" stroke="#3A1654" stroke-width="1.3" stroke-linejoin="round">
-  <path d="M100,18 l7,10 -7,8 -7,-8 Z"/><path d="M18,100 l10,-7 8,7 -8,7 Z"/><path d="M182,100 l-10,-7 -8,7 8,7 Z"/>
+  <path d="M100,14 l8,11 -8,9 -8,-9 Z"/><path d="M14,100 l11,-8 9,8 -9,8 Z"/><path d="M186,100 l-11,-8 -9,8 9,8 Z"/>
+  <path d="M30,30 l-10,-10 14,-3 -3,13 Z"/><path d="M170,30 l10,-10 -14,-3 3,13 Z"/>
  </g>
- <g transform="translate(0 0)">
-  <path d="M46,168 Q100,182 154,168 L160,190 Q100,204 40,190 Z" fill="url(#spnP)" stroke="#FFE9A0" stroke-width="2.2" stroke-linejoin="round"/>
-  <text x="100" y="190" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="17" letter-spacing="1" fill="#FFE9A0" stroke="#2B0E40" stroke-width=".6" paint-order="stroke">PEA.BC.</text>
- </g>
+ <path d="M46,168 Q100,182 154,168 L160,190 Q100,204 40,190 Z" fill="url(#spnP)" stroke="#FFE9A0" stroke-width="2.2" stroke-linejoin="round"/>
+ <text x="100" y="190" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="17" letter-spacing="1" fill="#FFE9A0" stroke="#2B0E40" stroke-width=".6" paint-order="stroke">PEA.BC.</text>
 </g>
-<g fill="#FFFEF0" filter="url(#fxGlow)"><path transform="translate(100 16)" d="M0,-5 L1.2,-1.2 L5,0 L1.2,1.2 L0,5 L-1.2,1.2 L-5,0 L-1.2,-1.2 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.4s" begin="0s" repeatCount="indefinite"/></path><path transform="translate(168 44)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="0.4s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.7s" begin="0.4s" repeatCount="indefinite"/></path><path transform="translate(186 104)" d="M0,-5.5 L1.3199999999999998,-1.3199999999999998 L5.5,0 L1.3199999999999998,1.3199999999999998 L0,5.5 L-1.3199999999999998,1.3199999999999998 L-5.5,0 L-1.3199999999999998,-1.3199999999999998 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.9s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.5s" begin="0.9s" repeatCount="indefinite"/></path><path transform="translate(166 164)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.9s" begin="0.2s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.9s" begin="0.2s" repeatCount="indefinite"/></path><path transform="translate(100 186)" d="M0,-5 L1.2,-1.2 L5,0 L1.2,1.2 L0,5 L-1.2,1.2 L-5,0 L-1.2,-1.2 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="0.7s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.6s" begin="0.7s" repeatCount="indefinite"/></path><path transform="translate(34 164)" d="M0,-4.4 L1.056,-1.056 L4.4,0 L1.056,1.056 L0,4.4 L-1.056,1.056 L-4.4,0 L-1.056,-1.056 Z"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="1.1s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.8s" begin="1.1s" repeatCount="indefinite"/></path><path transform="translate(14 100)" d="M0,-5 L1.2,-1.2 L5,0 L1.2,1.2 L0,5 L-1.2,1.2 L-5,0 L-1.2,-1.2 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.5s" begin="0.5s" repeatCount="indefinite"/></path><path transform="translate(32 42)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="2s" begin="1.3s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="2s" begin="1.3s" repeatCount="indefinite"/></path><path transform="translate(140 22)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.3s" begin="0.6s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.3s" begin="0.6s" repeatCount="indefinite"/></path><path transform="translate(60 22)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="1.0s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.6s" begin="1.0s" repeatCount="indefinite"/></path><path transform="translate(182 70)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.3s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.4s" begin="0.3s" repeatCount="indefinite"/></path><path transform="translate(18 138)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="0.8s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.7s" begin="0.8s" repeatCount="indefinite"/></path></g>
-<g filter="url(#fxGlow)"><circle cx="100" cy="28" r="3.2" fill="#FF5C9A"/><circle cx="28" cy="100" r="3.2" fill="#7FD0FF"/><circle cx="172" cy="100" r="3.2" fill="#7FD0FF"/></g>`},
+<g fill="#FFFEF0" filter="url(#fxGlow)"><path transform="translate(100 16)" d="M0,-5 L1.2,-1.2 L5,0 L1.2,1.2 L0,5 L-1.2,1.2 L-5,0 L-1.2,-1.2 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.4s" begin="0s" repeatCount="indefinite"/></path><path transform="translate(166 22)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="0.4s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.7s" begin="0.4s" repeatCount="indefinite"/></path><path transform="translate(184 100)" d="M0,-5.5 L1.3199999999999998,-1.3199999999999998 L5.5,0 L1.3199999999999998,1.3199999999999998 L0,5.5 L-1.3199999999999998,1.3199999999999998 L-5.5,0 L-1.3199999999999998,-1.3199999999999998 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.9s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.5s" begin="0.9s" repeatCount="indefinite"/></path><path transform="translate(172 168)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.9s" begin="0.2s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.9s" begin="0.2s" repeatCount="indefinite"/></path><path transform="translate(34 168)" d="M0,-4.4 L1.056,-1.056 L4.4,0 L1.056,1.056 L0,4.4 L-1.056,1.056 L-4.4,0 L-1.056,-1.056 Z"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="1.1s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.8s" begin="1.1s" repeatCount="indefinite"/></path><path transform="translate(16 100)" d="M0,-5 L1.2,-1.2 L5,0 L1.2,1.2 L0,5 L-1.2,1.2 L-5,0 L-1.2,-1.2 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.5s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.5s" begin="0.5s" repeatCount="indefinite"/></path><path transform="translate(30 20)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="2s" begin="1.3s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="2s" begin="1.3s" repeatCount="indefinite"/></path><path transform="translate(140 12)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.3s" begin="0.6s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.3s" begin="0.6s" repeatCount="indefinite"/></path><path transform="translate(60 12)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="1.0s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.6s" begin="1.0s" repeatCount="indefinite"/></path><path transform="translate(188 56)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.3s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.4s" begin="0.3s" repeatCount="indefinite"/></path><path transform="translate(12 56)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="0.8s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.7s" begin="0.8s" repeatCount="indefinite"/></path><path transform="translate(188 140)" d="M0,-3.2 L0.768,-0.768 L3.2,0 L0.768,0.768 L0,3.2 L-0.768,0.768 L-3.2,0 L-0.768,-0.768 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="0.7s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" additive="sum" values=".4;1;.4" dur="1.6s" begin="0.7s" repeatCount="indefinite"/></path></g>
+<g filter="url(#fxGlow)"><circle cx="100" cy="24" r="3.2" fill="#FF5C9A"/><circle cx="24" cy="100" r="3.2" fill="#7FD0FF"/><circle cx="176" cy="100" r="3.2" fill="#7FD0FF"/></g>`},
 ];
 function frameById(id){ return FRAMES.find(f=>f.id===id) || FRAMES[0]; }
+/* the photo/avatar fills the frame's whole inner opening (a rounded square that tucks under the border) instead of a small circle.
+   box = [x, y, w, h, corner radius] in the frame art's 200x200 units. */
+function frameBoxStyle(b){
+  return `left:${b[0]/2}%;top:${b[1]/2}%;width:${b[2]/2}%;height:${b[3]/2}%;transform:none;border-radius:${(b[4]/b[2]*100).toFixed(1)}%/${(b[4]/b[3]*100).toFixed(1)}%;`;
+}
 /* sponsors are chosen by the admin (stored with the app settings, so every viewer sees the frame) */
 function sponsorList(){ const r = appSettings.roadToLegend; return (r && Array.isArray(r.sponsors)) ? r.sponsors : []; }
 function isSponsor(name){ return !!name && sponsorList().includes(name); }
@@ -3841,7 +3845,7 @@ function frameWrap(innerHtml, frameId, level, opts){
   const S = opts.size || 64;
   const click = opts.onclick ? ` onclick="${opts.onclick}" style="cursor:pointer;"` : '';
   return `<div class="frm-box" style="width:${S}px;height:${S}px;"${click}>
-    <div class="frm-avatar">${innerHtml}</div>
+    <div class="frm-avatar"${use.box?` style="${frameBoxStyle(use.box)}"`:''}>${innerHtml}</div>
     ${use.art ? `<svg class="frm-art" viewBox="0 0 200 200" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${use.art}</svg>` : ''}
     ${opts.badge || ''}
   </div>`;
@@ -3851,9 +3855,9 @@ function frameWrap(innerHtml, frameId, level, opts){
 function framedAvatar(name, gear, size, opts){
   const g = Object.assign(defaultGear(), gear || {});
   const lv = levelInfo(name).level;
-  const inner = Math.round(size * 0.60);
-  return frameWrap(miniAvatarHtml(name, g, inner), g.frame, lv,
-                   Object.assign({size, name}, opts || {}));
+  const f = frameById(g.frame), use = frameAllowed(f, name, lv) ? f : FRAMES[0];
+  const inner = use.box ? miniAvatarFill(name, g, Math.round(size * use.box[2] / 200)) : miniAvatarHtml(name, g, Math.round(size * 0.60));
+  return frameWrap(inner, g.frame, lv, Object.assign({size, name}, opts || {}));
 }
 
 /* ===== Chibi character renderer ===== */
@@ -4661,6 +4665,14 @@ function miniAvatarHtml(name, gear, px){
   return `<div style="${box}">${headshotSvg(g, px)}</div>`;
 }
 
+/* photo or headshot that fills its (square-ish) container completely — used inside frames */
+function miniAvatarFill(name, gear, px){
+  const g = Object.assign(defaultGear(), gear||{});
+  const p = profiles[name];
+  if(p && p.photo) return `<img src="${safeImgSrc(p.photo)}" style="display:block;width:100%;height:100%;object-fit:cover;" alt="">`;
+  return `<div style="width:100%;height:100%;background:var(--panel-2);display:flex;align-items:center;justify-content:center;overflow:hidden;">${headshotSvg(g, px)}</div>`;
+}
+
 /* framed round avatar for lists — same look as inside the profile page */
 function avatarThumb(name, px){
   const size = px || 40;
@@ -5312,7 +5324,7 @@ function renderCreator(){
     optionsHtml = FRAMES.map(f=>{
       const locked = f.sponsor ? !isSponsor(name) : level < f.lv;
       const preview = `<div class="frm-box" style="width:76px;height:76px;margin:0 auto 6px;">
-          <div class="frm-avatar">${miniAvatarHtml(name, g, 46)}</div>
+          <div class="frm-avatar"${f.box?` style="${frameBoxStyle(f.box)}"`:''}>${f.box ? miniAvatarFill(name, g, Math.round(76*f.box[2]/200)) : miniAvatarHtml(name, g, 46)}</div>
           ${f.art ? `<svg class="frm-art" viewBox="0 0 200 200">${f.art}</svg>` : ''}
         </div>`;
       return `<div class="creator-opt-card frame-card ${g.frame===f.id?'active':''}"
