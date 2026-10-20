@@ -688,6 +688,7 @@
         <div class="rule-h"><span class="n">11</span>ฟีด — โพสต์รูปกิจกรรม ไลค์ และคอมเมนต์</div>
         <ul class="rule-list">
           <li>ทำรูปผ่าน "Share Card" แล้วกดปุ่ม "โพสต์ลงฟีด" — <b>รูปจะแสดงให้สมาชิกทุกคนทุกสังกัดเห็นในหน้าฟีด</b> ระบบจะขอให้ยืนยันทุกครั้งก่อนโพสต์จริง</li>
+          <li>แอดมินโพสต์ <b>📣 ประกาศ</b> (รูป+ข้อความ) ลงฟีดได้เพื่อกระตุ้นหรือแจ้งข่าว โพสต์ประกาศจะมีกรอบสีม่วงเด่นกว่าโพสต์ทั่วไป</li>
           <li>สมาชิกทุกคนกดไลค์และแสดงความคิดเห็นใต้โพสต์ได้ ความคิดเห็นจำกัดไม่เกิน 200 ตัวอักษร</li>
           <li>ลบโพสต์หรือความคิดเห็นของตัวเองได้ทุกเมื่อ แอดมินลบโพสต์และความคิดเห็นของใครก็ได้หากไม่เหมาะสม</li>
           <li><b>รูปในฟีดจะถูกลบออกอัตโนมัติเมื่อครบ 30 วัน</b> (ทั้งโพสต์ รวมไลค์และความคิดเห็นทั้งหมดของโพสต์นั้น) เพื่อประหยัดพื้นที่จัดเก็บ</li>
@@ -815,6 +816,15 @@
     </div>
 
     <div class="card">
+      <h2>📣 โพสต์ประกาศในฟีด</h2>
+      <div class="note-small" style="text-align:left; margin-bottom:8px;">อัปโหลดรูป (ใส่ข้อความได้) เพื่อโพสต์กระตุ้นหรือประกาศข่าวให้สมาชิกทุกคนเห็นในหน้าฟีด · โพสต์จะผูกกับบัญชีแอดมินที่ล็อกอินอยู่ · ลบได้ทุกเมื่อ และถูกลบอัตโนมัติเมื่อครบ 30 วันเหมือนโพสต์อื่น</div>
+      <div class="field"><label>รูปประกาศ (JPG/PNG)</label><input type="file" id="admin-ann-file" accept="image/*" onchange="adminAnnPreview()"></div>
+      <img id="admin-ann-prev" alt="" style="display:none; width:100%; border-radius:12px; margin:6px 0 8px;">
+      <div class="field"><label>ข้อความ (ไม่บังคับ · ไม่เกิน 300 ตัวอักษร)</label><textarea id="admin-ann-text" rows="3" maxlength="300" placeholder="เช่น ซีซัน 1 เริ่ม 2 พ.ย. ออกไปปั่น/วิ่งกันเลย!" style="width:100%; background:var(--field); border:1px solid var(--line); border-radius:9px; padding:9px; color:var(--text); font-family:var(--sans); font-size:14px;"></textarea></div>
+      <button class="qbtn approve" id="admin-ann-btn" style="width:100%;" onclick="adminPostAnnouncement()">📣 โพสต์ประกาศ</button>
+    </div>
+
+    <div class="card">
       <h2>🤝 ผู้สนับสนุน (กรอบ PEA.BC.)</h2>
       <div class="note-small" style="text-align:left; margin-bottom:8px;">พิมพ์ชื่อตามที่แสดงในแอป แล้วกดเพิ่ม — คนในรายชื่อจะเลือกกรอบ "PEA.BC. ผู้สนับสนุน" ในหน้าแต่งตัวได้ ถอดชื่อเมื่อไหร่กรอบก็หายทันที</div>
       <div class="field-row">
@@ -932,7 +942,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-07';
+const BUILD_STAMP = '2026-10-20-08';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2123,9 +2133,11 @@ function renderFeed(){
     const comments = feedState.commentsByPost[post.id]||[];
     const isOpen = !!feedState.openComments[post.id];
     const canDelete = currentUser && (post.employeeId===currentUser.employeeId || adminMode);
-    return `<div class="card">
-      <div class="eyebrow"><span>${post.kind==='podium'?'📢 ประกาศ':'🚴 '+esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
+    const isAnn = !!(post.payload && post.payload.announce);
+    return `<div class="card"${isAnn?' style="border:1.5px solid var(--purple); box-shadow:0 2px 14px rgba(127,63,152,.18);"':''}>
+      <div class="eyebrow"><span>${post.kind==='podium'?'📢 ประกาศ':isAnn?'📣 ประกาศจากแอดมิน':'🚴 '+esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
       ${post.kind==='podium' ? feedPodiumHtml(post) : `<img src="${safeImgSrc(post.photoUrl)}" loading="lazy" style="width:100%; border-radius:12px; display:block; cursor:pointer; min-height:120px; background:var(--panel-2);" onclick="openPhotoLightbox(this)">`}
+      ${isAnn && post.payload.text ? `<div style="margin-top:10px; font-size:14px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere;">${esc(post.payload.text)}</div>` : ''}
       <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
         <span style="cursor:pointer; font-size:14px;" onclick="toggleLike('${escAttr(post.id)}')">${iLiked?'❤️':'🤍'} ${likes.length}</span>
         <span style="cursor:pointer; font-size:14px; color:var(--text-dim);" onclick="toggleComments('${escAttr(post.id)}')">💬 ${comments.length} ความคิดเห็น</span>
@@ -6329,6 +6341,34 @@ async function adminReopenSeason(num){
   const prev = x.final; x.final = null;
   if(!(await saveSeasonRow(x))){ x.final = prev; alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
   render();
+}
+
+/* ===== admin announcement post (photo + optional text) — stored as a normal photo post whose payload says announce:true ===== */
+function adminAnnPreview(){
+  const f = document.getElementById('admin-ann-file').files[0], img = document.getElementById('admin-ann-prev');
+  if(!f){ img.style.display='none'; return; }
+  try{ if(img._u) URL.revokeObjectURL(img._u); img._u = URL.createObjectURL(f); img.src = img._u; img.style.display='block'; }catch(e){ img.style.display='none'; }
+}
+async function adminPostAnnouncement(){
+  if(!adminMode || window._annBusy) return;
+  if(!currentUser){ alert('ต้องเข้าสู่ระบบด้วยบัญชีของคุณก่อน แล้วค่อยโพสต์ประกาศ (โพสต์จะผูกกับบัญชีแอดมินที่ล็อกอินอยู่)'); return; }
+  const f = document.getElementById('admin-ann-file').files[0];
+  if(!f){ alert('เลือกรูปประกาศก่อนครับ'); return; }
+  const text = (document.getElementById('admin-ann-text').value||'').trim().slice(0,300);
+  if(!confirm('โพสต์ประกาศนี้ให้สมาชิกทุกคนเห็นในฟีดใช่ไหม?')) return;
+  window._annBusy = true; const btn = document.getElementById('admin-ann-btn'); btn.disabled = true; btn.textContent = 'กำลังโพสต์...';
+  try{
+    let dataUrl;
+    try{ dataUrl = await resizeImage(f, 1400, 0.85); }catch(e){ alert(e.message||'เปิดรูปไม่ได้'); return; }
+    const id = 'post_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    const saved = await savePostPhoto(id, dataUrl);
+    if(!saved){ alert('อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+    const {error} = await sb.from('posts').insert({id, employee_id:currentUser.employeeId, name:'ประกาศจากแอดมิน', photo_url:saved.url, kind:'photo', payload:{announce:true, text}});
+    if(error){ dbErr('adminPostAnnouncement', error); await deleteStorageFile('posts', saved.path); alert('โพสต์ไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+    document.getElementById('admin-ann-file').value=''; document.getElementById('admin-ann-text').value=''; adminAnnPreview();
+    await loadFeedPage(true);
+    alert('โพสต์ประกาศเรียบร้อยแล้ว — ดูได้ที่แท็บ "ฟีด"');
+  } finally { window._annBusy = false; btn.disabled = false; btn.textContent = '📣 โพสต์ประกาศ'; }
 }
 
 /* ===== sponsors (PEA.BC. frame) ===== */
