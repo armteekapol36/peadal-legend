@@ -932,7 +932,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-04';
+const BUILD_STAMP = '2026-10-20-05';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -6055,6 +6055,18 @@ async function decideBulk(status){
   render();
 }
 
+/* long admin lists show only the first few rows; "ดูเพิ่มเติม" expands the rest */
+const ADMIN_LIST_PREVIEW = 5;
+const adminListOpen = {acc:false, log:false};
+function adminMoreBtn(key, total){
+  if(total <= ADMIN_LIST_PREVIEW) return '';
+  return `<button class="qbtn approve" style="width:100%; margin-top:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="toggleAdminList('${key}')">${adminListOpen[key] ? 'ย่อรายการ ▲' : `ดูเพิ่มเติม (อีก ${total-ADMIN_LIST_PREVIEW} รายการ) ▼`}</button>`;
+}
+function toggleAdminList(key){
+  adminListOpen[key] = !adminListOpen[key];
+  if(key==='acc') adminAccountsRender(); else adminSettingsRender();
+}
+
 /* ===== admin: user account management ===== */
 function adminAccountsRender(){
   const el = document.getElementById('admin-accounts');
@@ -6067,7 +6079,9 @@ function adminAccountsRender(){
     return a.employeeId.includes(q) || full.includes(q);
   }).sort((a,b)=>`${a.firstName}${a.lastName}`.localeCompare(`${b.firstName}${b.lastName}`,'th'));
 
-  el.innerHTML = list.length ? list.map(a=>`
+  const accOpen = !!adminListOpen.acc;
+  const shown = accOpen ? list : list.slice(0,ADMIN_LIST_PREVIEW);
+  el.innerHTML = (list.length ? shown.map(a=>`
     <div class="queue-item">
       <div class="queue-top">
         <div>
@@ -6081,7 +6095,7 @@ function adminAccountsRender(){
         <button class="qbtn reject" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminToggleDisabled('${escAttr(a.employeeId)}')">${a.disabled?'✓ เปิดใช้งานคืน':'🚫 ระงับบัญชี'}</button>
         <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; ${a.isAdmin?'background:var(--panel-2); color:var(--text); border:1px solid var(--line);':''}" onclick="adminToggleAdmin('${escAttr(a.employeeId)}')">${a.isAdmin?'🛡️ ถอดแอดมิน':'🛡️ แต่งตั้งเป็นแอดมิน'}</button>
       </div>
-    </div>`).join('') : `<div class="empty">ไม่พบบัญชีที่ตรงกับคำค้นหา</div>`;
+    </div>`).join('') : `<div class="empty">ไม่พบบัญชีที่ตรงกับคำค้นหา</div>`) + adminMoreBtn('acc', list.length);
 }
 
 /* Renaming someone only ever touches this one row in accounts — entries/profiles are linked by employee_id and
@@ -6399,11 +6413,12 @@ function adminSettingsRender(){
   const logEl = document.getElementById('admin-decision-log');
   if(logEl){
     const recent = decisionLog.slice(-50).reverse();
-    logEl.innerHTML = recent.length ? recent.map(d=>`
+    const logShown = adminListOpen.log ? recent : recent.slice(0,ADMIN_LIST_PREVIEW);
+    logEl.innerHTML = (recent.length ? logShown.map(d=>`
       <div class="queue-item" style="padding:9px 12px;">
         <div style="font-size:12px;"><b>${d.status==='approved'?'✓ อนุมัติ':'✕ ปฏิเสธ'}</b> — ${esc(d.name)} (${d.type==='ride'?'🚴':'🏃'} ${d.distanceKm.toFixed(1)} กม. · ${esc(d.date)})</div>
         <div class="lb-sub" style="margin-top:2px;">โดย ${esc(d.decidedBy)} · ${new Date(d.decidedAt).toLocaleString('th-TH')}</div>
-      </div>`).join('') : `<div class="empty">ยังไม่มีประวัติการตัดสินใจ</div>`;
+      </div>`).join('') : `<div class="empty">ยังไม่มีประวัติการตัดสินใจ</div>`) + adminMoreBtn('log', recent.length);
   }
 }
 
