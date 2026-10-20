@@ -372,8 +372,10 @@
   /* ===== RESPONSIVE LAYER (build 2026-10-14-01) — one layout for every screen/app: Chrome/Safari, LINE / Facebook /
      Messenger in-app browsers (often with the phone's "large text" setting on), installed PWA (iPhone notch / Android
      gesture bar), tablets and desktop. Rules are additive overrides of the styles above. ===== */
-  :root{ --nav-h:66px; --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
-         --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px); }
+  :root{ --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+         --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+         /* nav height is a plain CSS constant (NOT measured by JS) so nothing can feed back and make the page jitter */
+         --nav-row:60px; --nav-h:calc(var(--nav-row) + 1px + var(--safe-t)); }
   html{-webkit-text-size-adjust:100%; text-size-adjust:100%;}
   /* nothing may push the page sideways (that is what made the whole app look shifted/cut on some phones) */
   html, body{max-width:100%; overflow-x:hidden;}
@@ -384,13 +386,15 @@
   img, svg, video, canvas{max-width:100%;}
   .card{scroll-margin-top:calc(var(--nav-h) + 10px); min-width:0;}
   #app{width:100%;}
-  /* top nav: height follows its content (JS keeps --nav-h in sync), respects the notch, never wraps into 3 lines */
+  /* top nav: FIXED height (a CSS constant), respects the notch, labels may use up to 2 lines and are clipped, never resized by JS.
+     Own compositing layer so it doesn't wobble while an in-app browser's toolbar collapses/expands. */
   .nav{padding-top:var(--safe-t); padding-left:var(--safe-l); padding-right:var(--safe-r); justify-content:center;
-       overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
-  .nav::-webkit-scrollbar{display:none;}
-  .nav-item{flex:1 1 0; min-width:40px; max-width:120px; font-size:var(--nav-fs, clamp(9px, 2.6vw, 11px)); line-height:1.2;
-            padding:8px 2px 7px; overflow:hidden; word-break:normal; overflow-wrap:normal;}
-  .nav-item .ic{font-size:clamp(16px, 4.6vw, 20px); line-height:1.15;}
+       overflow:hidden; box-sizing:border-box; height:var(--nav-h);
+       transform:translate3d(0,0,0); -webkit-backface-visibility:hidden; backface-visibility:hidden;}
+  .nav-item{flex:1 1 0; min-width:0; max-width:120px; box-sizing:border-box; height:var(--nav-row);
+            font-size:clamp(8.5px, 2.5vw, 11px); line-height:1.15;
+            padding:6px 1px 0; overflow:hidden; word-break:normal; overflow-wrap:normal;}
+  .nav-item .ic{font-size:clamp(16px, 4.6vw, 20px); line-height:1.15; margin-bottom:1px;}
   .admin-toggle{top:calc(var(--nav-h) + 8px); right:calc(10px + var(--safe-r));}
   /* flex rows: children may shrink instead of pushing past the card edge */
   .field-row > *, .lb-row > *, .wp-row > *{min-width:0;}
@@ -432,7 +436,8 @@
   @media (min-width:1100px){ #app{max-width:600px;} }
   /* landscape phones: short screen — slimmer nav */
   @media (max-height:500px) and (orientation:landscape){
-    .nav-item{padding:4px 2px; white-space:nowrap;}
+    :root{--nav-row:34px;}
+    .nav-item{padding:4px 2px 0; white-space:nowrap;}
     .nav-item .ic{display:inline; margin:0 3px 0 0; font-size:15px;}
   }
   @media (prefers-reduced-motion:reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
@@ -919,47 +924,15 @@ let decisionLog = [];
 // MUST stay false for anything real users can open — the GM button grants admin to whoever taps it.
 const DEV_TOOLS = false;
 
-/* keep body offset == real nav height (nav grows when labels wrap: small phones, large-text setting, admin tab shown) */
-(function(){
-  /* shrink the nav label font until every label fits in at most 2 lines without cutting a word — needed when the
-     phone/in-app browser enlarges text, on 320px screens, and when the admin tab adds a 7th item */
-  let fitting=false;
-  function fitNav(nav){
-    if(fitting) return; fitting=true;
-    try{
-      const root=document.documentElement; root.style.removeProperty('--nav-fs');
-      const items=[...nav.querySelectorAll('.nav-item')].filter(el=>el.offsetParent!==null);
-      const tooBig=()=>items.some(el=>{
-        const ic=el.querySelector('.ic'); const lh=parseFloat(getComputedStyle(el).lineHeight)||12;
-        const textH=el.scrollHeight-(ic?ic.offsetHeight:0)-12;
-        return el.scrollWidth>el.clientWidth+1 || textH>lh*2+2;
-      });
-      let fs=parseFloat(getComputedStyle(items[0]||nav).fontSize)||11;
-      while(tooBig() && fs>7.5){ fs-=0.5; root.style.setProperty('--nav-fs', fs+'px'); }
-    } finally { fitting=false; }
-  }
-  function syncNav(){
-    const nav=document.querySelector('.nav'); if(!nav) return;
-    fitNav(nav);
-    const h=Math.ceil(nav.getBoundingClientRect().height);
-    if(h>0) document.documentElement.style.setProperty('--nav-h', h+'px');
-  }
-  window.__syncNav = syncNav;
-  document.addEventListener('DOMContentLoaded', ()=>{
-    syncNav();
-    const nav=document.querySelector('.nav');
-    if(nav && window.ResizeObserver) new ResizeObserver(syncNav).observe(nav);
-    window.addEventListener('resize', syncNav); window.addEventListener('orientationchange', ()=>setTimeout(syncNav,250));
-    if(document.fonts && document.fonts.ready) document.fonts.ready.then(syncNav);
-  });
-})();
+/* (the old JS that measured the nav and shrank its font was removed — it fought the in-app browsers' resize events and made the screen shake) */
+window.__syncNav = function(){};
 document.addEventListener('DOMContentLoaded', ()=>{
   const c = document.getElementById('demo-card');
   if(c && !DEV_TOOLS) c.style.display = 'none';
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-03';
+const BUILD_STAMP = '2026-10-20-04';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
