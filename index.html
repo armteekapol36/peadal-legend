@@ -279,8 +279,8 @@
   .cp-exp{font-size:10px; color:var(--text-dim); font-family:var(--mono);}
   .cp-stats{display:flex; gap:12px; margin-top:8px; font-size:11px; color:var(--text); flex-wrap:wrap;}
   .creator-stage{background:var(--panel); border:1px solid var(--line); border-radius:20px; margin:0 16px 14px; padding:18px 10px; text-align:center; position:relative; overflow:hidden; box-shadow:0 2px 10px rgba(127,63,152,.06);}
-  .creator-char{animation:breathe 2.4s ease-in-out infinite; display:inline-block; overflow:visible;}
-  @keyframes breathe{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  /* the character used to "breathe" (translateY loop). On phones/in-app browsers that repainted the whole SVG every frame, ran at a few fps and looked like shaking — so it is now static. */
+  .creator-char{display:inline-block; overflow:visible;}
   .creator-bike-mini{opacity:.85; margin-top:2px;}
   .creator-tabs{display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; -webkit-overflow-scrolling:touch;}
   .creator-tab{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 13px; border-radius:12px; background:var(--panel); border:1px solid var(--line); color:var(--text-dim); font-family:'Orbitron',sans-serif; font-size:10px; cursor:pointer; white-space:nowrap;}
@@ -942,7 +942,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-08';
+const BUILD_STAMP = '2026-10-20-10';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -3549,7 +3549,7 @@ const FRAME_FX = `
   </defs>`;
 
 const FRAMES = [
-{id:'none', lv:1, name:'ไม่มีกรอบ', art:''},
+{id:'none', lv:1, name:'ไม่มีกรอบ', box:[34,34,132,132,11], art:''},   // same square photo area as the framed ones
 
 {id:'ice', lv:10, name:'คริสตัลน้ำแข็ง', box:[34, 34, 132, 132, 11], art:`${FRAME_FX}
 <defs>
