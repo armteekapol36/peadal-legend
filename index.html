@@ -166,7 +166,10 @@
   #sec-weekly-podium, #sec-weekly-podium-run, .wp-box{background:linear-gradient(165deg,#8A48A6,#4A2060); border-radius:16px; padding:18px 10px 14px; color:#fff; box-shadow:0 6px 20px rgba(90,40,110,.25);}
   #sec-weekly-podium-run, .wp-box.wp-run{background:linear-gradient(165deg,#2E9C8E,#17564F); box-shadow:0 6px 20px rgba(23,86,79,.25);}
   .wp-box{margin:2px 0 0;}
-  .wp-slot.empty{cursor:default;}
+  .wp-slot.wp-vacant{cursor:default;}
+  .wp-slot.wp-vacant .wp-char svg{filter:none; opacity:.85;}
+  .wp-slot.wp-vacant .wp-step{opacity:.75;}
+  .wp-slot.wp-vacant .wp-name, .wp-slot.wp-vacant .wp-dist{opacity:.6; font-weight:600;}
   .wp-eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.8; text-align:center;}
   .wp-title{font-size:16px; font-weight:800; text-align:center; margin:3px 0 1px;}
   .wp-sub{font-size:11px; text-align:center; opacity:.85; margin-bottom:14px; font-family:var(--mono);}
@@ -176,8 +179,8 @@
   .wp-char{width:100%; display:flex; justify-content:center; margin-bottom:-12px; z-index:2;}
   .wp-char svg{width:100%; max-width:68px; height:auto; filter:drop-shadow(0 3px 5px rgba(0,0,0,.25));}
   .wp-slot.r1 .wp-char svg{max-width:86px;}
-  .wp-name{font-size:10.5px; font-weight:700; text-align:center; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
-  .wp-dist{font-family:var(--mono); font-size:10px; opacity:.88; text-align:center;}
+  .wp-name{font-size:10.5px; font-weight:700; text-align:center; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; height:17px; line-height:17px;}
+  .wp-dist{font-family:var(--mono); font-size:10px; opacity:.88; text-align:center; height:16px; line-height:16px; white-space:nowrap;}
   .wp-step{width:100%; border-radius:7px 7px 0 0; display:flex; align-items:flex-start; justify-content:center; padding-top:5px; margin-top:5px; position:relative; z-index:1;}
   .wp-step .n{font-family:var(--mono); font-weight:800; font-size:16px;}
   .wp-slot.r1 .wp-step{background:linear-gradient(180deg,#FFD866,#E8A81E); color:#5A3C00; height:74px;}
@@ -948,7 +951,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-22-01';
+const BUILD_STAMP = '2026-10-22-04';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2513,6 +2516,11 @@ function ocrIsPaceContext(t, idx, matchLen){
   if(/^[^\d]{0,4}(?:km|กม\.?)\b/i.test(after.slice(0,6))) return true;
   // spelled-out unit under/after the number: "นาที/กิโลเมตร", "นาที/กม.", "min/km" (GOALS-FITNESS prints the full word)
   if(/^\s*(?:[^\d\s]{0,3}\s*)?(?:(?:นาที|min)\.?\s*)?[\/\\]?\s*(?:km|กม|กิโลเมตร|kilomet)/i.test(after)) return true;
+  // two-column stat grids (Garmin): the label of the NEIGHBOURING cell ("เพซเฉลี่ย") can come right before the value in
+  // reading order, while this value's own label ("เวลารวม") follows it — a duration label just after wins
+  // (…unless that label is itself followed by a time — "เพซ 00:01:58 เวลา 01:18:51": label-before-value layout)
+  { const a22 = after.slice(0,22), lm = a22.match(OCR_DUR_LABEL);
+    if(lm && !/(?:pace|เพซ|เพช)/i.test(a22) && !/^[^\d]{0,4}\d{1,2}\s*[:.]\s*\d{2}/.test(after.slice(lm.index+lm[0].length))) return false; }
   if(/(?:\bpace\b|เพซ|เพช)[^\d]{0,6}$/i.test(t.slice(Math.max(0,idx-16), idx))) return true;
   return false;
 }
@@ -3036,7 +3044,7 @@ function ocrAnalyze(rawText, refMs){
   let actDate = ocrExtractDate(rawText, refMs);
   // an activity can't be in the future — a "date" past tomorrow is a misread (e.g. "2026-10-10" read as "2026-12-18")
   if(actDate){ const t=new Date(); t.setDate(t.getDate()+1); if(actDate > localDateKey(t)) actDate = null; }
-  const duration = ocrExtractDuration(rawText);
+  let duration = ocrExtractDuration(rawText);
   const pace = ocrExtractPace(rawText);
 
   // cross-checks against the same screenshot: runs → duration ÷ pace, rides → duration × average speed
@@ -3044,9 +3052,26 @@ function ocrAnalyze(rawText, refMs){
   if(distResult.value){
     const dv = parseFloat(distResult.value);
     if(duration && pace){
-      const expected = ocrParseMinSec(duration) / ocrParseMinSec(pace);
-      const pctOff = Math.abs(expected - dv) / expected;
-      crossCheck = {expected:expected.toFixed(2), pctOff, ok:pctOff<0.15};
+      // try EVERY time-like value against every pace, not just the first one found: a screenshot of a screenshot carries
+      // the phone's status-bar clock ("01:47") which can be picked as the duration — real case: Garmin run 3.04 km,
+      // 33:56 at 11:09 /km, flagged "should be 0.16 km" because 1:47 ÷ 11:09 was used. A bare unlabeled M:SS has to
+      // match tightly (5%) to count, so a random clock can't "confirm" a wrong distance.
+      const tn = ocrNorm(rawText), durs = ocrDurationList(tn), paces = ocrPaceList(tn).filter(x=>!x.fuzzy);
+      let best = null;
+      for(const d of durs) for(const p of paces){
+        const exp = d.hours*60/p.min; if(!(exp>0)) continue;
+        const off = Math.abs(exp-dv)/exp, tol = (d.kind==='hms' || d.labeled) ? 0.15 : 0.05;
+        const cand = {exp, off, ok: off<tol, d};
+        if(!best || (cand.ok && !best.ok) || (cand.ok===best.ok && off<best.off)) best = cand;
+      }
+      if(best){
+        crossCheck = {expected:best.exp.toFixed(2), pctOff:best.off, ok:best.ok};
+        if(best.ok) duration = best.d.str;
+      } else {
+        const expected = ocrParseMinSec(duration) / ocrParseMinSec(pace);
+        const pctOff = Math.abs(expected - dv) / expected;
+        crossCheck = {expected:expected.toFixed(2), pctOff, ok:pctOff<0.15};
+      }
     } else {
       const sc = ocrSpeedCheck(rawText, dv);
       if(sc){
@@ -4757,15 +4782,24 @@ function wpSanitizeGear(g){
 }
 /* shared markup for the dashboard card and the feed post. board: [{name,total,rank,gear?}] — may hold 0-5 people;
    the 5 steps are always drawn in the order 4-2-1-3-5 and the unfilled ones are left blank. */
+const WP_GHOST_SVG = `<svg viewBox="0 0 260 470" width="178" height="322" aria-hidden="true" class="wp-ghost">
+  <g fill="rgba(255,255,255,.16)" stroke="rgba(255,255,255,.55)" stroke-width="5" stroke-dasharray="14 10" stroke-linejoin="round">
+    <ellipse cx="130" cy="120" rx="78" ry="82"/>
+    <path d="M78,214 Q130,196 182,214 L192,312 Q130,326 68,312 Z"/>
+    <path d="M92,318 L100,430 L124,430 L128,330 Z M168,318 L160,430 L136,430 L132,330 Z"/>
+  </g>
+  <text x="130" y="152" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="96" fill="rgba(255,255,255,.75)">?</text>
+</svg>`;
 function wpPodiumHtml(board, title, subLabel, foot, clickable){
   const byRank = {}; board.forEach(p=>{ byRank[p.rank] = p; });
   const slot = rank=>{
     const p = byRank[rank];
-    if(!p) return `<div class="wp-slot r${rank} empty">
-        <div class="wp-char"><svg viewBox="0 0 260 470" style="visibility:hidden" aria-hidden="true"></svg></div>
+    // nobody in this place yet: a ghost "challenger" silhouette on the same step, so the podium always looks complete
+    if(!p) return `<div class="wp-slot r${rank} wp-vacant">
+        <div class="wp-char">${WP_GHOST_SVG}</div>
         <div class="wp-step"><span class="n">${rank}</span></div>
-        <div class="wp-name">&nbsp;</div>
-        <div class="wp-dist">&nbsp;</div>
+        <div class="wp-name">รอผู้ท้าชิง</div>
+        <div class="wp-dist">— กม.</div>
       </div>`;
     const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
     return `<div class="wp-slot r${rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
@@ -6230,6 +6264,13 @@ function openDetail(id){
         ${e.status!=='approved' ? `<button class="qbtn approve" style="flex:1;" onclick="decide('${escAttr(e.id)}','approved').then(()=>openDetail('${escAttr(e.id)}'))">✓ อนุมัติ</button>` : ''}
         ${e.status!=='rejected' ? `<button class="qbtn reject" style="flex:1;" onclick="decide('${escAttr(e.id)}','rejected').then(()=>openDetail('${escAttr(e.id)}'))">✕ ปฏิเสธ</button>` : ''}
       </div>` : ''}
+    ${canOwnerEditEntry(e) ? `
+      <div class="note-small" style="text-align:left; margin-top:12px;">ลงผิดใช่ไหม? แก้ระยะหรือยกเลิกรายการได้จนกว่าแอดมินจะอนุมัติ</div>
+      <div style="display:flex; gap:8px; margin-top:6px;">
+        <button class="qbtn" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="ownerEditDistance('${escAttr(e.id)}')">✎ แก้ระยะของฉัน</button>
+        <button class="qbtn reject" style="flex:1;" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ยกเลิกรายการ</button>
+      </div>` : ''}
+    ${adminMode && !canOwnerEditEntry(e) ? `<button class="report-btn" style="color:var(--red);" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ลบรายการนี้ (แอดมิน)</button>` : ''}
     <button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>
   `;
   document.getElementById('detail-modal').classList.add('open');
@@ -6274,6 +6315,59 @@ async function reportEntry(id){
   render();
   openDetail(id);
   alert('ส่งเรื่องแจ้งตรวจสอบแล้ว ขอบคุณที่ช่วยกันดูแลความน่าเชื่อถือของข้อมูลครับ');
+}
+
+/* Owner self-service: the person who submitted an entry can fix the distance or withdraw it, but ONLY while it has not
+   been approved (approved/rejected entries are final — admins handle those). Edits are written into flags so the admin
+   sees "user changed X → Y" next to the photo, and a changed entry goes back to review. */
+function canOwnerEditEntry(e){
+  return !!(currentUser && e && e.employeeId && e.employeeId===currentUser.employeeId && (e.status==='pending'||e.status==='flagged'));
+}
+async function ownerEditDistance(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e || !canOwnerEditEntry(e)){ alert('แก้ไขไม่ได้แล้ว — รายการนี้ผ่านการตัดสินแล้ว ติดต่อแอดมินครับ'); return; }
+  const old = e.distanceKm;
+  const v = prompt(`ระยะทางที่ถูกต้องตามรูป (กม.)\nตอนนี้บันทึกไว้ ${old} กม.\n(รายการจะกลับเข้าคิวให้แอดมินตรวจกับรูปอีกครั้ง)`, String(old));
+  if(v===null) return;
+  const n = parseFloat(String(v).trim().replace(',','.'));
+  if(!isFinite(n) || n<=0 || n>1000){ alert('กรอกตัวเลขระยะทางระหว่าง 0 ถึง 1000 กม.'); return; }
+  if(n===old) return;
+  const newFlags = (e.flags||[]).concat(`ผู้ใช้แก้ระยะเอง ${old} → ${n} กม. (${new Date().toLocaleString('th-TH')})`);
+  try{
+    const {error} = await sb.from('entries').update({distance_km:n, flags:newFlags}).eq('id', id).in('status',['pending','flagged']);
+    if(error) throw error;
+  }catch(err){ dbErr('ownerEditDistance', err); alert('บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งครับ'); return; }
+  e.distanceKm = n; e.flags = newFlags;
+  render();
+  openDetail(id);
+}
+async function deleteEntry(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  const ownerPath = canOwnerEditEntry(e);
+  if(!ownerPath && !adminMode){ alert('ลบไม่ได้ — รายการนี้ผ่านการตัดสินแล้ว ติดต่อแอดมินครับ'); return; }
+  const msg = ownerPath
+    ? `ยกเลิกรายการ ${e.distanceKm} กม. (${e.date}) ใช่ไหม?\nลบแล้วกู้คืนไม่ได้ ต้องส่งใหม่ถ้าต้องการ`
+    : `ลบรายการของ ${e.name} ${e.distanceKm} กม. (${e.date}) สถานะ "${e.status}" ใช่ไหม?\nEXP จะถูกหักออก และกู้คืนไม่ได้`;
+  if(!confirm(msg)) return;
+  try{
+    // RLS only lets non-approved rows be deleted, so an admin removing an APPROVED entry first flips it to rejected
+    if(e.status==='approved' && adminMode){
+      const {error:e1} = await sb.from('entries').update({status:'rejected'}).eq('id', id);
+      if(e1) throw e1;
+    }
+    let q = sb.from('entries').delete().eq('id', id);
+    if(ownerPath && !adminMode) q = q.in('status',['pending','flagged']);   // never let a stale tab delete an entry that got approved meanwhile
+    const {error} = await q;
+    if(error) throw error;
+  }catch(err){ dbErr('deleteEntry', err); alert('ลบไม่สำเร็จ — ลองใหม่อีกครั้งครับ'); return; }
+  const m = (e.photoUrl||'').match(/\/evidence\/([^/?]+)$/);
+  if(m) deleteStorageFile('evidence', `evidence/${m[1]}`);          // best-effort: don't leave the proof photo orphaned
+  entries = entries.filter(x=>x.id!==id);
+  adminSelected.delete(id);
+  if(adminMode) logDecision(e, 'deleted');
+  closeDetail();
+  render();
 }
 
 /* OCR can misread a number. Admins can correct the distance from the photo; the change is written into the entry's
@@ -6861,7 +6955,7 @@ function adminSettingsRender(){
     const logShown = adminListOpen.log ? recent : recent.slice(0,ADMIN_LIST_PREVIEW);
     logEl.innerHTML = (recent.length ? logShown.map(d=>`
       <div class="queue-item" style="padding:9px 12px;">
-        <div style="font-size:12px;"><b>${d.status==='approved'?'✓ อนุมัติ':'✕ ปฏิเสธ'}</b> — ${esc(d.name)} (${d.type==='ride'?'🚴':'🏃'} ${d.distanceKm.toFixed(1)} กม. · ${esc(d.date)})</div>
+        <div style="font-size:12px;"><b>${d.status==='approved'?'✓ อนุมัติ':d.status==='deleted'?'🗑️ ลบรายการ':'✕ ปฏิเสธ'}</b> — ${esc(d.name)} (${d.type==='ride'?'🚴':'🏃'} ${d.distanceKm.toFixed(1)} กม. · ${esc(d.date)})</div>
         <div class="lb-sub" style="margin-top:2px;">โดย ${esc(d.decidedBy)} · ${new Date(d.decidedAt).toLocaleString('th-TH')}</div>
       </div>`).join('') : `<div class="empty">ยังไม่มีประวัติการตัดสินใจ</div>`) + adminMoreBtn('log', recent.length);
   }
