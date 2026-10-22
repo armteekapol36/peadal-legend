@@ -561,7 +561,7 @@
         <ul class="rule-list">
           <li>รหัสพนักงาน + ตั้งรหัสผ่าน (1 คนสมัครได้บัญชีเดียว)</li>
           <li>คำนำหน้า, ชื่อ-นามสกุล (ไม่ต้องมีคำนำหน้าปนในชื่อ)</li>
-          <li>ปีเกิด (พ.ศ.) — ระบบคำนวณอายุให้อัตโนมัติจาก ปีปัจจุบัน − ปีเกิด</li>
+          <li>ปีเกิด (พ.ศ.) — อายุสำหรับจัดรุ่น Age Ranking = <b>ปี พ.ศ. ที่ซีซันจบ − ปีเกิด</b> (เช่น ซีซัน 1 จบ ม.ค. 2570 → 2570 − ปีเกิด)</li>
           <li>น้ำหนัก (กก.) และส่วนสูง (ซม.) — ใช้คำนวณ BMI และจัดรุ่น Age Ranking ให้อัตโนมัติ</li>
           <li>สังกัด (เลือกจากรายชื่อ) และสังกัดเพิ่มเติม (พิมพ์เอง ไม่บังคับ)</li>
         </ul>
@@ -629,7 +629,7 @@
 
       <div class="rule-section">
         <div class="rule-h"><span class="n">7</span>Age Ranking — จัดรุ่นอัตโนมัติ</div>
-        <p class="rule-p">ระบบจัดรุ่นให้อัตโนมัติจากอายุ เพศ และ BMI ที่คำนวณจากน้ำหนัก/ส่วนสูงล่าสุด ไม่ต้องเลือกรุ่นเอง วัดอันดับด้วย <b>EXP ซีซัน</b> (เช่น EXP SS1) — แถบสีแยกให้เห็นว่า EXP มาจากปั่น (ม่วง) หรือวิ่ง (ส้ม):</p>
+        <p class="rule-p">ระบบจัดรุ่นให้อัตโนมัติจากอายุ เพศ และ BMI ไม่ต้องเลือกรุ่นเอง · <b>อายุ = ปี พ.ศ. ที่ซีซันจบ − ปีเกิด</b> (ซีซัน 1 จบปี 2570) · รุ่นจะถูกล็อกตั้งแต่ส่งกิจกรรมแรกในซีซัน ใช้ตลอดซีซันนั้น วัดอันดับด้วย <b>EXP ซีซัน</b> (เช่น EXP SS1) — แถบสีแยกให้เห็นว่า EXP มาจากปั่น (ม่วง) หรือวิ่ง (ส้ม):</p>
         <table class="rule-table">
           <tr><th>ชาย</th><th>เกณฑ์</th></tr>
           <tr><td>Open</td><td>อายุไม่เกิน 29 ปี</td></tr>
@@ -746,6 +746,10 @@
 
   <!-- ADMIN -->
   <div class="page" id="page-admin">
+    <div class="card" id="admin-ready-card">
+      <h2>✅ เช็กความพร้อมระบบ</h2>
+      <div id="admin-ready"></div>
+    </div>
     <div class="card">
       <h2>คิวรอตรวจสอบ</h2>
       <div class="field-row admin-filter-row" style="margin-bottom:8px;">
@@ -817,11 +821,13 @@
 
     <div class="card">
       <h2>📣 โพสต์ประกาศในฟีด</h2>
-      <div class="note-small" style="text-align:left; margin-bottom:8px;">อัปโหลดรูป (ใส่ข้อความได้) เพื่อโพสต์กระตุ้นหรือประกาศข่าวให้สมาชิกทุกคนเห็นในหน้าฟีด · โพสต์จะผูกกับบัญชีแอดมินที่ล็อกอินอยู่ · ลบได้ทุกเมื่อ และถูกลบอัตโนมัติเมื่อครบ 30 วันเหมือนโพสต์อื่น</div>
+      <div class="note-small" style="text-align:left; margin-bottom:8px;">อัปโหลดรูป (ใส่ข้อความได้) เพื่อโพสต์กระตุ้นหรือประกาศข่าวให้สมาชิกทุกคนเห็นในหน้าฟีด · โพสต์จะผูกกับบัญชีแอดมินที่ล็อกอินอยู่ · ลบได้ทุกเมื่อ และถูกลบอัตโนมัติเมื่อครบ 30 วันเหมือนโพสต์อื่น (ยกเว้นโพสต์ที่ตั้งเป็นป๊อปอัปเปิดแอปอยู่) · ในหน้าฟีด แอดมินกด 📌 ที่โพสต์ใดก็ได้เพื่อตั้งเป็นป๊อปอัป</div>
       <div class="field"><label>รูปประกาศ (JPG/PNG)</label><input type="file" id="admin-ann-file" accept="image/*" onchange="adminAnnPreview()"></div>
       <img id="admin-ann-prev" alt="" style="display:none; width:100%; border-radius:12px; margin:6px 0 8px;">
       <div class="field"><label>ข้อความ (ไม่บังคับ · ไม่เกิน 300 ตัวอักษร)</label><textarea id="admin-ann-text" rows="3" maxlength="300" placeholder="เช่น ซีซัน 1 เริ่ม 2 พ.ย. ออกไปปั่น/วิ่งกันเลย!" style="width:100%; background:var(--field); border:1px solid var(--line); border-radius:9px; padding:9px; color:var(--text); font-family:var(--sans); font-size:14px;"></textarea></div>
+      <label style="display:flex; gap:8px; align-items:center; font-size:13px; margin:2px 0 10px; cursor:pointer;"><input type="checkbox" id="admin-ann-popup" checked style="width:18px; height:18px;"> แสดงเป็นป๊อปอัปทันทีที่สมาชิกเปิดแอป (แทนป๊อปอัปเดิม)</label>
       <button class="qbtn approve" id="admin-ann-btn" style="width:100%;" onclick="adminPostAnnouncement()">📣 โพสต์ประกาศ</button>
+      <div id="admin-popup-status" class="note-small" style="text-align:left; margin-top:10px;"></div>
     </div>
 
     <div class="card">
@@ -942,7 +948,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-20-10';
+const BUILD_STAMP = '2026-10-22-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1168,6 +1174,7 @@ async function saveProfiles(){
 async function loadEntries(){
   try{
     const data = await fetchAll('entries', '*', 'submitted_at', false, 'id');
+    if(data && data.length) window._hasReceivedAt = ('received_at' in data[0]);
     entries = (data||[]).map(r=>({
       id:r.id, employeeId:r.employee_id||null, durationMin:r.duration_min||null, name: nameForEmployee(r.employee_id, r.name), office:r.office, type:r.type,
       distanceKm:r.distance_km, date:r.date, status:r.status,
@@ -1175,7 +1182,7 @@ async function loadEntries(){
       note:r.note||'', aiRead:r.ai_read||null,
       photoUrl:r.photo_url||null, demo:r.demo||false,
       exifDate:r.exif_date||null,
-      submittedAt:r.submitted_at,
+      submittedAt:r.submitted_at, receivedAt:r.received_at||null,
     }));
   }catch(e){ markLoadError('entries', e); }   // keep whatever we had rather than wiping the board
 }
@@ -1307,9 +1314,31 @@ function seasonState(now){
 function currentBoardSeason(){ const st = seasonState(); return (st.mode==='active' || st.mode==='ended') ? st.season : null; }
 function isSeasonClosed(){ return seasonState().mode==='ended'; }
 function seasonCounts(e, x){
-  if(e.status!=='approved' || !e.date || e.date<x.startDate || e.date>x.endDate) return false;
-  const t = e.submittedAt ? new Date(e.submittedAt).getTime() : 0;
+  // 'flagged' = reported by another member, still counted until an admin rejects it (same rule as lifetime EXP/levels) —
+  // otherwise one report from a rival would silently knock a leader's activity off the season board
+  if((e.status!=='approved' && e.status!=='flagged') || !e.date || e.date<x.startDate || e.date>x.endDate) return false;
+  const t = entryTime(e);
   return !(t && t > seasonEndAt(x).getTime());
+}
+/* when the entry really reached the server: received_at is stamped by the database (migration_11), so changing the
+   phone's clock can't sneak a late activity in before the deadline. Older rows / no migration → the client's submitted_at. */
+function entryTime(e){ const v = e.receivedAt || e.submittedAt; return v ? new Date(v).getTime() : 0; }
+/* Age-Ranking division is locked per season at the person's FIRST activity in that season (stored in their profile as
+   seasonDiv[n]) — editing age/weight mid-season can't move anyone into an easier division; it applies next season.
+   No snapshot (lifetime board, or entries sent before this existed) → live division from the profile. */
+function isBeginnerNow(prof){ return !!(prof && !prof.isStateAthlete && !(prof.achievements && prof.achievements.length)); }
+function seasonDivSnap(name, x){
+  if(!x || x.number==null) return null;
+  const p = profiles[name], sd = p && p.seasonDiv && p.seasonDiv[x.number];
+  return (sd && typeof sd==='object' && sd.div && AGE_DIVISIONS.some(d=>d.id===sd.div)) ? sd : null;
+}
+async function lockSeasonDivision(name, date){
+  const x = seasons.find(z=>date>=z.startDate && date<=z.endDate);
+  if(!x || x.final || new Date() > seasonEndAt(x) || seasonDivSnap(name, x)) return;
+  const div = calcAgeDivision(name, divRefYearBE(x)); if(!div || !profiles[name]) return;     // incomplete profile: try again on the next activity
+  profiles[name].seasonDiv = Object.assign({}, profiles[name].seasonDiv||{}, {[x.number]:{div, beginner:isBeginnerNow(profiles[name]), at:new Date().toISOString()}});
+  markProfileDirty(name);
+  await saveProfiles();
 }
 function computeSeasonBoard(x){
   const people = {}, offices = {};
@@ -1319,19 +1348,25 @@ function computeSeasonBoard(x){
     const p = people[k] || (people[k] = {empId:e.employeeId||null, name:e.name, office:e.office, lastDate:'', rideKm:0, runKm:0});
     if(e.type==='ride') p.rideKm += e.distanceKm; else p.runKm += e.distanceKm;
     if(e.date >= p.lastDate){ p.lastDate = e.date; p.office = e.office; p.name = e.name; }
-    const o = offices[e.office] || (offices[e.office] = {office:e.office, rideKm:0, runKm:0, ids:new Set()});
+    const o = offices[e.office] || (offices[e.office] = {office:e.office, rideKm:0, runKm:0, ids:new Set(), mem:{}});
     if(e.type==='ride') o.rideKm += e.distanceKm; else o.runKm += e.distanceKm;
     o.ids.add(k);
+    // per-office member totals: someone who moved office mid-season shows under BOTH offices with the part earned there,
+    // so the member list always adds up to the office total
+    const m = o.mem[k] || (o.mem[k] = {k, empId:e.employeeId||null, rideExp:0, runExp:0});
+    if(e.type==='ride') m.rideExp += e.distanceKm*EXP_PER_KM.ride; else m.runExp += e.distanceKm*EXP_PER_KM.run;
   });
   const ppl = Object.values(people).map(p=>{
-    const prof = profiles[p.name];
+    const prof = profiles[p.name], snap = seasonDivSnap(p.name, x);
     const rideExp = p.rideKm*EXP_PER_KM.ride, runExp = p.runKm*EXP_PER_KM.run;
     return {empId:p.empId, name:p.name, office:p.office, rideKm:p.rideKm, runKm:p.runKm, rideExp, runExp, total:rideExp+runExp,
-      div:calcAgeDivision(p.name), beginner:!!(prof && !prof.isStateAthlete && !(prof.achievements && prof.achievements.length))};
+      div: snap ? snap.div : calcAgeDivision(p.name, divRefYearBE(x)), divLocked: !!snap,
+      beginner: snap ? !!snap.beginner : isBeginnerNow(prof)};
   });
   const offs = Object.values(offices).map(o=>{
     const rideExp = o.rideKm*EXP_PER_KM.ride, runExp = o.runKm*EXP_PER_KM.run;
-    return {office:o.office, rideKm:o.rideKm, runKm:o.runKm, rideExp, runExp, total:rideExp+runExp, n:o.ids.size};
+    const members = Object.values(o.mem).map(m=>({empId:m.empId, name:(people[m.k]||{}).name||'', total:m.rideExp+m.runExp})).sort((a,b)=>b.total-a.total);
+    return {office:o.office, rideKm:o.rideKm, runKm:o.runKm, rideExp, runExp, total:rideExp+runExp, n:o.ids.size, members};
   }).sort((a,b)=>b.total-a.total);
   return {people:ppl, offices:offs};
 }
@@ -1354,10 +1389,37 @@ function seasonSubmitWarning(date){
   if(!x || new Date() <= seasonEndAt(x)) return '';
   return `ซีซัน ${x.number} ปิดรับกิจกรรมแล้ว (เส้นตาย ${thaiDate(x.endDate)} 24:00 น.)\nกิจกรรมนี้จะไม่นับเข้า EXP ${seasonTag(x)} แต่ยังนับเป็น EXP สะสมและเลเวลตามปกติ\n\nส่งต่อไหม?`;
 }
+/* where someone stands in the current season: rank in their division (and the gap to the person just above),
+   rank of their office */
+function seasonRankInfo(name){
+  const bs = currentBoardSeason(); if(!bs) return null;
+  const D = seasonData(bs), me = D.people.find(p=>p.name===name); if(!me) return {season:bs, me:null};
+  const out = {season:bs, me};
+  if(me.div){
+    const L = divMembers(D.people, me.div).slice().sort((a,b)=>b.total-a.total), i = L.findIndex(p=>p.name===name);
+    out.divRank = i+1; out.divSize = L.length; out.divLabel = ageDivisionLabel(me.div);
+    if(i>0) out.gap = L[i-1].total - me.total;
+  }
+  const O = D.offices.slice().sort((a,b)=>b.total-a.total), oi = O.findIndex(o=>o.office===me.office);
+  if(oi>=0){ out.officeRank = oi+1; out.officeCount = O.length; }
+  return out;
+}
 function seasonProfileLine(name){
-  const bs = currentBoardSeason(); if(!bs) return '';
-  const me = seasonData(bs).people.find(p=>p.name===name);
-  return `<div class="level-title" style="margin-top:3px;">🏁 EXP ${seasonTag(bs)}: <b>${(me?me.total:0).toFixed(1)}</b>${me?` · 🚴 ${me.rideExp.toFixed(0)} · 🏃 ${me.runExp.toFixed(0)}`:''}</div>`;
+  const R = seasonRankInfo(name); if(!R) return '';
+  const me = R.me, tag = seasonTag(R.season);
+  let rank = '';
+  if(me && R.divRank) rank = `<div class="level-title" style="margin-top:2px;">🏅 อันดับ <b>${R.divRank}</b>/${R.divSize} ในรุ่น ${esc(R.divLabel)}${R.gap!=null ? ` · ห่างอันดับ ${R.divRank-1} อีก ${Math.max(0,R.gap).toFixed(1)} EXP${R.gap>0?` (≈ ปั่น ${Math.ceil(R.gap/EXP_PER_KM.ride)} กม. หรือวิ่ง ${Math.ceil(R.gap/EXP_PER_KM.run)} กม.)`:''}` : ' · นำอยู่ 🥇'}</div>`;
+  if(me && R.officeRank) rank += `<div class="level-title" style="margin-top:2px;">🏢 ${esc(me.office)} อันดับ ${R.officeRank}/${R.officeCount}</div>`;
+  return `<div class="level-title" style="margin-top:3px;">🏁 EXP ${tag}: <b>${(me?me.total:0).toFixed(1)}</b>${me?` · 🚴 ${me.rideExp.toFixed(0)} · 🏃 ${me.runExp.toFixed(0)}`:` · ยังไม่มีกิจกรรมใน${tag}`}</div>${rank}`;
+}
+/* what a person still has to fill in to get a division */
+function missingDivisionInfo(name){
+  const p = profiles[name] || {}, miss = [];
+  if(!birthYearOf(name) && !(p.age!=null && p.age!=='')) miss.push('ปีเกิด');
+  if(!p.gender || p.gender==='ไม่ระบุ') miss.push('เพศ');
+  if(!p.weight) miss.push('น้ำหนัก');
+  if(!p.height) miss.push('ส่วนสูง');
+  return miss;
 }
 function seasonBannerHtml(){
   const st = seasonState(), now = new Date();
@@ -1450,7 +1512,12 @@ function renderUserHeader(){
     const fullName = `${currentUser.firstName} ${currentUser.lastName}`;
     el.innerHTML = `
       <div class="uh-avatar">${avatarThumb(fullName, 42)}</div>
-      <div class="uh-info"><div class="uh-name">${esc(fullName)}</div><div class="uh-sub">${esc(currentUser.office)}</div></div>
+      <div class="uh-info"><div class="uh-name">${esc(fullName)}</div><div class="uh-sub">${esc(currentUser.office)}${(()=>{
+        const miss = missingDivisionInfo(fullName);
+        if(miss.length) return ` · <span style="color:var(--coral);">⚠️ กรอก${miss.join('/')}เพื่อเข้ารุ่น</span>`;
+        const R = seasonRankInfo(fullName);
+        return R && R.divRank ? ` · ${seasonTag(R.season)} อันดับ ${R.divRank} ในรุ่น` : '';
+      })()}</div></div>
       <div class="uh-arrow">›</div>`;
   } else {
     el.innerHTML = `
@@ -1642,7 +1709,7 @@ async function doRegister(){
   const sameName = Object.values(accounts).find(a=>a.employeeId!==employeeId && a.firstName===firstName && a.lastName===lastName);
   if(sameName){ alert('มีสมาชิกชื่อ-นามสกุลนี้อยู่แล้ว (ระบบใช้ชื่อ-นามสกุลรวมสถิติและโปรไฟล์) — หากเป็นคนละคน กรุณาติดต่อแอดมินเพื่อจัดการ'); return; }
   if(accounts[employeeId]){ alert('รหัสพนักงานนี้สมัครไว้แล้ว — กดแท็บ "เข้าสู่ระบบ" เพื่อเข้าใช้งาน'); return; }
-  if(birthYear && (birthYear < 2400 || birthYear > currentBEYear())){ alert('กรอกปีเกิดเป็น พ.ศ. ให้ถูกต้องนะครับ'); return; }
+  if(!birthYear || birthYear < 2400 || birthYear > currentBEYear()){ alert('กรอกปีเกิดเป็น พ.ศ. ให้ถูกต้องนะครับ (ใช้คำนวณอายุจัดรุ่น Age Ranking)'); return; }
   if(!weight || !height){ alert('กรอกน้ำหนักและส่วนสูงให้ครบก่อนนะครับ — ใช้จัดรุ่น Age Ranking และคำนวณ BMI'); return; }
   if(pw.length < 6){ alert('รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
   if(pw !== pw2){ alert('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
@@ -2029,6 +2096,7 @@ async function deletePost(postId){
   const {error} = await sb.from('posts').delete().eq('id', postId);
   if(error){ dbErr('deletePost', error); alert('ลบไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
   await deleteStorageFile('posts', path);
+  if(popupAnn() && popupAnn().postId===postId) await savePopup(null);
   feedState.posts = feedState.posts.filter(p=>p.id!==postId);
   delete feedState.likesByPost[postId]; delete feedState.commentsByPost[postId];
   renderFeed();
@@ -2095,7 +2163,8 @@ async function cleanupExpiredContent(){
     const POST_DAYS = 30, EVIDENCE_DAYS = 45;
     const postCutoff = new Date(Date.now() - POST_DAYS*86400000).toISOString();
     const {data: oldPostsAll} = await sb.from('posts').select('*').lt('created_at', postCutoff);
-    const oldPosts = (oldPostsAll||[]).filter(p=>p.kind!=='podium');   // weekly-podium announcements are tiny (no photo) and stay as history
+    const keepId = popupAnn() ? popupAnn().postId : null;
+    const oldPosts = (oldPostsAll||[]).filter(p=>p.kind!=='podium' && p.id!==keepId);   // the launch pop-up's post stays while it's in use   // weekly-podium announcements are tiny (no photo) and stay as history
     if(oldPosts && oldPosts.length){
       const paths = oldPosts.map(p=>postPhotoPathFromUrl(p.photo_url)).filter(Boolean);
       for(let i=0;i<paths.length;i+=50) await sb.storage.from('posts').remove(paths.slice(i,i+50));
@@ -2137,6 +2206,9 @@ function renderFeed(){
     return `<div class="card"${isAnn?' style="border:1.5px solid var(--purple); box-shadow:0 2px 14px rgba(127,63,152,.18);"':''}>
       <div class="eyebrow"><span>${post.kind==='podium'?'📢 ประกาศ':isAnn?'📣 ประกาศจากแอดมิน':'🚴 '+esc(post.name)}</span>${canDelete?`<span class="link-small" style="cursor:pointer;" onclick="deletePost('${escAttr(post.id)}')">🗑️ ลบ</span>`:''}</div>
       ${post.kind==='podium' ? feedPodiumHtml(post) : `<img src="${safeImgSrc(post.photoUrl)}" loading="lazy" style="width:100%; border-radius:12px; display:block; cursor:pointer; min-height:120px; background:var(--panel-2);" onclick="openPhotoLightbox(this)">`}
+      ${adminMode && post.kind!=='podium' && post.photoUrl ? (popupAnn() && popupAnn().postId===post.id
+          ? `<div style="margin-top:8px; font-size:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;"><span class="flag ok">📌 กำลังแสดงเป็นป๊อปอัปตอนเปิดแอป</span><span class="link-small" style="cursor:pointer;" onclick="showLaunchPopup(true)">ดูตัวอย่าง</span><span class="link-small" style="cursor:pointer; color:var(--red);" onclick="adminClearPopup()">ยกเลิกป๊อปอัป</span></div>`
+          : `<div style="margin-top:8px; font-size:12px;"><span class="link-small" style="cursor:pointer;" onclick="adminSetPopup('${escAttr(post.id)}')">📌 ตั้งเป็นป๊อปอัปตอนเปิดแอป</span></div>`) : ''}
       ${isAnn && post.payload.text ? `<div style="margin-top:10px; font-size:14px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere;">${esc(post.payload.text)}</div>` : ''}
       <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
         <span style="cursor:pointer; font-size:14px;" onclick="toggleLike('${escAttr(post.id)}')">${iLiked?'❤️':'🤍'} ${likes.length}</span>
@@ -2191,7 +2263,7 @@ function renderSearch(){
     return;
   }
   if(people.length===0){
-    resultsEl.innerHTML = `<div class="empty">ไม่พบนักกีฬาที่ชื่อตรงกับ "${q}"</div>`;
+    resultsEl.innerHTML = `<div class="empty">ไม่พบนักกีฬาที่ชื่อตรงกับ "${esc(q)}"</div>`;
     return;
   }
   resultsEl.innerHTML = people.map(p=>`
@@ -2441,7 +2513,7 @@ function ocrIsPaceContext(t, idx, matchLen){
   if(/^[^\d]{0,4}(?:km|กม\.?)\b/i.test(after.slice(0,6))) return true;
   // spelled-out unit under/after the number: "นาที/กิโลเมตร", "นาที/กม.", "min/km" (GOALS-FITNESS prints the full word)
   if(/^\s*(?:[^\d\s]{0,3}\s*)?(?:(?:นาที|min)\.?\s*)?[\/\\]?\s*(?:km|กม|กิโลเมตร|kilomet)/i.test(after)) return true;
-  if(/(?:\bpace\b|เพซ)[^\d]{0,6}$/i.test(t.slice(Math.max(0,idx-16), idx))) return true;
+  if(/(?:\bpace\b|เพซ|เพช)[^\d]{0,6}$/i.test(t.slice(Math.max(0,idx-16), idx))) return true;
   return false;
 }
 /* shared normaliser + token helpers so duration / pace / expected-distance all read the text the same way */
@@ -2507,6 +2579,29 @@ function ocrPaceList(t){
     if(!(min>=1.5 && min<=25)) continue;
     out.push({str: m[3]!=null ? m[1]+':'+m[2]+':'+m[3] : m[1]+':'+m[2], min});
   }
+  // M'SS" form (Apple Fitness / Health: เพซเฉลี่ย 11'12"/กม.). The closing seconds mark " is the pace signal; OCR often
+  // loses the minutes mark ' entirely → "1112\"" — split the last two digits off as seconds.
+  for(const m of t.matchAll(/(?<![\d:.,])(\d{1,2})\s*(?:['’′`´‘]\s*)?(\d{2})\s*(?:["”″“]|''|’’)/g)){
+    const sec = +m[2]; if(sec>59) continue;
+    const hasMinMark = /['’′`´‘]/.test(m[0]);
+    const after = t.slice(m.index+m[0].length, m.index+m[0].length+6), before = t.slice(Math.max(0,m.index-30), m.index);
+    if(!hasMinMark && !/^\s*[\/\\]/.test(after) && !/(?:pace|เพซ|เพช)/i.test(before)) continue;   // a bare 4-digit number + " needs a pace sign
+    const min = +m[1] + sec/60;
+    if(!(min>=1.5 && min<=25)) continue;
+    out.push({str: m[1]+':'+m[2], min});
+  }
+  // badly shattered marks: 11'12" read as "11127\"" or "117127\"" (the ' and the first stroke of " came back as 7s).
+  // Only with the per-km unit right after. These are FUZZY: used only to cross-check / rebuild a distance (a wrong guess
+  // simply matches nothing), never shown or used as the pace itself.
+  if(!out.length) for(const m of t.matchAll(/(?<![\d:.,])(\d{4,6})\s*["”″“]\s*[\/\\]?\s*(?:กม|km|n4|nม|กu)/gi)){
+    const opts = new Set(), D = m[1];
+    [D, D.endsWith('7') ? D.slice(0,-1) : null].filter(Boolean).forEach(o=>{
+      opts.add(o);
+      if(o.length>=4 && o[o.length-3]==='7') opts.add(o.slice(0,-3)+o.slice(-2));
+    });
+    opts.forEach(o=>{ if(o.length<3 || o.length>4) return; const mi=+o.slice(0,-2), se=+o.slice(-2); if(se>59) return;
+      const min = mi + se/60; if(min>=1.5 && min<=25) out.push({str: mi+':'+o.slice(-2), min, fuzzy:true}); });
+  }
   return out;
 }
 /* three-way check when the pace unit text was lost: duration / distance should equal some M:SS printed in the same
@@ -2551,7 +2646,7 @@ function ocrDistanceCandidates(text){
     const before = t.slice(Math.max(0,m.index-24), m.index);
     const hasUnit = !!m[2];
     if(hasUnit && /^\s*\.?\s*[\/\\|]\s*(h|n|ชม|hr)/i.test(after)) continue;                 // km/h, กม./ชม.
-    if(!hasUnit && /^\s*\.?\s*(w\b|watt|วัตต์|kcal|แคล|cal\b|ม\.|m\b|°|bpm|rpm|%|วิ|นาที|ชม|km\s*\/|กม\s*\/)/i.test(after)) continue;
+    if(!hasUnit && /^\s*\.?\s*(w\b|watt|วัตต์|kcal|แคล|กิโลแคล|kilocal|cal\b|ม\.|m\b|°|bpm|rpm|%|วิ|นาที|ชม|km\s*\/|กม\s*\/)/i.test(after)) continue;
     if(/\d:$/.test(before) || /^:\d/.test(after)) continue;                            // part of a clock / duration
     let score = 0;
     if(hasUnit) score += 5;
@@ -2568,6 +2663,8 @@ function ocrDistanceCandidates(text){
   // a one-off misread by a single pass shouldn't outrank (real case: one pass read "40.00", the other misread the
   // last digit as "40.05"; both scored equally and the tie-break below used to default to whichever was numerically
   // larger, with no justification for that direction, and happened to keep the wrong one).
+  const dotted = new Set(out.filter(c=>/[.,]/.test(c.value)).map(c=>c.value.replace(/[.,]/g,'')));
+  for(const c of out) if(!/[.,]/.test(c.value) && dotted.has(c.value)) c.score -= 6;
   const freq = {};
   for(const c of out) freq[c.value] = (freq[c.value]||0)+1;
   for(const c of out) if(freq[c.value]>1) c.score += 1;
@@ -2732,7 +2829,7 @@ function ocrSpeedCheck(text, dist){
 }
 
 function ocrExtractPace(text){
-  const l = ocrPaceList(ocrNorm(text));
+  const l = ocrPaceList(ocrNorm(text)).filter(p=>!p.fuzzy);
   return l.length ? l[0].str : null;
 }
 function ocrExtractDuration(text){
@@ -2964,6 +3061,20 @@ function ocrAnalyze(rawText, refMs){
     }
   }
 
+  // Only a duration readable (no pace / speed)? It can still prove a reading impossible: 712 km in 1:19:47 is 535 km/h.
+  // Real case: Apple Fitness "7.12กม." read as "712 กม." (decimal point lost). If moving the decimal point gives a
+  // human speed, suggest that number to the admin — never auto-applied, the entry is held for review.
+  if(distResult.value && !crossCheck && duration){
+    const dv = parseFloat(distResult.value), hrs = ocrParseMinSec(duration)/60;
+    if(hrs>0.05){
+      const v = dv/hrs;
+      if(v > 60){
+        const alt = [10,100].map(k=>dv/k).find(a=>a/hrs>=2 && a/hrs<=45);
+        crossCheck = {expected: alt!=null ? alt.toFixed(2) : null, pctOff:1, ok:false,
+          note:`${distResult.value} กม. ใน ${duration} = ${Math.round(v)} กม./ชม. เป็นไปไม่ได้${alt!=null?` — น่าจะเป็น ${alt.toFixed(2)} กม. (จุดทศนิยมหาย)`:''}`};
+      }
+    }
+  }
   // time × speed printed in the same image confirms this IS the distance — the missing unit no longer matters
   if(crossCheck && crossCheck.ok && distResult.unitUnconfirmed) distResult.unitUnconfirmed = false;
   return {distResult, actDate, duration, pace, crossCheck};
@@ -3035,7 +3146,8 @@ async function runAiRead(dataUrl, refMs){
     const integerOnly = !!distResult.value && !/[.,]/.test(distResult.value) && !(crossCheck && crossCheck.ok);
     if(integerOnly) warnings.push('ระยะทางที่อ่านได้เป็นเลขจำนวนเต็ม (ไม่มีทศนิยม) ซึ่งแอปออกกำลังกายมักแสดงทศนิยมเสมอ และไม่มีเวลา×ความเร็วยืนยัน — อาจอ่านขาดไปบางหลัก');
     if(distResult.unitUnconfirmed) warnings.push('อ่านตัวเลขได้แต่หน่วย (กม.) ในรูปไม่ชัดเจน — ตรวจสอบก่อนอนุมัติ');
-    if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
+    if(crossCheck && !crossCheck.ok && crossCheck.note) warnings.push(crossCheck.note);
+    else if(crossCheck && !crossCheck.ok) warnings.push(crossCheck.expected
         ? `ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป (คำนวณได้ประมาณ ${crossCheck.expected} กม.) — อาจอ่านผิด`
         : 'ระยะทางไม่สอดคล้องกับเวลา × ความเร็วเฉลี่ยในรูป — อาจอ่านผิด');
 
@@ -3175,6 +3287,8 @@ async function _submitEntryInner(){
     alert('บันทึกผลไม่สำเร็จ — ลองส่งใหม่อีกครั้งครับ (รูปที่เลือกยังอยู่ ไม่ต้องอัปโหลดใหม่)');
     return;
   }
+
+  await lockSeasonDivision(name, date);
 
   // reset form
   ['s-dist','s-note'].forEach(id=>document.getElementById(id).value='');
@@ -3390,6 +3504,12 @@ function sanitizeProfile(d){
   out.avatar = typeof out.avatar==='string' ? out.avatar.slice(0,8) : '🚴';
   out.achievements = Array.isArray(out.achievements) ? out.achievements.filter(x=>typeof x==='string').map(x=>x.slice(0,120)).slice(0,20) : [];
   if(out.photo && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(out.photo)) out.photo = null;
+  if(out.seasonDiv && typeof out.seasonDiv==='object' && !Array.isArray(out.seasonDiv)){
+    const sd = {};
+    Object.keys(out.seasonDiv).slice(0,99).forEach(k=>{ const v = out.seasonDiv[k];
+      if(/^\d{1,2}$/.test(k) && v && typeof v==='object' && /^[a-z0-9_]{1,24}$/.test(String(v.div||''))) sd[k] = {div:String(v.div), beginner:!!v.beginner, at:String(v.at||'').slice(0,30)}; });
+    out.seasonDiv = sd;
+  } else delete out.seasonDiv;
   if(out.gear && typeof out.gear==='object'){
     // gear values end up inside inline SVG markup: allow only colours / short ids (bikeBrand is escaped where drawn)
     const g = {};
@@ -3514,10 +3634,26 @@ const AGE_DIVISIONS = [
 function ageDivisionLabel(id){ const d = AGE_DIVISIONS.find(x=>x.id===id); return d ? d.label : null; }
 
 /* returns a division id, or null if the profile is missing required data */
-function calcAgeDivision(name){
+/* Age used for divisions = (Buddhist year in which the season ENDS) − birth year (from the account), e.g. SS1 ends
+   3 Jan 2027 → 2570 − birth year. Same rule for everyone, no birthday arithmetic. Outside a season: current year.
+   Accounts without a birth year fall back to the age typed in the profile. */
+function divRefYearBE(x){ return (x && x.number!=null && /^\d{4}-/.test(x.endDate||'')) ? parseInt(x.endDate.slice(0,4),10)+543 : currentBEYear(); }
+function defaultDivSeason(){ const st = seasonState(); return (st.mode==='ended' && st.next) ? st.next : st.season; }
+function birthYearOf(name){
+  const id = (window._profileEmployeeIds && window._profileEmployeeIds[name]) || employeeIdForName(name);
+  const by = id && accounts[id] ? parseInt(accounts[id].birthYear,10) : NaN;
+  return (by>=2400 && by<=currentBEYear()+1) ? by : null;
+}
+function divisionAge(name, refYear){
+  const by = birthYearOf(name);
+  if(by) return (refYear || divRefYearBE(defaultDivSeason())) - by;
+  const p = profiles[name]; const a = p && p.age!=null && p.age!=='' ? Number(p.age) : NaN;
+  return isFinite(a) ? a : null;
+}
+function calcAgeDivision(name, refYear){
   const p = profiles[name];
-  if(!p || !p.gender || p.age==null || !p.weight || !p.height) return null;
-  const age = Number(p.age);
+  const age = divisionAge(name, refYear);
+  if(!p || !p.gender || age==null || !p.weight || !p.height) return null;
   const bmi = calcBMI(p.weight, p.height);
   if(p.gender==='ชาย'){
     if(p.weight>=85 && bmi>=30) return 'male_85';
@@ -3596,6 +3732,43 @@ const FRAMES = [
  <g filter="url(#fxGlow)"><circle cx="100" cy="26" r="5" fill="#FFE27A"/><circle cx="100" cy="174" r="5" fill="#FFE27A"/></g>
 </g>`},
 
+{id:'animalEle', lv:25, name:'ช้างเขียว', box:[34,42,132,126,8], art:`<defs><filter id="anGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="anSoft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#000" flood-opacity=".45"/></filter></defs>
+<defs>
+ <linearGradient id="elG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9FFD8"/><stop offset=".3" stop-color="#3FC97A"/><stop offset=".68" stop-color="#0F6B3B"/><stop offset="1" stop-color="#7CE8A6"/></linearGradient>
+ <linearGradient id="elB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5FD58E"/><stop offset="1" stop-color="#1E8A52"/></linearGradient>
+ <linearGradient id="elGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1B0"/><stop offset=".5" stop-color="#E8B33E"/><stop offset="1" stop-color="#B8821C"/></linearGradient>
+ <radialGradient id="elHalo" cx="50%" cy="50%" r="50%"><stop offset="62%" stop-color="#7CFFB0" stop-opacity="0"/><stop offset="88%" stop-color="#7CFFB0" stop-opacity=".3"/><stop offset="100%" stop-color="#7CFFB0" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="100" cy="100" rx="99" ry="99" fill="url(#elHalo)"><animate attributeName="opacity" values=".6;1;.6" dur="2.6s" repeatCount="indefinite"/></ellipse>
+<g filter="url(#anSoft)">
+ <rect x="30" y="40" width="140" height="132" rx="14" fill="none" stroke="#06361E" stroke-width="12"/>
+ <rect x="30" y="40" width="140" height="132" rx="14" fill="none" stroke="url(#elG)" stroke-width="9"/>
+ <rect x="35.5" y="45.5" width="129" height="121" rx="10" fill="none" stroke="#EFFFF4" stroke-width="1.3" opacity=".75"/>
+ <rect x="26" y="36" width="148" height="140" rx="17" fill="none" stroke="url(#elGold)" stroke-width="1.8"/>
+ <g fill="url(#elGold)" stroke="#6A4A06" stroke-width="1.1" stroke-linejoin="round">
+  <path d="M30,100 l-12,-9 l-4,9 l4,9 Z"/><path d="M170,100 l12,-9 l4,9 l-4,9 Z"/>
+  <path d="M100,172 l-11,10 l11,10 l11,-10 Z"/>
+  <circle cx="30" cy="172" r="6"/><circle cx="170" cy="172" r="6"/>
+ </g>
+ <!-- ears -->
+ <path d="M80,24 Q56,6 44,26 Q40,48 60,52 Q74,50 82,40 Z" fill="url(#elB)" stroke="#06361E" stroke-width="1.3" stroke-linejoin="round"/>
+ <path d="M120,24 Q144,6 156,26 Q160,48 140,52 Q126,50 118,40 Z" fill="url(#elB)" stroke="#06361E" stroke-width="1.3" stroke-linejoin="round"/>
+ <path d="M76,26 Q60,14 52,28 Q50,44 62,46 Q72,44 77,37 Z" fill="#F7B6C2" opacity=".85"/>
+ <path d="M124,26 Q140,14 148,28 Q150,44 138,46 Q128,44 123,37 Z" fill="#F7B6C2" opacity=".85"/>
+ <!-- head -->
+ <path d="M80,22 Q80,6 100,6 Q120,6 120,22 L118,36 Q112,44 108,50 L108,60 Q108,66 100,66 Q92,66 92,60 L92,50 Q88,44 82,36 Z" fill="url(#elB)" stroke="#06361E" stroke-width="1.4" stroke-linejoin="round"/>
+ <!-- headdress -->
+ <path d="M86,16 Q100,4 114,16 Q100,12 86,16 Z" fill="url(#elGold)" stroke="#6A4A06" stroke-width=".9"/>
+ <path d="M100,8 l4,8 -4,8 -4,-8 Z" fill="#E23B4E" stroke="#FFE9A0" stroke-width="1" filter="url(#anGlow)"/>
+ <ellipse cx="91" cy="30" rx="3" ry="3.2" fill="#13261A"/><ellipse cx="109" cy="30" rx="3" ry="3.2" fill="#13261A"/>
+ <circle cx="92" cy="29" r="1" fill="#fff"/><circle cx="110" cy="29" r="1" fill="#fff"/>
+ <path d="M96,40 q4,5 8,0 M96,48 q4,4 8,0 M96,56 q4,4 8,0" fill="none" stroke="#0F5A33" stroke-width="1.3" stroke-linecap="round" opacity=".85"/>
+ <!-- tusks -->
+ <path d="M86,46 Q74,54 76,66 Q80,56 90,52 Z" fill="#FFF6DC" stroke="#8A7440" stroke-width="1"/>
+ <path d="M114,46 Q126,54 124,66 Q120,56 110,52 Z" fill="#FFF6DC" stroke="#8A7440" stroke-width="1"/>
+</g>
+<g fill="#F2FFF6" filter="url(#anGlow)"><path transform="translate(50 28)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="0s" repeatCount="indefinite"/></path><path transform="translate(152 26)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.9s" begin="0.6s" repeatCount="indefinite"/></path><path transform="translate(18 120)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.3s" repeatCount="indefinite"/></path><path transform="translate(184 126)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="0.9s" repeatCount="indefinite"/></path><path transform="translate(40 186)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="1.1s" repeatCount="indefinite"/></path><path transform="translate(164 186)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.4s" repeatCount="indefinite"/></path></g>`},
 {id:'royal', lv:30, name:'ราชสำนักทอง', box:[33, 33, 134, 134, 6], art:`${FRAME_FX}
 <defs>
  <linearGradient id="ryA" x1="0" y1="0" x2="1" y2="1">
@@ -3641,6 +3814,41 @@ const FRAMES = [
  </g>
 </g>`},
 
+{id:'animalLeo', lv:45, name:'เสือดาวแดง', box:[34,42,132,126,8], art:`<defs><filter id="anGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="anSoft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#000" flood-opacity=".45"/></filter></defs>
+<defs>
+ <linearGradient id="lpG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC4B8"/><stop offset=".3" stop-color="#E5402F"/><stop offset=".68" stop-color="#7A0F12"/><stop offset="1" stop-color="#FF7C6A"/></linearGradient>
+ <linearGradient id="lpB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6A4D"/><stop offset="1" stop-color="#B3161B"/></linearGradient>
+ <radialGradient id="lpHalo" cx="50%" cy="50%" r="50%"><stop offset="62%" stop-color="#FF5A4A" stop-opacity="0"/><stop offset="88%" stop-color="#FF5A4A" stop-opacity=".32"/><stop offset="100%" stop-color="#FF5A4A" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="100" cy="100" rx="99" ry="99" fill="url(#lpHalo)"><animate attributeName="opacity" values=".6;1;.6" dur="2.2s" repeatCount="indefinite"/></ellipse>
+<g filter="url(#anSoft)">
+ <rect x="30" y="40" width="140" height="132" rx="8" fill="none" stroke="#2A0508" stroke-width="12"/>
+ <rect x="30" y="40" width="140" height="132" rx="8" fill="none" stroke="url(#lpG)" stroke-width="9"/>
+ <rect x="35.5" y="45.5" width="129" height="121" rx="5" fill="none" stroke="#FFE1DC" stroke-width="1.3" opacity=".75"/>
+ <!-- spots on the frame -->
+ <g fill="#2A0508" opacity=".85">
+  <ellipse cx="52" cy="40" rx="4" ry="2.6"/><ellipse cx="148" cy="40" rx="4" ry="2.6"/><ellipse cx="30" cy="70" rx="2.6" ry="4"/><ellipse cx="170" cy="76" rx="2.6" ry="4"/>
+  <ellipse cx="30" cy="130" rx="2.6" ry="4"/><ellipse cx="170" cy="124" rx="2.6" ry="4"/><ellipse cx="62" cy="172" rx="4" ry="2.6"/><ellipse cx="138" cy="172" rx="4" ry="2.6"/><ellipse cx="100" cy="172" rx="4" ry="2.6"/>
+ </g>
+ <!-- claw marks at the bottom corners -->
+ <g fill="none" stroke="#FF8A78" stroke-width="2.4" stroke-linecap="round"><path d="M16,160 q10,10 6,28 M24,156 q10,10 6,28 M32,154 q9,10 5,26"/><path d="M184,160 q-10,10 -6,28 M176,156 q-10,10 -6,28 M168,154 q-9,10 -5,26"/></g>
+ <!-- ears -->
+ <path d="M78,20 L70,2 Q62,10 62,26 Q68,32 78,30 Z" fill="url(#lpB)" stroke="#2A0508" stroke-width="1.3" stroke-linejoin="round"/>
+ <path d="M122,20 L130,2 Q138,10 138,26 Q132,32 122,30 Z" fill="url(#lpB)" stroke="#2A0508" stroke-width="1.3" stroke-linejoin="round"/>
+ <path d="M75,22 L70,10 Q67,16 67,25 Q70,27 75,26 Z" fill="#2A0508"/><path d="M125,22 L130,10 Q133,16 133,25 Q130,27 125,26 Z" fill="#2A0508"/>
+ <!-- head -->
+ <path d="M76,24 Q76,10 100,10 Q124,10 124,24 Q126,40 116,48 Q108,54 100,54 Q92,54 84,48 Q74,40 76,24 Z" fill="url(#lpB)" stroke="#2A0508" stroke-width="1.4" stroke-linejoin="round"/>
+ <path d="M100,10 L100,22 M92,12 L94,20 M108,12 L106,20" stroke="#2A0508" stroke-width="2" stroke-linecap="round"/>
+ <ellipse cx="85" cy="42" rx="3" ry="2" fill="#2A0508"/><ellipse cx="115" cy="42" rx="3" ry="2" fill="#2A0508"/>
+ <ellipse cx="86" cy="26" rx="5" ry="3.6" fill="#FFE070" stroke="#2A0508" stroke-width="1"/><ellipse cx="114" cy="26" rx="5" ry="3.6" fill="#FFE070" stroke="#2A0508" stroke-width="1"/>
+ <ellipse cx="86" cy="26" rx="1.5" ry="3.2" fill="#1A0405"/><ellipse cx="114" cy="26" rx="1.5" ry="3.2" fill="#1A0405"/>
+ <path d="M79,21 L93,25 M121,21 L107,25" stroke="#2A0508" stroke-width="2.2" stroke-linecap="round"/>
+ <path d="M95,36 L105,36 L100,42 Z" fill="#2A0508"/><path d="M100,42 L100,46 M100,46 q-6,5 -11,1 M100,46 q6,5 11,1" fill="none" stroke="#2A0508" stroke-width="1.5" stroke-linecap="round"/>
+ <path d="M91,48 l2,5 2,-5 M105,48 l2,5 2,-5" fill="#fff" stroke="#2A0508" stroke-width=".6"/>
+ <path d="M70,36 l-12,-3 M70,40 l-12,3 M130,36 l12,-3 M130,40 l12,3" stroke="#FFD0C8" stroke-width="1" stroke-linecap="round"/>
+</g>
+<g fill="#FFF3F0" filter="url(#anGlow)"><path transform="translate(46 28)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0s" repeatCount="indefinite"/></path><path transform="translate(154 26)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="0.6s" repeatCount="indefinite"/></path><path transform="translate(20 100)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="0.3s" repeatCount="indefinite"/></path><path transform="translate(182 108)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="0.9s" repeatCount="indefinite"/></path><path transform="translate(100 190)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.9s" begin="1.1s" repeatCount="indefinite"/></path></g>`},
 {id:'tide', lv:50, name:'วารีมนตรา', box:[34, 34, 132, 132, 16], art:`${FRAME_FX}
 <defs>
  <linearGradient id="tdA" x1="0" y1="0" x2="1" y2="1">
@@ -3761,6 +3969,38 @@ const FRAMES = [
  </g>
 </g>`},
 
+{id:'animalLion', lv:95, name:'สิงห์ทอง', box:[34,42,132,126,8], art:`<defs><filter id="anGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="anSoft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#000" flood-opacity=".45"/></filter></defs>
+<defs>
+ <linearGradient id="lnG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1B0"/><stop offset=".32" stop-color="#F4C542"/><stop offset=".66" stop-color="#B9801A"/><stop offset="1" stop-color="#FFE08A"/></linearGradient>
+ <linearGradient id="lnM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE27A"/><stop offset="1" stop-color="#C98E1E"/></linearGradient>
+ <radialGradient id="lnF" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#FFF6CC"/><stop offset="1" stop-color="#F0B93A"/></radialGradient>
+ <radialGradient id="lnHalo" cx="50%" cy="50%" r="50%"><stop offset="62%" stop-color="#FFD866" stop-opacity="0"/><stop offset="88%" stop-color="#FFD866" stop-opacity=".35"/><stop offset="100%" stop-color="#FFD866" stop-opacity="0"/></radialGradient>
+</defs>
+<ellipse cx="100" cy="100" rx="99" ry="99" fill="url(#lnHalo)"><animate attributeName="opacity" values=".6;1;.6" dur="2.4s" repeatCount="indefinite"/></ellipse>
+<g filter="url(#anSoft)">
+ <rect x="30" y="40" width="140" height="132" rx="12" fill="none" stroke="#4A2D04" stroke-width="12"/>
+ <rect x="30" y="40" width="140" height="132" rx="12" fill="none" stroke="url(#lnG)" stroke-width="9"/>
+ <rect x="35.5" y="45.5" width="129" height="121" rx="9" fill="none" stroke="#FFF8D8" stroke-width="1.3" opacity=".8"/>
+ <g fill="url(#lnG)" stroke="#4A2D04" stroke-width="1.3" stroke-linejoin="round">
+  <path d="M30,72 q-16,6 -16,22 q10,-4 16,2 Z"/><path d="M170,72 q16,6 16,22 q-10,-4 -16,2 Z"/>
+  <path d="M30,148 q-16,-6 -16,-22 q10,4 16,-2 Z"/><path d="M170,148 q16,-6 16,-22 q-10,4 -16,-2 Z"/>
+  <path d="M82,172 l18,16 l18,-16 q-18,6 -36,0 Z"/>
+ </g>
+ <!-- mane -->
+ <path d="M100.0,-1.0L104.9,7.6L113.5,2.6L113.4,12.6L123.4,12.5L118.4,21.1L127.0,26.0L118.4,30.9L123.4,39.5L113.4,39.4L113.5,49.4L104.9,44.4L100.0,53.0L95.1,44.4L86.5,49.4L86.6,39.4L76.6,39.5L81.6,30.9L73.0,26.0L81.6,21.1L76.6,12.5L86.6,12.6L86.5,2.6L95.1,7.6Z" fill="url(#lnM)" stroke="#4A2D04" stroke-width="1.3" stroke-linejoin="round"/>
+ <path d="M105.4,6.7L107.5,14.0L114.8,12.1L113.0,19.5L120.3,21.5L115.0,27.0L120.3,32.4L113.0,34.5L114.9,41.8L107.5,40.0L105.5,47.3L100.0,42.0L94.6,47.3L92.5,40.0L85.2,41.9L87.0,34.5L79.7,32.5L85.0,27.0L79.7,21.6L87.0,19.5L85.1,12.2L92.5,14.0L94.5,6.7L100.0,12.0Z" fill="#FFD25A" stroke="#8A5A0C" stroke-width=".8" stroke-linejoin="round" opacity=".95"/>
+ <!-- face -->
+ <path d="M84,22 Q84,12 100,12 Q116,12 116,22 L114,36 Q108,45 100,45 Q92,45 86,36 Z" fill="url(#lnF)" stroke="#6A430A" stroke-width="1.3"/>
+ <path d="M87,21 q5,-3 9,0" fill="none" stroke="#5A3606" stroke-width="2" stroke-linecap="round"/><path d="M113,21 q-5,-3 -9,0" fill="none" stroke="#5A3606" stroke-width="2" stroke-linecap="round"/>
+ <ellipse cx="92" cy="25" rx="3" ry="2.6" fill="#2B1604"/><ellipse cx="108" cy="25" rx="3" ry="2.6" fill="#2B1604"/>
+ <circle cx="93" cy="24.2" r=".9" fill="#fff"/><circle cx="109" cy="24.2" r=".9" fill="#fff"/>
+ <path d="M96,31 L104,31 L100,36 Z" fill="#7A3E0A" stroke="#4A2406" stroke-width=".8" stroke-linejoin="round"/>
+ <path d="M100,36 L100,39 M100,39 q-5,4 -9,1 M100,39 q5,4 9,1" fill="none" stroke="#5A3606" stroke-width="1.5" stroke-linecap="round"/>
+ <path d="M91,40 l2,4 2,-4 M105,40 l2,4 2,-4" fill="#fff" stroke="#6A430A" stroke-width=".6"/>
+ <circle cx="100" cy="8" r="3.4" fill="#E23B4E" stroke="#fff" stroke-width=".8" filter="url(#anGlow)"/>
+</g>
+<g fill="#FFFEF0" filter="url(#anGlow)"><path transform="translate(52 26)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="0s" repeatCount="indefinite"/></path><path transform="translate(150 24)" d="M0,-4 L0.96,-0.96 L4,0 L0.96,0.96 L0,4 L-0.96,0.96 L-4,0 L-0.96,-0.96 Z"><animate attributeName="opacity" values="0;1;0" dur="1.9s" begin="0.6s" repeatCount="indefinite"/></path><path transform="translate(20 110)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="0.3s" repeatCount="indefinite"/></path><path transform="translate(182 120)" d="M0,-3.4 L0.816,-0.816 L3.4,0 L0.816,0.816 L0,3.4 L-0.816,0.816 L-3.4,0 L-0.816,-0.816 Z"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="0.9s" repeatCount="indefinite"/></path><path transform="translate(40 184)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.7s" begin="1.1s" repeatCount="indefinite"/></path><path transform="translate(162 182)" d="M0,-3 L0.72,-0.72 L3,0 L0.72,0.72 L0,3 L-0.72,0.72 L-3,0 L-0.72,-0.72 Z"><animate attributeName="opacity" values="0;1;0" dur="1.4s" begin="0.4s" repeatCount="indefinite"/></path></g>`},
 {id:'apex99', lv:99, name:'จักรพรรดิทองคำ', box:[35, 43, 130, 124, 9], art:`${FRAME_FX}
 <defs>
  <linearGradient id="apxA" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="200">
@@ -3877,73 +4117,108 @@ function shadedRect(x,y,w,h,rx,fill){
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="#1a1410" stroke-opacity=".25" stroke-width="1.2"/>`;
 }
 
-function auraSvg(){
-  return `
-    <defs>
-      <radialGradient id="ssjAuraCore" cx="50%" cy="46%" r="55%">
-        <stop offset="0%" stop-color="#FFF6C4" stop-opacity=".55"/>
-        <stop offset="55%" stop-color="#FFD23D" stop-opacity=".3"/>
-        <stop offset="100%" stop-color="#FFD23D" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="ssjFlame5" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#E8A400"/>
-        <stop offset="100%" stop-color="#A66A00"/>
-      </linearGradient>
-      <linearGradient id="ssjFlame4" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#FFC94D"/>
-        <stop offset="100%" stop-color="#D68F00"/>
-      </linearGradient>
-      <linearGradient id="ssjFlameOuter" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#FFE066"/>
-        <stop offset="45%" stop-color="#FFD23D"/>
-        <stop offset="100%" stop-color="#E8A400"/>
-      </linearGradient>
-      <linearGradient id="ssjFlameMid" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#FFEA8A"/>
-        <stop offset="100%" stop-color="#FFC94D"/>
-      </linearGradient>
-      <linearGradient id="ssjFlameInner" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#FFF6C4"/>
-        <stop offset="100%" stop-color="#FFE066"/>
-      </linearGradient>
-      <filter id="ssjGlow" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur stdDeviation="4" result="b"/>
-        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <g filter="url(#ssjGlow)">
-      <path d="M130.0,-23.0 L144.9,89.3 L182.4,-10.5 L172.3,109.4 L223.8,47.4 L193.9,145.4 L258.3,117.4 L208.1,192.1 L275.6,207.8 L210.3,245.4 L264.7,300.8 L201.8,296.2 L243.4,385.7 L184.5,339.3 L206.3,453.1 L159.0,366.5 L155.6,477.6 L130.0,375.7 L103.7,484.8 L100.7,367.8 L53.0,455.0 L75.7,338.9 L18.2,383.5 L58.2,296.2 L-6.7,301.8 L49.4,245.4 L-14.4,208.0 L52.7,192.5 L5.3,120.6 L66.1,145.4 L33.4,41.9 L87.3,108.2 L77.2,-12.6 L115.2,89.8 Z" fill="url(#ssjFlame5)" opacity=".8">
-        <animateTransform attributeName="transform" type="scale" values="1 1;1.05 1.07;1 1" dur="1.4s" repeatCount="indefinite" additive="sum"/>
-        <animate attributeName="opacity" values=".65;.85;.65" dur="1.4s" repeatCount="indefinite"/>
-      </path>
-      <path d="M130.0,-3.0 L144.1,101.8 L177.5,21.3 L170.1,121.9 L219.7,67.2 L190.6,157.6 L249.0,141.5 L201.1,206.0 L254.7,232.0 L200.8,257.9 L246.5,320.6 L190.5,306.2 L220.5,398.2 L170.2,342.4 L177.5,442.7 L144.1,361.9 L130.0,465.0 L115.8,363.3 L80.7,450.5 L89.7,342.7 L41.8,393.9 L69.9,305.7 L13.5,320.6 L58.7,258.0 L2.0,232.0 L59.1,206.1 L15.3,144.7 L70.0,158.4 L40.3,67.2 L89.5,120.7 L80.7,13.5 L115.9,101.4 Z" fill="url(#ssjFlame4)" opacity=".85">
-        <animateTransform attributeName="transform" type="scale" values="1.03 1.04;1 1;1.03 1.04" dur="1.15s" repeatCount="indefinite" additive="sum"/>
-      </path>
-      <path d="M130.0,13.9 L143.6,108.9 L177.3,29.1 L168.2,130.5 L213.4,87.9 L186.1,168.7 L239.5,162.7 L195.3,217.0 L246.5,253.2 L192.0,268.1 L227.7,336.7 L178.2,312.1 L197.2,404.8 L156.6,343.1 L154.2,445.1 L130.0,352.9 L106.7,437.7 L103.6,341.9 L62.3,406.2 L81.2,313.1 L28.5,340.8 L68.0,268.1 L17.8,252.3 L65.5,217.2 L21.3,163.2 L73.3,168.1 L43.6,82.9 L91.8,130.5 L84.3,36.0 L116.5,110.2 Z" fill="url(#ssjFlameOuter)" opacity=".9">
-        <animateTransform attributeName="transform" type="scale" values="1 1;1.045 1.06;1 1" dur="0.9s" repeatCount="indefinite" additive="sum"/>
-        <animate attributeName="opacity" values=".75;.95;.75" dur="0.9s" repeatCount="indefinite"/>
-      </path>
-      <path d="M130.0,47.5 L142.3,117.7 L168.8,61.2 L165.2,136.0 L202.0,104.4 L181.6,172.2 L219.1,173.8 L188.8,218.0 L224.0,249.2 L186.8,265.8 L213.2,323.1 L174.2,307.1 L185.3,377.6 L154.1,334.9 L149.8,410.7 L130.0,346.1 L109.9,413.6 L105.8,335.6 L74.9,377.0 L86.0,306.7 L48.2,321.6 L73.2,265.8 L34.5,249.5 L70.9,217.9 L40.5,173.6 L78.7,172.6 L59.2,106.4 L94.8,136.0 L90.6,58.5 L117.6,117.0 Z" fill="url(#ssjFlameMid)" opacity=".92">
-        <animateTransform attributeName="transform" type="scale" values="1.02 1.02;1 1;1.02 1.02" dur="1.2s" repeatCount="indefinite" additive="sum"/>
-      </path>
-      <path d="M130.0,58.8 L142.3,132.7 L171.1,77.1 L163.9,155.3 L201.5,133.6 L177.6,194.7 L217.3,209.3 L181.0,242.1 L212.9,291.5 L172.1,286.8 L187.7,357.3 L153.7,318.2 L151.0,396.2 L130.0,330.2 L108.8,397.6 L106.3,318.3 L72.4,357.0 L88.1,286.5 L47.8,290.9 L79.0,242.1 L41.9,209.1 L82.1,194.5 L58.3,133.4 L96.2,155.4 L89.3,78.4 L117.7,132.7 Z" fill="url(#ssjFlameInner)" opacity=".88">
-        <animate attributeName="opacity" values=".65;.95;.65" dur=".8s" repeatCount="indefinite"/>
-      </path>
-      <ellipse cx="130" cy="230" rx="90" ry="170" fill="url(#ssjAuraCore)">
-        <animate attributeName="opacity" values=".5;.8;.5" dur="1.1s" repeatCount="indefinite"/>
-      </ellipse>
-    </g>
-    <g fill="#FFF3B0" filter="url(#ssjGlow)">
-      <circle cx="30" cy="120" r="3.4"><animate attributeName="cy" values="120;10;120" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="2.2s" repeatCount="indefinite"/></circle>
-      <circle cx="228" cy="160" r="3"><animate attributeName="cy" values="160;40;160" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite"/></circle>
-      <circle cx="54" cy="360" r="2.6"><animate attributeName="cy" values="360;250;360" dur="2.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="2.6s" repeatCount="indefinite"/></circle>
-      <circle cx="204" cy="380" r="3.2"><animate attributeName="cy" values="380;260;380" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/></circle>
-    </g>
-    <ellipse cx="130" cy="452" rx="70" ry="12" fill="#FFC94D" opacity=".5" filter="url(#ssjGlow)">
-      <animate attributeName="rx" values="60;78;60" dur="1s" repeatCount="indefinite"/>
-    </ellipse>
-  `;
-}
+/* ===== LV99 golden aura — smooth flame silhouette that flickers by morphing between seeded variants ===== */
+const SSJ_AURA = (function(){
+  let seed = 7;
+  const rnd = ()=>{ seed = (seed*16807) % 2147483647; return (seed-1)/2147483646; };
+  const CX = 130, Y_TOP = 44, Y_BOT = 462;
+  const halfW = t => {               // silhouette half-width along the body, t: 0 = top, 1 = feet
+    const k = [[0,92],[.1,106],[.3,100],[.55,88],[.8,74],[1,52]];
+    for(let i=1;i<k.length;i++) if(t<=k[i][0]){ const [a,wa]=k[i-1],[b,wb]=k[i], u=(t-a)/(b-a), s=u*u*(3-2*u); return wa+(wb-wa)*s; }
+    return 52;
+  };
+  const yAt = t => Y_TOP + (Y_BOT-Y_TOP)*t;
+  const f = n => n.toFixed(1);
+  /* one closed outline: K tongues per side + a crown of 3 tongues on top. scale grows/shrinks the whole layer */
+  function outline(scale, K, len, vary){
+    const pts = [];                       // sequence of {v:valley} and {t:tip, d:dir, L:len}
+    const side = (sgn)=>{
+      const out = [];
+      for(let i=0;i<=K;i++){
+        const t = .97 - (.97-.0)*i/K;    // valleys from the feet up to the shoulders
+        out.push({type:'v', x:CX+sgn*halfW(t)*scale, y:yAt(t)});
+        if(i<K){
+          const tm = t - (.97-.0)/K*.5, up = 1 - tm;                         // tongues get longer and more upright near the top
+          const L = len*(.55 + .75*up)*(1 + (rnd()-.5)*vary);
+          const ang = -Math.PI/2 + sgn*(0.62 - 0.4*up + (rnd()-.5)*.3*vary); // measured from straight up, tilted outward
+          const bx = CX+sgn*halfW(tm)*scale*1.02, by = yAt(tm);
+          const dx = Math.cos(ang), dy = Math.sin(ang);
+          out.push({type:'t', x:bx+dx*L, y:by+dy*L, dx, dy, L, w:sgn*(.5+rnd()*.7)});
+        }
+      }
+      return out;
+    };
+    const R = side(1), Lf = side(-1).reverse();
+    // crown: right shoulder → 3 tips over the head → left shoulder
+    const crown = [];
+    const topY = yAt(0);
+    [[.62, 0.12],[0, 0],[-.62, -0.12]].forEach(([u, tilt], j)=>{
+      const L = Math.min(topY-4, len*(1.3 + (j===1?.3:0))*(1 + (rnd()-.5)*vary));
+      const bx = CX + u*halfW(0)*scale*.8, by = topY + 2;
+      const ang = -Math.PI/2 + tilt + (rnd()-.5)*.22*vary;
+      const dx = Math.cos(ang), dy = Math.sin(ang);
+      crown.push({type:'t', x:bx+dx*L, y:by+dy*L, dx, dy, L, w:(rnd()-.5)});
+      if(j<2) crown.push({type:'v', x:CX + (u-.31)*halfW(0)*scale*.8, y:topY + 10});
+    });
+    const seq = [{type:'v', x:CX, y:Y_BOT+8*scale}].concat(R, crown, Lf);
+    // path: valleys joined to tips with cubic curves; tips are sharp cusps along their own direction
+    let d = `M${f(seq[0].x)},${f(seq[0].y)}`;
+    for(let i=1;i<seq.length;i++){
+      const a = seq[i-1], b = seq[i];
+      let c1x, c1y, c2x, c2y;
+      if(b.type==='t'){            // rising edge into a tip
+        c1x = a.x + (b.x-a.x)*.25; c1y = a.y + (b.y-a.y)*.05;
+        c2x = b.x - b.dx*b.L*.5 + b.dy*b.L*.22*b.w; c2y = b.y - b.dy*b.L*.5 - b.dx*b.L*.22*b.w;
+      } else if(a.type==='t'){     // falling edge back into a valley
+        c1x = a.x - a.dx*a.L*.42 - a.dy*a.L*.12*a.w; c1y = a.y - a.dy*a.L*.42 + a.dx*a.L*.12*a.w;
+        c2x = b.x + (a.x-b.x)*.18; c2y = b.y + (a.y-b.y)*.35;
+      } else { c1x=a.x; c1y=a.y; c2x=b.x; c2y=b.y; }
+      d += ` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(b.x)},${f(b.y)}`;
+    }
+    // close back to the bottom centre
+    const z = seq[0], last = seq[seq.length-1];
+    d += ` C${f(last.x)},${f(last.y+6)} ${f(z.x-20)},${f(z.y)} ${f(z.x)},${f(z.y)} Z`;
+    return d;
+  }
+  const morph = (scale, K, len, vary, n)=>{ const v=[]; for(let i=0;i<n;i++) v.push(outline(scale, K, len, vary)); v.push(v[0]); return v.join(';'); };
+  const ks = n => Array(n).fill('.45 0 .55 1').join(';');
+  const layer = (fill, scale, K, len, vary, dur, extra)=>`<path fill="${fill}" ${extra||''}><animate attributeName="d" values="${morph(scale,K,len,vary,4)}" dur="${dur}s" repeatCount="indefinite" calcMode="spline" keySplines="${ks(4)}"/></path>`;
+  // rising flame wisps that peel off the sides
+  const wisp = (x, y, dx, h, dur, begin, s)=>`<g><animateTransform attributeName="transform" type="translate" values="${x},${y};${x+dx},${y-h}" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+      <path d="M0,-${f(22*s)} C${f(6*s)},-${f(10*s)} ${f(9*s)},0 0,${f(9*s)} C-${f(9*s)},0 -${f(6*s)},-${f(10*s)} 0,-${f(22*s)} Z" fill="url(#ssjWisp)" opacity="0">
+        <animate attributeName="opacity" values="0;.95;.7;0" keyTimes="0;.2;.6;1" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="scale" values="1;.75;.3" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/></path></g>`;
+  const streak = (x, y0, h, dur, begin)=>`<rect x="${x}" y="${y0}" width="2.2" height="${h}" rx="1.1" fill="#FFFBE6" opacity="0">
+      <animate attributeName="y" values="${y0};${y0-170}" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;.85;0" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/></rect>`;
+  const spark = (x, y, r, dur, begin)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#FFF8D0" opacity="0">
+      <animate attributeName="cy" values="${y};${y-120}" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/></circle>`;
+
+  const defs = `<defs>
+    <radialGradient id="ssjG1" cx="50%" cy="55%" r="55%"><stop offset=".5" stop-color="#FFD23F" stop-opacity=".12"/><stop offset=".85" stop-color="#FFB619" stop-opacity=".85"/><stop offset="1" stop-color="#FFD84A"/></radialGradient>
+    <radialGradient id="ssjG2" cx="50%" cy="55%" r="55%"><stop offset=".55" stop-color="#FFE45C" stop-opacity=".18"/><stop offset=".85" stop-color="#FFD43B" stop-opacity=".75"/><stop offset="1" stop-color="#FFF1A0" stop-opacity=".95"/></radialGradient>
+    <radialGradient id="ssjG3" cx="50%" cy="55%" r="55%"><stop offset=".6" stop-color="#FFFFFF" stop-opacity="0"/><stop offset=".9" stop-color="#FFFBE0" stop-opacity=".7"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".9"/></radialGradient>
+    <linearGradient id="ssjWisp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFBE0"/><stop offset="1" stop-color="#FFE070"/></linearGradient>
+    <radialGradient id="ssjFloor" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFF4B0" stop-opacity=".95"/><stop offset=".6" stop-color="#FFC21F" stop-opacity=".5"/><stop offset="1" stop-color="#FFC21F" stop-opacity="0"/></radialGradient>
+    <filter id="ssjBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="ssjSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter>
+  </defs>`;
+  const body =
+    `<g class="ssj-aura">
+      <ellipse cx="130" cy="452" rx="96" ry="18" fill="url(#ssjFloor)"><animate attributeName="rx" values="84;104;84" dur=".9s" repeatCount="indefinite"/></ellipse>
+      ${layer('#FFB000', 1.07, 9, 30, .8, 1.3, 'opacity=".6" filter="url(#ssjBlur)"')}
+      ${layer('url(#ssjG1)', 1.06, 9, 30, .8, 1.05, 'filter="url(#ssjSoft)"')}
+      ${layer('url(#ssjG2)', .94, 9, 25, .75, .85, '')}
+      ${layer('url(#ssjG3)', .8, 8, 18, .7, .7, '')}
+      ${[[32,330,-10,150,1.4,0,1],[226,300,10,160,1.6,.5,1.1],[52,210,-8,140,1.3,.9,.9],[208,190,8,150,1.5,.2,1],[90,90,-4,120,1.2,.7,.8],[170,80,4,120,1.35,1.1,.8],[20,420,-12,150,1.7,1.3,1.1],[240,410,12,150,1.45,.35,1]].map(a=>wisp(...a)).join('')}
+      ${[[60,400,34,.55,0],[200,380,28,.6,.3],[96,300,24,.5,.15],[166,320,30,.62,.45],[130,250,22,.5,.6],[40,280,26,.58,.75],[222,260,26,.52,.05]].map(a=>streak(...a)).join('')}
+      ${[[28,250,2.6,1.6,0],[232,210,2.4,1.8,.6],[60,430,2.2,1.4,1],[204,440,2.8,1.7,.3],[110,140,2,1.5,.8],[150,120,2.2,1.9,.2]].map(a=>spark(...a)).join('')}
+    </g>`;
+  return defs + body;
+})();
+function auraSvg(){ return SSJ_AURA; }
+
 function goldCrownSvg(){
   return `<g class="gold-crown">
     <path d="M88,40 L92,8 L111,24 L130,8 L149,24 L168,8 L172,40 Q130,50 88,40 Z" fill="#FFD23D" stroke="#B8860B" stroke-width="3" stroke-linejoin="round"/>
@@ -5534,7 +5809,8 @@ function rerenderAthleteView(){
 function openOfficeDetail(office){
   const BD = boardData();
   const o = BD.data.offices.find(z=>z.office===office) || {rideKm:0, runKm:0, total:0};
-  const members = BD.data.people.filter(p=>p.office===office).sort((a,b)=>b.total-a.total);
+  const members = (Array.isArray(o.members) ? o.members.map(m=>Object.assign({}, m, {name: m.empId ? nameForEmployee(m.empId, m.name) : m.name}))
+                                            : BD.data.people.filter(p=>p.office===office)).sort((a,b)=>b.total-a.total);
   const sheet = document.getElementById('detail-sheet');
   sheet.innerHTML = `
     <button class="modal-close" onclick="closeDetail()">✕</button>
@@ -5577,17 +5853,20 @@ function buildAthleteProfileHtml(name, opts){
   const levelProgress = li.pct;
   const owner = isOwnProfile(name);
   const badges = [];
-  if(profile.age) badges.push(`อายุ ${esc(profile.age)} ปี`);
+  { const by = birthYearOf(name), dx = defaultDivSeason(), ry = divRefYearBE(dx);
+    if(by) badges.push(`อายุ ${currentBEYear()-by} ปี` + (dx && ry!==currentBEYear() ? ` · อายุจัดรุ่น ${seasonTag(dx)}: ${ry-by} ปี` : ''));
+    else if(profile.age) badges.push(`อายุ ${esc(profile.age)} ปี`); }
   if(profile.gender) badges.push(esc(profile.gender));
   if(profile.weight) badges.push(`น้ำหนัก ${esc(profile.weight)} กก.`);
   if(profile.height) badges.push(`ส่วนสูง ${esc(profile.height)} ซม.`);
   if(profile.ftp) badges.push(`FTP ${esc(profile.ftp)}W`);
   const bmiVal = calcBMI(profile.weight, profile.height);
   if(bmiVal) badges.push(`BMI ${bmiVal.toFixed(1)}`);
-  const myDivision = ageDivisionLabel(calcAgeDivision(name));
-  if(myDivision) badges.push(`รุ่น: ${myDivision}`);
+  const lockSnap = seasonDivSnap(name, currentBoardSeason());
+  const myDivision = ageDivisionLabel(lockSnap ? lockSnap.div : calcAgeDivision(name));
+  if(myDivision) badges.push(`รุ่น: ${myDivision}${lockSnap?' 🔒':''}`);
   if(profile.isStateAthlete) badges.push(`🏅 นักกีฬารัฐวิสาหกิจ (ไม่ร่วมรุ่นท่องเที่ยวมือใหม่)`);
-  const missingPersonalInfo = !(profile.age && profile.gender && profile.weight && profile.height);
+  const missingList = missingDivisionInfo(name), missingPersonalInfo = missingList.length>0;
 
   const typeMine = allMine.filter(e=>e.type===athleteState.type).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const colorClass = athleteState.type==='ride' ? 'ride' : 'run';
@@ -5623,7 +5902,7 @@ function buildAthleteProfileHtml(name, opts){
     <div class="level-title">${levelTitle(level)} · ${level>=MAX_LEVEL ? 'EXP สูงสุดแล้ว' : `EXP ${li.into.toFixed(1)}/${li.need}`} (EXP สะสม ${li.exp.toFixed(1)})${gear.skin==='superSaiyan'?' · ✨ ออร่าซุปเปอร์ไซย่า':''}${AURA_CHALLENGES[gear.skin]?' · '+AURA_CHALLENGES[gear.skin].icon+' '+AURA_CHALLENGES[gear.skin].name:''}${gear.crown==='gold'?' · 👑 แชมป์ประจำสัปดาห์':''}</div>
     ${seasonProfileLine(name)}
     ${badges.length ? `<div class="profile-badges" style="margin-top:10px;">${badges.map(b=>`<span class="profile-badge">${b}</span>`).join('')}</div>` : ''}
-    ${owner && missingPersonalInfo ? `<div class="note-small" style="text-align:left; margin:6px 0 0; color:var(--purple-dk);">ℹ️ กรอกข้อมูลส่วนตัว (อายุ/เพศ/น้ำหนัก/ส่วนสูง) ให้ครบ เพื่อดู BMI และเข้ารุ่น Age Ranking ของคุณ — กด "✎ แก้ไขข้อมูลส่วนตัว" ด้านล่าง</div>` : ''}
+    ${owner && missingPersonalInfo ? `<div class="note-small" style="text-align:left; margin:6px 0 0; color:var(--purple-dk);">ℹ️ ยังขาด: ${missingList.join(" / ")} — กรอกให้ครบ เพื่อดู BMI และเข้ารุ่น Age Ranking ของคุณ — กด "✎ แก้ไขข้อมูลส่วนตัว" ด้านล่าง</div>` : ''}
     <div class="modal-stat-grid" style="margin-top:12px;">
       <div class="stat"><div class="k">รวมปั่นจักรยาน</div><div class="v lime">${rideTotal.toFixed(1)} กม.</div></div>
       <div class="stat"><div class="k">รวมวิ่ง</div><div class="v coral">${runTotal.toFixed(1)} กม.</div></div>
@@ -5832,7 +6111,7 @@ function editAthlete(name){
     </div>
 
     <div class="field-row">
-      <div class="field"><label>อายุ</label><input type="number" id="p-age" min="10" max="99" value="${esc(profile.age||'')}"></div>
+      <div class="field"><label>ปีเกิด (พ.ศ.)</label><input type="number" id="p-birthyear" min="2400" max="${currentBEYear()}" placeholder="เช่น 2530" value="${birthYearOf(name)||''}"></div>
       <div class="field"><label>เพศ</label>
         <select id="p-gender">
           <option value="">— ไม่ระบุ —</option>
@@ -5847,7 +6126,8 @@ function editAthlete(name){
       <div class="field"><label>น้ำหนัก (กก.)</label><input type="number" id="p-weight" min="20" max="250" placeholder="เช่น 65" value="${esc(profile.weight||'')}"></div>
       <div class="field"><label>ส่วนสูง (ซม.)</label><input type="number" id="p-height" min="100" max="250" placeholder="เช่น 170" value="${esc(profile.height||'')}"></div>
     </div>
-    <div class="note-small" style="text-align:left; margin:-8px 0 12px;">ใช้คำนวณ BMI และจัดรุ่น Age Ranking ให้อัตโนมัติ</div>
+    <div class="note-small" style="text-align:left; margin:-8px 0 12px;">ใช้คำนวณ BMI และจัดรุ่น Age Ranking ให้อัตโนมัติ · อายุจัดรุ่น = ปี พ.ศ. ที่ซีซันจบ − ปีเกิด${(()=>{ const bs=currentBoardSeason(), sn=seasonDivSnap(name, bs);
+      return sn && seasonState().mode==='active' ? `<br>🔒 รุ่นใน ${seasonTag(bs)} ล็อกไว้ที่ <b>${esc(ageDivisionLabel(sn.div)||sn.div)}</b> (ตั้งแต่กิจกรรมแรกในซีซัน) — แก้อายุ/น้ำหนักตอนนี้จะมีผลกับซีซันถัดไป` : ''; })()}</div>
     <div class="checkbox-row">
       <input type="checkbox" id="p-state-athlete" ${profile.isStateAthlete?'checked':''}>
       <label for="p-state-athlete">เคยเป็นนักกีฬารัฐวิสาหกิจ (จะไม่มีสิทธิ์ร่วม "รุ่นท่องเที่ยว สำหรับมือใหม่")</label>
@@ -5886,7 +6166,15 @@ function addAchRow(){
 }
 
 async function saveAthleteProfile(name){
-  const age = document.getElementById('p-age').value.trim();
+  const byRaw = document.getElementById('p-birthyear').value.trim(), by = parseInt(byRaw,10);
+  if(byRaw && !(by>=2400 && by<=currentBEYear())){ alert('กรอกปีเกิดเป็น พ.ศ. ให้ถูกต้องนะครับ เช่น 2530'); return; }
+  const empId = (window._profileEmployeeIds && window._profileEmployeeIds[name]) || employeeIdForName(name);
+  const acc = empId ? accounts[empId] : null;
+  const age = by ? String(currentBEYear()-by) : ((profiles[name] && profiles[name].age) || '');
+  if(acc && by && parseInt(acc.birthYear,10)!==by){
+    const prevBy = acc.birthYear; acc.birthYear = by; markAccountDirty(empId);
+    if(!(await saveAccounts())){ acc.birthYear = prevBy; alert('บันทึกปีเกิดไม่สำเร็จ — ลองกด "บันทึก" อีกครั้งครับ'); return; }
+  }
   const gender = document.getElementById('p-gender').value;
   const ftp = document.getElementById('p-ftp').value.trim();
   const weight = parseFloat(document.getElementById('p-weight').value) || null;
@@ -6110,14 +6398,16 @@ function adminAccountsRender(){
       <div class="queue-top">
         <div>
           <div class="queue-name">${esc(a.firstName)} ${esc(a.lastName)} ${a.isAdmin?'<span class="flag ok">🛡️ แอดมิน</span>':''} ${a.disabled?'<span class="flag warn">🚫 ระงับใช้งาน</span>':''}</div>
-          <div class="queue-meta">รหัส ${esc(a.employeeId)} · ${esc(a.office||'-')}${a.department?' · '+esc(a.department):''}</div>
+          <div class="queue-meta">รหัส ${esc(a.employeeId)} · ${esc(a.office||'-')}${a.department?' · '+esc(a.department):''} · ${a.birthYear?'เกิด '+esc(a.birthYear):'<span style="color:var(--coral)">ไม่มีปีเกิด</span>'}</div>
         </div>
       </div>
       <div class="queue-actions">
-        <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="adminEditAccount('${escAttr(a.employeeId)}')">✎ แก้ไขชื่อ/สังกัด</button>
+        <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="adminEditAccount('${escAttr(a.employeeId)}')">✎ แก้ไขชื่อ/สังกัด/ปีเกิด</button>
         <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminResetPassword('${escAttr(a.employeeId)}')">🔑 รีเซ็ตรหัสผ่าน</button>
         <button class="qbtn reject" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminToggleDisabled('${escAttr(a.employeeId)}')">${a.disabled?'✓ เปิดใช้งานคืน':'🚫 ระงับบัญชี'}</button>
         <button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; ${a.isAdmin?'background:var(--panel-2); color:var(--text); border:1px solid var(--line);':''}" onclick="adminToggleAdmin('${escAttr(a.employeeId)}')">${a.isAdmin?'🛡️ ถอดแอดมิน':'🛡️ แต่งตั้งเป็นแอดมิน'}</button>
+        ${(()=>{ const bs=currentBoardSeason(), nm=`${a.firstName} ${a.lastName}`.trim(), sn=seasonDivSnap(nm, bs);
+          return sn ? `<button class="qbtn approve" style="flex:0 0 auto; padding:7px 10px; font-size:11px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);" onclick="adminUnlockDivision('${escAttr(a.employeeId)}')">🔓 รุ่น ${seasonTag(bs)}: ${esc(ageDivisionLabel(sn.div)||sn.div)}</button>` : ''; })()}
       </div>
     </div>`).join('') : `<div class="empty">ไม่พบบัญชีที่ตรงกับคำค้นหา</div>`) + adminMoreBtn('acc', list.length);
 }
@@ -6134,6 +6424,10 @@ async function adminEditAccount(employeeId){
   if(last===null) return;
   const dept = prompt('หน่วยงานเพิ่มเติม (เว้นว่างได้)', acc.department||'');
   if(dept===null) return;
+  const byAns = prompt('ปีเกิด (พ.ศ.) — ใช้คำนวณอายุจัดรุ่น (ปีที่ซีซันจบ − ปีเกิด)', acc.birthYear ? String(acc.birthYear) : '');
+  if(byAns===null) return;
+  const birthYear = byAns.trim() ? parseInt(byAns,10) : (acc.birthYear||null);
+  if(byAns.trim() && !(birthYear>=2400 && birthYear<=currentBEYear())){ alert('ปีเกิดต้องเป็น พ.ศ. เช่น 2530'); return; }
   const officeList = OFFICES.map((o,i)=>`${i+1}. ${o}`).join('\n');
   const curIdx = OFFICES.indexOf(acc.office);
   const officeAns = prompt(`สังกัด — พิมพ์หมายเลข:\n${officeList}`, curIdx>=0 ? String(curIdx+1) : '1');
@@ -6149,15 +6443,18 @@ async function adminEditAccount(employeeId){
   const sameName = Object.values(accounts).find(a=>a.employeeId!==employeeId && a.firstName===firstName && a.lastName===lastName);
   if(sameName){ alert(`มีสมาชิกชื่อ-นามสกุลนี้อยู่แล้ว (รหัส ${sameName.employeeId}) — ตั้งชื่อซ้ำกันไม่ได้ เพราะระบบใช้ชื่อ-นามสกุลรวมสถิติ`); return; }
 
-  const prevFirst=acc.firstName, prevLast=acc.lastName, prevDept=acc.department, prevOffice=acc.office;
-  Object.assign(acc, {firstName, lastName, department, office});
+  const prevFirst=acc.firstName, prevLast=acc.lastName, prevDept=acc.department, prevOffice=acc.office, prevBy=acc.birthYear;
+  Object.assign(acc, {firstName, lastName, department, office, birthYear});
   markAccountDirty(employeeId);
   const saved = await saveAccounts();
   if(!saved){
-    Object.assign(acc, {firstName:prevFirst, lastName:prevLast, department:prevDept, office:prevOffice});
+    Object.assign(acc, {firstName:prevFirst, lastName:prevLast, department:prevDept, office:prevOffice, birthYear:prevBy});
     alert('บันทึกไม่สำเร็จ — ลองใหม่อีกครั้งครับ (ยังไม่มีการเปลี่ยนแปลง)');
     return;
   }
+  // the sponsor list is stored by name — carry the sponsor frame over to the new name
+  { const oldFull = `${prevFirst} ${prevLast}`.trim(), newFull = `${firstName} ${lastName}`.trim(), L = sponsorList();
+    if(oldFull!==newFull && L.includes(oldFull)){ appSettings.roadToLegend.sponsors = L.map(n=>n===oldFull?newFull:n); if(!(await saveSettings())) alert('เปลี่ยนชื่อแล้ว แต่ย้ายสถานะผู้สนับสนุนไปชื่อใหม่ไม่สำเร็จ — เพิ่มชื่อใหม่ในรายการผู้สนับสนุนเองอีกครั้งครับ'); } }
   // pull everything fresh so entries/profiles/leaderboards immediately show the corrected name
   await Promise.all([loadEntries(), loadProfiles(), loadAccounts()]);
   syncCurrentUser();
@@ -6260,12 +6557,12 @@ function renderSeasonAdmin(){
   const list = seasons.slice().sort((a,b)=>a.number-b.number);
   box.innerHTML = list.length ? list.map(x=>{
     const counted = entries.filter(e=>seasonCounts(e,x)), who = new Set(counted.map(e=>e.employeeId||e.name)).size;
-    const pend = entries.filter(e=>(e.status==='pending'||e.status==='flagged') && e.date>=x.startDate && e.date<=x.endDate).length;
+    const pend = entries.filter(e=>e.status==='pending' && e.date>=x.startDate && e.date<=x.endDate).length, rep = entries.filter(e=>e.status==='flagged' && e.date>=x.startDate && e.date<=x.endDate).length;
     const reviewEnd = thaiDate(localDateKey(new Date(seasonReviewEndAt(x).getTime()-1)));
     return `<div class="queue-item">
       <div class="queue-name">SS${x.number} · ${x.name?esc(x.name):'<span style="opacity:.6">(ยังไม่ตั้งชื่อแคมเปญ)</span>'} ${seasonStatusChip(x)}</div>
       <div class="queue-meta">${thaiDate(x.startDate)} – ${thaiDate(x.endDate)} (ส่งได้ถึง 24:00 น.) · ตรวจสอบถึง ${reviewEnd} 24:00 น.</div>
-      <div class="queue-meta">นับแล้ว ${counted.length} รายการ · ${who} คน${pend?` · <b style="color:var(--coral)">รอตรวจ/ติดธง ${pend} รายการ (ยังไม่นับ)</b>`:''}</div>
+      <div class="queue-meta">นับแล้ว ${counted.length} รายการ · ${who} คน${pend?` · <b style="color:var(--coral)">รอตรวจ ${pend} รายการ (ยังไม่นับ)</b>`:''}${rep?` · <b style="color:var(--coral)">ถูกแจ้ง ${rep} รายการ (ยังนับอยู่ จนกว่าจะปฏิเสธ)</b>`:''}</div>
       <div class="queue-actions">
         ${x.final
           ? `<button class="qbtn reject" style="flex:0 0 auto; padding:7px 10px; font-size:11px;" onclick="adminReopenSeason(${x.number})">🔓 เปิดผลใหม่</button>`
@@ -6325,9 +6622,11 @@ async function adminDeleteSeason(num){
 /* freeze the final table: from now on approvals/edits no longer move this season's ranking */
 async function adminFinalizeSeason(num){
   const x = seasons.find(z=>z.number===num); if(!x) return;
-  const pend = entries.filter(e=>(e.status==='pending'||e.status==='flagged') && e.date>=x.startDate && e.date<=x.endDate && !(e.submittedAt && new Date(e.submittedAt) > seasonEndAt(x))).length;
+  const inSs = e=>e.date>=x.startDate && e.date<=x.endDate && !(entryTime(e) > seasonEndAt(x).getTime());
+  const pend = entries.filter(e=>e.status==='pending' && inSs(e)).length, rep = entries.filter(e=>e.status==='flagged' && inSs(e)).length;
   let msg = `บันทึกผลสุดท้ายซีซัน ${num}?\nหลังบันทึก ผลจะค้างไว้จนกว่าซีซันถัดไปเริ่ม และไม่เปลี่ยนตามการอนุมัติ/แก้ไขอีก (กด "เปิดผลใหม่" ได้ภายหลัง)`;
-  if(pend) msg = `⚠️ ยังมี ${pend} รายการในซีซันนี้ที่รอตรวจ/ติดธง — รายการเหล่านี้จะไม่ถูกนับ\n\n` + msg;
+  if(rep) msg = `⚠️ มี ${rep} รายการที่ถูกสมาชิกแจ้งตรวจสอบ — ยังนับอยู่ ถ้าไม่ถูกต้องให้กดปฏิเสธก่อนล็อกผล\n\n` + msg;
+  if(pend) msg = `⚠️ ยังมี ${pend} รายการในซีซันนี้ที่รอตรวจ — รายการเหล่านี้จะไม่ถูกนับ\n\n` + msg;
   if(new Date() < seasonReviewEndAt(x)) msg = `⚠️ ยังไม่ถึงเวลาปิดตรวจสอบ (ถึง ${thaiDate(localDateKey(new Date(seasonReviewEndAt(x).getTime()-1)))} 24:00 น.)\n\n` + msg;
   if(!confirm(msg)) return;
   const live = computeSeasonBoard(x), prev = x.final;
@@ -6365,11 +6664,103 @@ async function adminPostAnnouncement(){
     if(!saved){ alert('อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
     const {error} = await sb.from('posts').insert({id, employee_id:currentUser.employeeId, name:'ประกาศจากแอดมิน', photo_url:saved.url, kind:'photo', payload:{announce:true, text}});
     if(error){ dbErr('adminPostAnnouncement', error); await deleteStorageFile('posts', saved.path); alert('โพสต์ไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+    const wantPopup = document.getElementById('admin-ann-popup').checked;
     document.getElementById('admin-ann-file').value=''; document.getElementById('admin-ann-text').value=''; adminAnnPreview();
+    if(wantPopup && !(await savePopup({postId:id, photoUrl:saved.url, text}))) alert('โพสต์แล้ว แต่ตั้งเป็นป๊อปอัปไม่สำเร็จ — กด 📌 ที่โพสต์ในหน้าฟีดเพื่อลองใหม่');
     await loadFeedPage(true);
     alert('โพสต์ประกาศเรียบร้อยแล้ว — ดูได้ที่แท็บ "ฟีด"');
   } finally { window._annBusy = false; btn.disabled = false; btn.textContent = '📣 โพสต์ประกาศ'; }
 }
+
+/* admin fixes a wrong division lock (e.g. the person had a typo in their age at their first activity): clears the
+   snapshot and re-locks it right away from the profile as it is now */
+async function adminUnlockDivision(employeeId){
+  const a = accounts[employeeId], bs = currentBoardSeason(); if(!a || !bs) return;
+  const nm = `${a.firstName} ${a.lastName}`.trim(), p = profiles[nm], sn = seasonDivSnap(nm, bs); if(!p || !sn) return;
+  const now = calcAgeDivision(nm, divRefYearBE(bs));
+  if(!confirm(`ล็อกรุ่น ${seasonTag(bs)} ของ ${nm} ใหม่?\nตอนนี้: ${ageDivisionLabel(sn.div)}\nจากโปรไฟล์ปัจจุบัน: ${ageDivisionLabel(now)||'ข้อมูลไม่ครบ (จะล็อกใหม่ตอนส่งกิจกรรมครั้งถัดไป)'}`)) return;
+  const prev = p.seasonDiv; const sd = Object.assign({}, p.seasonDiv||{});
+  if(now) sd[bs.number] = {div:now, beginner:isBeginnerNow(p), at:new Date().toISOString()}; else delete sd[bs.number];
+  p.seasonDiv = sd; markProfileDirty(nm);
+  if(!(await saveProfiles())){ p.seasonDiv = prev; alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+  render(); adminAccountsRender();
+}
+
+/* ===== admin readiness checklist — everything that should be in place before (and during) a season ===== */
+function renderAdminReady(){
+  const el = document.getElementById('admin-ready'); if(!el) return;
+  const st = seasonState(), items = [];
+  const add = (ok, text, extra)=>items.push(`<div style="display:flex; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.45;"><span>${ok===true?'✅':ok==='warn'?'⚠️':'❌'}</span><div style="flex:1;">${text}${extra?`<div style="font-size:11px; opacity:.75; margin-top:2px;">${extra}</div>`:''}</div></div>`);
+  add(seasons.length>0, seasons.length ? `ระบบซีซันพร้อม · ${st.mode==='active'?`กำลังแข่ง ${seasonTag(st.season)}`:st.mode==='upcoming'?`${seasonTag(st.season)} เริ่ม ${thaiDate(st.season.startDate)}`:st.mode==='ended'?`${seasonTag(st.season)} จบแล้ว${st.season.final?' (ล็อกผลแล้ว)':' — ยังไม่ล็อกผล'}`:''}` : 'ยังไม่มีซีซัน', seasons.length?'':'รัน migration_10 แล้วเพิ่มซีซันในการ์ด "ซีซัน" ด้านล่าง');
+  if(st.season && !st.season.name) add('warn', `${seasonTag(st.season)} ยังไม่ได้ตั้งชื่อแคมเปญ`, 'กด ✎ แก้ไข ในการ์ดซีซัน');
+  add(window._hasReceivedAt===true ? true : window._hasReceivedAt===false ? false : 'warn',
+      window._hasReceivedAt===true ? 'เวลารับกิจกรรมจากเซิร์ฟเวอร์ (migration_11) พร้อม' : window._hasReceivedAt===false ? 'ยังไม่ได้รัน migration_11 — เส้นตายยังใช้นาฬิกามือถือ' : 'ยังตรวจ migration_11 ไม่ได้ (ยังไม่มีกิจกรรม)');
+  const accs = Object.values(accounts).filter(a=>!a.disabled);
+  const noBy = accs.filter(a=>!a.birthYear), incomplete = accs.filter(a=>missingDivisionInfo(`${a.firstName} ${a.lastName}`.trim()).length);
+  const nm = L=>L.slice(0,8).map(a=>esc(`${a.firstName} ${a.lastName}`)).join(', ')+(L.length>8?` และอีก ${L.length-8} คน`:'');
+  add(noBy.length? 'warn':true, noBy.length ? `${noBy.length} บัญชียังไม่มีปีเกิด (ใช้คำนวณอายุจัดรุ่น)` : 'ทุกบัญชีมีปีเกิดแล้ว', noBy.length ? nm(noBy)+' · แก้ได้ที่ "✎ แก้ไข" ในรายการบัญชี' : '');
+  add(incomplete.length? 'warn':true, incomplete.length ? `${incomplete.length} คนข้อมูลจัดรุ่นไม่ครบ (ปีเกิด/เพศ/น้ำหนัก/ส่วนสูง) — จะไม่ขึ้น Age Ranking` : 'ทุกคนมีข้อมูลจัดรุ่นครบ', incomplete.length ? nm(incomplete) : '');
+  const pend = entries.filter(e=>e.status==='pending').length, rep = entries.filter(e=>e.status==='flagged').length;
+  add(pend||rep ? 'warn' : true, pend||rep ? `รอตรวจ ${pend} · ถูกแจ้ง ${rep} รายการ` : 'ไม่มีรายการค้างตรวจ');
+  let lb = null; try{ lb = localStorage.getItem('pea_last_backup'); }catch(e){}
+  const days = lb ? Math.floor((Date.now()-new Date(lb).getTime())/DAY_MS) : null;
+  add(lb && days<=7 ? true : 'warn', lb ? `สำรองข้อมูลล่าสุด ${days===0?'วันนี้':days+' วันก่อน'} (จากเครื่องนี้)` : 'ยังไม่เคยสำรองข้อมูลจากเครื่องนี้', lb && days<=7 ? '' : 'แนะนำกด "สำรองข้อมูล" สัปดาห์ละครั้ง และก่อนเริ่ม/ปิดซีซัน');
+  add(ADMIN_CODE==='pea2026' ? 'warn' : true, ADMIN_CODE==='pea2026' ? 'รหัสแอดมินยังเป็นค่าเริ่มต้น (pea2026)' : 'เปลี่ยนรหัสแอดมินแล้ว', ADMIN_CODE==='pea2026' ? 'แก้บรรทัด ADMIN_CODE ในไฟล์ index.html ก่อนเปิดใช้จริง — ใครดู source ก็เห็นรหัสนี้' : '');
+  add(popupAnn() ? true : 'warn', popupAnn() ? 'มีป๊อปอัปประกาศตอนเปิดแอป' : 'ยังไม่มีป๊อปอัปประกาศตอนเปิดแอป', popupAnn() ? '' : 'ไม่บังคับ — ใช้ประกาศเปิดซีซันได้');
+  el.innerHTML = items.join('');
+}
+
+/* ===== launch pop-up: one feed post the admin pins — shown full-screen every time the app is opened, before the normal
+   screens. Stored in app_settings.road_to_legend.popup (no migration). Shown once per app session (sessionStorage). ===== */
+function popupAnn(){ const r = appSettings.roadToLegend; const p = r && r.popup; return (p && typeof p==='object' && p.postId) ? p : null; }
+async function savePopup(p){
+  appSettings.roadToLegend = appSettings.roadToLegend || {overrides:{}};
+  const prev = appSettings.roadToLegend.popup || null;
+  appSettings.roadToLegend.popup = p ? {postId:String(p.postId), photoUrl:p.photoUrl||null, text:String(p.text||'').slice(0,300), setAt:new Date().toISOString()} : null;
+  if(!(await saveSettings())){ appSettings.roadToLegend.popup = prev; return false; }
+  renderPopupAdminStatus(); if(document.getElementById('page-feed')) renderFeed();
+  return true;
+}
+async function adminSetPopup(postId){
+  if(!adminMode) return;
+  const post = feedState.posts.find(x=>x.id===postId); if(!post) return;
+  if(!confirm('ตั้งโพสต์นี้เป็นป๊อปอัปที่ทุกคนเห็นทันทีเมื่อเปิดแอป?' + (popupAnn() ? '\n(แทนป๊อปอัปเดิม)' : ''))) return;
+  const text = (post.payload && post.payload.announce) ? (post.payload.text||'') : '';
+  if(!(await savePopup({postId, photoUrl:post.photoUrl, text}))){ alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ'); return; }
+  showLaunchPopup(true);
+}
+async function adminClearPopup(){
+  if(!adminMode || !confirm('ยกเลิกป๊อปอัปตอนเปิดแอป? (โพสต์ในฟีดยังอยู่)')) return;
+  if(!(await savePopup(null))) alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ');
+}
+function renderPopupAdminStatus(){
+  const el = document.getElementById('admin-popup-status'); if(!el) return;
+  const p = popupAnn();
+  el.innerHTML = p ? `📌 ป๊อปอัปเปิดแอปตอนนี้: ${p.text ? '“'+esc(p.text.slice(0,40))+(p.text.length>40?'…':'')+'”' : 'รูปประกาศ'} · <span class="link-small" style="cursor:pointer;" onclick="showLaunchPopup(true)">ดูตัวอย่าง</span> · <span class="link-small" style="cursor:pointer; color:var(--red);" onclick="adminClearPopup()">ยกเลิก</span>` : 'ยังไม่มีป๊อปอัปตอนเปิดแอป';
+}
+function showLaunchPopup(force){
+  const p = popupAnn(); if(!p) return;
+  const key = p.postId+'|'+p.setAt;
+  if(!force){ try{ if(sessionStorage.getItem('pea_popup_seen')===key) return; }catch(e){} }
+  let m = document.getElementById('launch-popup');
+  if(!m){ m = document.createElement('div'); m.id = 'launch-popup'; document.body.appendChild(m); }
+  m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-label','ประกาศ');
+  m.style.cssText = 'position:fixed; inset:0; z-index:200; background:rgba(20,10,30,.78); display:flex; align-items:center; justify-content:center; padding:16px;';
+  m.innerHTML = `<div style="position:relative; width:100%; max-width:440px; max-height:calc(100vh - 32px); overflow:auto; background:var(--panel); border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,.4); padding:14px;">
+      <button onclick="closeLaunchPopup()" aria-label="ปิด" style="position:absolute; top:10px; right:10px; width:36px; height:36px; border-radius:50%; border:none; background:rgba(0,0,0,.55); color:#fff; font-size:18px; cursor:pointer; z-index:1; line-height:1;">✕</button>
+      <div style="font:700 13px var(--sans); color:var(--purple); margin:2px 44px 10px 2px;">📣 ประกาศจากแอดมิน</div>
+      ${p.photoUrl ? `<img src="${safeImgSrc(p.photoUrl)}" alt="" style="width:100%; border-radius:12px; display:block; background:var(--panel-2); min-height:120px;" onerror="this.style.display='none'">` : ''}
+      ${p.text ? `<div style="margin-top:12px; font-size:15px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere;">${esc(p.text)}</div>` : ''}
+      <button id="launch-popup-go" class="qbtn approve" style="width:100%; margin-top:14px; padding:12px; font-size:15px;" onclick="closeLaunchPopup()">เข้าสู่แอป</button>
+      <div style="text-align:center; margin-top:10px;"><span class="link-small" style="cursor:pointer;" onclick="closeLaunchPopup(); goPage('feed');">ดูในหน้าฟีด</span></div>
+    </div>`;
+  m.onclick = ev=>{ if(ev.target===m) closeLaunchPopup(); };
+  m.style.display = 'flex';
+  try{ sessionStorage.setItem('pea_popup_seen', key); }catch(e){}
+  setTimeout(()=>{ const b=document.getElementById('launch-popup-go'); if(b) b.focus(); }, 50);
+}
+function closeLaunchPopup(){ const m = document.getElementById('launch-popup'); if(m) m.style.display = 'none'; }
+document.addEventListener('keydown', ev=>{ if(ev.key==='Escape') closeLaunchPopup(); });
 
 /* ===== sponsors (PEA.BC. frame) ===== */
 function renderSponsorAdmin(){
@@ -6451,6 +6842,8 @@ function openWinners(){
 function adminSettingsRender(){
   const rideEl = document.getElementById('admin-th-ride'), runEl = document.getElementById('admin-th-run');
   if(!rideEl) return;   // admin page not built yet on this pass
+  renderPopupAdminStatus();
+  renderAdminReady();
 
   // don't stomp on a value the admin is actively editing
   if(document.activeElement !== rideEl) rideEl.value = appSettings.thresholdRide;
@@ -6577,6 +6970,7 @@ async function backupAllData(){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `peadal-legend-backup-${localDateKey()}.json`;
+  try{ localStorage.setItem('pea_last_backup', new Date().toISOString()); }catch(e){}
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
   backupStatus('สำรองเรียบร้อย: ' + counts.join(' · '));
@@ -6615,6 +7009,12 @@ async function restoreFromBackupFile(input){
     const have = new Set(current.map(a=>a.employee_id));
     const missingAccounts = (T.accounts||[]).filter(a=>!have.has(a.employee_id));
 
+    // a backup made before migration_11 has no received_at — without this the database would stamp restored entries
+    // with today's date and they'd fall outside the season deadline
+    if((T.entries||[]).some(r=>!('received_at' in r))){
+      const probe = await sb.from('entries').select('received_at').limit(1);
+      if(!probe.error) T.entries = T.entries.map(r=>('received_at' in r) ? r : Object.assign({}, r, {received_at:r.submitted_at||null}));
+    }
     for(const [t, , , conflict] of BACKUP_TABLES){
       if(!conflict || !(T[t]||[]).length) continue;
       const r = await restoreInsertMissing(t, T[t], conflict);
@@ -6676,16 +7076,12 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(runRows), 'อันดับวิ่ง');
 
   // Sheets 5–15: Age Ranking (all 11 divisions)
-  const namesWithApproved = [...new Set(approved.map(e=>e.name))];
+  // same table as the Age Ranking page: season EXP (or lifetime before the first season), locked divisions
+  const BDx = boardData();
   AGE_DIVISIONS.forEach(d=>{
-    const members = namesWithApproved
-      .filter(n=> d.id==='beginner_tourism'
-        ? (profiles[n]&&!profiles[n].isStateAthlete&&!(profiles[n].achievements&&profiles[n].achievements.length))
-        : calcAgeDivision(n)===d.id)
-      .map(n=>({name:n, exp:levelInfo(n).exp}))
-      .sort((a,b)=>b.exp-a.exp);
-    const rows=[['อันดับ','ชื่อ','EXP']];
-    members.forEach((m,i)=>rows.push([i+1,m.name,m.exp.toFixed(0)]));
+    const members = divMembers(BDx.data.people, d.id).slice().sort((a,b)=>b.total-a.total);
+    const rows=[['อันดับ','ชื่อ','สังกัด',BDx.tag,'EXP จากปั่น','EXP จากวิ่ง']];
+    members.forEach((m,i)=>rows.push([i+1,m.name,m.office||'',m.total.toFixed(1),(m.rideExp||0).toFixed(1),(m.runExp||0).toFixed(1)]));
     const sheetName = d.label.slice(0,31); // Excel sheet name max 31 chars
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), sheetName);
   });
@@ -6791,7 +7187,7 @@ function render(){
   }
   const ageSub = document.getElementById('age-sub');
   if(ageSub) ageSub.textContent = BD.season
-    ? `จัดอันดับด้วย ${BD.tag}${BD.data.frozen?' (ผลสุดท้าย)':''} · แบ่งรุ่นอัตโนมัติจากอายุ/เพศ/BMI`
+    ? `จัดอันดับด้วย ${BD.tag}${BD.data.frozen?' (ผลสุดท้าย)':''} · รุ่นล็อกตั้งแต่กิจกรรมแรกในซีซัน · แบ่งรุ่นอัตโนมัติจากอายุ/เพศ/BMI`
     : 'จัดอันดับด้วย EXP สะสม · แบ่งรุ่นอัตโนมัติจากอายุ/เพศ/BMI';
   // "รุ่นท่องเที่ยว (สำหรับมือใหม่)" is an extra division on top of (not instead of) the person's regular one — see rule 10
   const ageRowFn = (p,i,m) => {
@@ -6970,7 +7366,7 @@ document.addEventListener('visibilitychange', async ()=>{
   syncCurrentUser(); render();
 });
 loadAccounts().then(()=> Promise.all([loadEntries(), loadProfiles(), loadSettings(), loadSeasons(), loadDecisionLog()]))
-  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); cleanupExpiredContent(); })
+  .then(()=>{ loadCurrentUser(); syncCurrentUser(); render(); showLaunchPopup(false); cleanupExpiredContent(); })
   .catch(err=>{
     console.error('initial load failed', err);
     loadCurrentUser(); render();   // still show whatever partial data came back rather than a blank screen
