@@ -951,7 +951,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-22-04';
+const BUILD_STAMP = '2026-10-22-05';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -6270,7 +6270,7 @@ function openDetail(id){
         <button class="qbtn" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="ownerEditDistance('${escAttr(e.id)}')">✎ แก้ระยะของฉัน</button>
         <button class="qbtn reject" style="flex:1;" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ยกเลิกรายการ</button>
       </div>` : ''}
-    ${adminMode && !canOwnerEditEntry(e) ? `<button class="report-btn" style="color:var(--red);" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ลบรายการนี้ (แอดมิน)</button>` : ''}
+    ${!canOwnerEditEntry(e) && (adminMode || isOwnerOf(e)) ? `<button class="report-btn" style="color:var(--red);" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ลบรายการนี้${adminMode&&!isOwnerOf(e)?' (แอดมิน)':''}</button>` : ''}
     <button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>
   `;
   document.getElementById('detail-modal').classList.add('open');
@@ -6320,6 +6320,7 @@ async function reportEntry(id){
 /* Owner self-service: the person who submitted an entry can fix the distance or withdraw it, but ONLY while it has not
    been approved (approved/rejected entries are final — admins handle those). Edits are written into flags so the admin
    sees "user changed X → Y" next to the photo, and a changed entry goes back to review. */
+function isOwnerOf(e){ return !!(currentUser && e && e.employeeId && e.employeeId===currentUser.employeeId); }
 function canOwnerEditEntry(e){
   return !!(currentUser && e && e.employeeId && e.employeeId===currentUser.employeeId && (e.status==='pending'||e.status==='flagged'));
 }
@@ -6345,14 +6346,15 @@ async function deleteEntry(id){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
   const ownerPath = canOwnerEditEntry(e);
-  if(!ownerPath && !adminMode){ alert('ลบไม่ได้ — รายการนี้ผ่านการตัดสินแล้ว ติดต่อแอดมินครับ'); return; }
+  const mine = isOwnerOf(e);
+  if(!ownerPath && !adminMode && !mine){ alert('ลบได้เฉพาะรายการของตัวเองครับ'); return; }
   const msg = ownerPath
     ? `ยกเลิกรายการ ${e.distanceKm} กม. (${e.date}) ใช่ไหม?\nลบแล้วกู้คืนไม่ได้ ต้องส่งใหม่ถ้าต้องการ`
-    : `ลบรายการของ ${e.name} ${e.distanceKm} กม. (${e.date}) สถานะ "${e.status}" ใช่ไหม?\nEXP จะถูกหักออก และกู้คืนไม่ได้`;
+    : `ลบรายการ${mine?'ของคุณ':'ของ '+e.name} ${e.distanceKm} กม. (${e.date}) สถานะ "${e.status}" ใช่ไหม?\nEXP ที่ได้จากรายการนี้จะถูกหักออก กู้คืนไม่ได้ และมีบันทึกการลบไว้ให้แอดมินเห็น`;
   if(!confirm(msg)) return;
   try{
     // RLS only lets non-approved rows be deleted, so an admin removing an APPROVED entry first flips it to rejected
-    if(e.status==='approved' && adminMode){
+    if(e.status==='approved' && (adminMode || mine)){
       const {error:e1} = await sb.from('entries').update({status:'rejected'}).eq('id', id);
       if(e1) throw e1;
     }
@@ -6365,7 +6367,7 @@ async function deleteEntry(id){
   if(m) deleteStorageFile('evidence', `evidence/${m[1]}`);          // best-effort: don't leave the proof photo orphaned
   entries = entries.filter(x=>x.id!==id);
   adminSelected.delete(id);
-  if(adminMode) logDecision(e, 'deleted');
+  logDecision(e, 'deleted');   // owner or admin — always leave an audit line
   closeDetail();
   render();
 }
