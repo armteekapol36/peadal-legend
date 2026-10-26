@@ -269,6 +269,7 @@
   /* Roblox-style character creator */
   .creator-overlay{display:none; position:fixed; inset:0; background:linear-gradient(180deg,var(--purple-pale) 0%,#FFFFFF 220px); z-index:70; overflow-y:auto; font-family:var(--sans);}
   .creator-overlay.open{display:block;}
+  body.ov-pause .page{visibility:hidden;}
   .creator-header{display:flex; justify-content:space-between; align-items:center; padding:16px;}
   .creator-title{font-family:'Orbitron',sans-serif; font-weight:900; font-size:15px; color:var(--purple-dk); letter-spacing:.06em;}
   .creator-close{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:9px; width:34px; height:34px; font-size:15px; cursor:pointer;}
@@ -951,7 +952,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-22-05';
+const BUILD_STAMP = '2026-10-26-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -4267,10 +4268,10 @@ function saiyanOverlaySvg(){
 function chibiHair(style, c){
   if(style==='bald') return '';
   const d=shadeHex(c,-40), l=shadeHex(c,45);
-  const bang = `Q198,108 186,98 Q150,78 120,84 Q84,92 72,108 Q60,124 54,152 Z`;
+  const bang = `Q206,120 190,102 Q164,80 130,80 Q96,80 70,102 Q54,120 54,152 Z`;
   const shine = `<path d="M74,60 Q96,30 122,38 Q96,46 84,78 Z" fill="${d}" opacity=".5"/>
-    <path d="M152,38 Q182,46 198,90 Q186,56 154,46 Z" fill="${d}" opacity=".5"/>
-    <path d="M98,46 Q120,30 140,44 Q120,40 108,54 Z" fill="${l}" opacity=".5"/>`;
+    <path d="M186,60 Q164,30 138,38 Q164,46 176,78 Z" fill="${d}" opacity=".5"/>
+    <path d="M108,44 Q130,30 152,44 Q130,38 108,44 Z" fill="${l}" opacity=".5"/>`;
 
   if(style==='short')
     return `<path d="M54,152 Q48,22 130,22 Q212,22 206,152 ${bang}" fill="${c}"/>${shine}`;
@@ -4554,9 +4555,9 @@ function skinAuraSvg(skin){
   return '';
 }
 
-function buildCharacterSvg(gear){
+function buildCharacterSvgRaw(gear){
   const g = Object.assign(defaultGear(), gear||{});
-  const isG = g.body==='female';
+  const isG = g.body==='female', isL = g.body==='large';   // large = 85 kg+
   const isSaiyan = g.skin==='superSaiyan';
 
   const sk=g.skinColor, skD=shadeHex(sk,-30);
@@ -4564,9 +4565,9 @@ function buildCharacterSvg(gear){
   const pt=g.pantsColor, ptD=shadeHex(pt,-30);
   const shoeC=g.shoesColor, shoeD=shadeHex(shoeC,-32);
 
-  const torsoW = isG?58:66;
+  const torsoW = isL?64:(isG?58:66);
   const torsoX = 130-torsoW/2;
-  const gap = isG?18:22, lw = isG?20:22;
+  const gap = isL?30:(isG?18:22), lw = isL?36:(isG?20:22);
   const legCx1 = 130-gap, legCx2 = 130+gap;
   const legY = 330, legH = 78;
   const bw = lw+12, bh = 28, bootY = 400;
@@ -4593,8 +4594,8 @@ function buildCharacterSvg(gear){
   };
 
   // arms
-  const armW = 20;
-  const armLx = torsoX-armW-1, armRx = torsoX+torsoW+1;
+  const armW = isL?23:20;
+  const armLx = torsoX-armW-(isL?4:1), armRx = torsoX+torsoW+(isL?4:1);
   const armY = 218;
   const sleeveH = g.shirt==='tank' ? 8 : (g.shirt==='longsleeve'||g.shirt==='hoodie'||g.shirt==='suit' ? 74 : 52);
   const handY = armY+86;
@@ -4605,7 +4606,7 @@ function buildCharacterSvg(gear){
     <rect x="${x}" y="${armY+sleeveH-6}" width="${armW}" height="${92-sleeveH}" rx="10" fill="${sk}"/>
     ${sleeveH>8?`<rect x="${x}" y="${armY}" width="${armW}" height="${sleeveH}" rx="10" fill="${shC}"/>`:''}
     ${glH?`<rect x="${x-1}" y="${handY-glH}" width="${armW+2}" height="${glH}" rx="9" fill="${g.glovesColor}"/>`:''}
-    <circle cx="${x+armW/2}" cy="${handY}" r="11" fill="${glH? g.glovesColor : sk}"/>`;
+    <circle cx="${x+armW/2}" cy="${handY}" r="${isL?13:11}" fill="${glH? g.glovesColor : sk}"/>`;
   };
 
   // shirt extras
@@ -4655,13 +4656,13 @@ function buildCharacterSvg(gear){
   ${pantsSvg}
   ${arm(armLx)} ${arm(armRx)}
 
-  <path d="M${torsoX},214 q${torsoW/2},-13 ${torsoW},0 q8,4 7,17 l-4,50 q-1,12 -14,12 h-${torsoW-14} q-13,0 -14,-12 l-4,-50 q-1,-13 7,-17 Z" fill="${shC}"/>
+  ${isL ? `<path d="M${torsoX},214 q${torsoW/2},-14 ${torsoW},0 q10,4 10,18 q11,34 -2,56 q-6,12 -22,12 h-${torsoW-28} q-16,0 -22,-12 q-13,-22 -2,-56 q0,-14 10,-18 Z" fill="${shC}"/>` : `<path d="M${torsoX},214 q${torsoW/2},-13 ${torsoW},0 q8,4 7,17 l-4,50 q-1,12 -14,12 h-${torsoW-22} q-13,0 -14,-12 l-4,-50 q-1,-13 7,-17 Z" fill="${shC}"/>`}
   <path d="M${torsoX+9},218 q${torsoW/2-9},17 ${torsoW-18},0 l0,9 q-${torsoW/2-9},15 -${torsoW-18},0 Z" fill="${shD}" opacity=".5"/>
   ${shirtExtra}
 
-  <path d="M116,192 h28 v22 q-14,8 -28,0 Z" fill="${skD}"/>
+  <path d="M${isL?110:116},192 h${isL?40:28} v22 q-${isL?20:14},8 -${isL?40:28},0 Z" fill="${skD}"/>
 
-  <path d="M130,32 q66,0 70,74 q3,60 -30,86 q-18,14 -40,14 q-22,0 -40,-14 q-33,-26 -30,-86 q4,-74 70,-74 Z" fill="${sk}"/>
+  <path d="M130,32 q66,0 70,74 q${isL?4:3},60 -${isL?27:30},86 q-${isL?20:18},${isL?16:14} -${isL?43:40},${isL?16:14} q-${isL?23:22},0 -${isL?43:40},-${isL?16:14} q-${isL?31:33},-26 -${isL?27:30},-86 q4,-74 70,-74 Z" fill="${sk}"/>
   <ellipse cx="60" cy="146" rx="9" ry="13" fill="${sk}"/>
   <ellipse cx="200" cy="146" rx="9" ry="13" fill="${sk}"/>
   ${chibiEarring(g.earring, g.earringColor)}
@@ -4669,10 +4670,10 @@ function buildCharacterSvg(gear){
   ${chibiHair(g.hairStyle, g.hairColor)}
   ${isSaiyan ? saiyanOverlaySvg() : ''}
 
-  ${chibiEye(98,144,g.eyes,g.eyeColor)}
-  ${chibiEye(164,144,g.eyes,g.eyeColor)}
-  <ellipse cx="131" cy="166" rx="3.4" ry="2.4" fill="${shadeHex(sk,-42)}" opacity=".7"/>
-  ${chibiMouth(g.mouth)}
+  ${chibiEye(97,144,g.eyes,g.eyeColor)}
+  ${chibiEye(163,144,g.eyes,g.eyeColor)}
+  <ellipse cx="130" cy="166" rx="3.4" ry="2.4" fill="${shadeHex(sk,-42)}" opacity=".7"/>
+  <g transform="translate(-1 0)">${chibiMouth(g.mouth)}</g>
   <ellipse cx="80" cy="170" rx="12" ry="7" fill="#F09A8A" opacity=".35"/>
   <ellipse cx="182" cy="170" rx="12" ry="7" fill="#F09A8A" opacity=".35"/>
 
@@ -4682,21 +4683,108 @@ function buildCharacterSvg(gear){
 </svg>`;
 }
 
+/* ===== depth pass: gradients only (no filters → cheap on phones) =====
+   body parts get front-lit cylinder shading (bright centre, dark on BOTH edges so the figure never looks tilted),
+   the head a sphere gradient, the hair a vertical gradient + gloss arc, soft outlines, head-shadow on the shirt and
+   contact shadows under the shoes. Applied on top of the flat SVG so the geometry code above stays unchanged. */
+function charDepth(svg, gearIn){
+  const g = Object.assign(defaultGear(), gearIn||{});
+  const isG = g.body==='female', isL = g.body==='large';
+  const hid = c => String(c).replace('#','').toUpperCase();
+  const L = (c,n)=>shadeHex(c,n);
+  const defs = [];
+  const seen = new Set();
+  const cyl = c => {                       // left-lit cylinder, per-element bounding box
+    const id = 'c3cyl_'+hid(c);
+    if(!seen.has(id)){ seen.add(id); defs.push(
+      `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${L(c,-30)}"/><stop offset=".22" stop-color="${c}"/><stop offset=".5" stop-color="${L(c,20)}"/>
+        <stop offset=".78" stop-color="${c}"/><stop offset="1" stop-color="${L(c,-30)}"/></linearGradient>`); }
+    return `url(#${id})`;
+  };
+  const vert = c => {                      // top-lit, for hair
+    const id = 'c3v_'+hid(c);
+    if(!seen.has(id)){ seen.add(id); defs.push(
+      `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${L(c,30)}"/><stop offset=".45" stop-color="${c}"/><stop offset="1" stop-color="${L(c,-34)}"/></linearGradient>`); }
+    return `url(#${id})`;
+  };
+  const sk = g.skinColor;
+  // head sphere
+  defs.push(`<radialGradient id="c3head_${hid(sk)}" cx=".5" cy=".34" r=".72">
+      <stop offset="0" stop-color="${L(sk,22)}"/><stop offset=".5" stop-color="${sk}"/><stop offset="1" stop-color="${L(sk,-30)}"/></radialGradient>
+    <radialGradient id="c3gnd" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="c3rim" x1="0" y1="0" x2="1" y2="0"><stop offset=".75" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".35"/></linearGradient>`);
+
+  // 2) head: swap the big head path to the sphere gradient (unique start "M130,32 q66,0")
+  svg = svg.replace(/(<path d="M130,32 q66,0[^"]*" )fill="[^"]*"/, `$1fill="url(#c3head_${hid(sk)})" stroke="${L(sk,-55)}" stroke-opacity=".35" stroke-width="1.6"`);
+
+  // 1) + 4) flat fills -> gradients with a soft outline
+  const swap = (color, paint, outline) => {
+    if(!color) return;
+    const esc = color.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re = new RegExp(`<(rect|path|circle|ellipse)\\b([^>]*?)\\sfill="${esc}"([^>]*?)\\/>`, 'gi');
+    svg = svg.replace(re, (m, tag, a, b)=>{
+      const attrs = a + b;
+      if(/opacity="\.?[0-4]/.test(attrs)) return m;                 // keep translucent detail layers flat
+      const stroke = outline && !/stroke=/.test(attrs) ? ` stroke="${L(color,-50)}" stroke-opacity=".35" stroke-width="1.4"` : '';
+      return `<${tag}${a} fill="${paint(color)}"${b}${stroke}/>`;
+    });
+  };
+  swap(sk, cyl, true);
+  swap(g.shirtColor, cyl, true);
+  swap(g.pantsColor, cyl, true);
+  swap(g.shoesColor, cyl, true);
+  swap(g.socksColor, cyl, false);
+  swap(g.glovesColor, cyl, true);
+  swap(g.hatColor, cyl, true);
+  if(g.hairStyle!=='bald') swap(g.hairColor, vert, true);
+
+  // 5a) head shadow on the shirt, just before the neck
+  svg = svg.replace(/<path d="M1\d\d,192 h/, m=>`<ellipse cx="130" cy="218" rx="${isL?32:(isG?30:34)}" ry="10" fill="#000" opacity=".16"/>\n  ${m}`);
+  // 3) hair gloss + jaw shade + rim light on the face (inserted before the nose, i.e. above hair & eyes)
+  const gloss = g.hairStyle==='bald'
+    ? `<path d="M96,58 Q130,36 164,58" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="8" stroke-linecap="round"/>`
+    : `<path d="M94,52 Q130,30 166,52" fill="none" stroke="#fff" stroke-opacity=".34" stroke-width="7" stroke-linecap="round"/>`;
+  svg = svg.replace(/<ellipse cx="13[01]" cy="166"/, m=>
+    `<path d="M86,184 q44,26 88,0 q-8,12 -20,17 q-24,9 -48,0 q-12,-5 -20,-17 Z" fill="${L(sk,-40)}" opacity=".14"/>
+     ${g.hat==='none' ? gloss : ''}
+     ${m}`);
+  // 5b) contact shadows under the shoes
+  const gap = isL?30:(isG?18:22);
+  svg = svg.replace(/(<ellipse cx="130" cy="443"[^>]*\/>)/,
+    `$1<ellipse cx="${130-gap}" cy="430" rx="${isL?30:22}" ry="5" fill="url(#c3gnd)"/><ellipse cx="${130+gap}" cy="430" rx="${isL?30:22}" ry="5" fill="url(#c3gnd)"/>`);
+
+  return svg.replace('</defs>', defs.join('') + '</defs>');
+}
+
+const _charCache = new Map();
+function buildCharacterSvg(gear){
+  const g = Object.assign(defaultGear(), gear||{});
+  const key = JSON.stringify(g);
+  let out = _charCache.get(key);
+  if(out) return out;
+  try{ out = charDepth(buildCharacterSvgRaw(g), g); }catch(e){ out = buildCharacterSvgRaw(g); }
+  if(_charCache.size > 300) _charCache.clear();
+  _charCache.set(key, out);
+  return out;
+}
+
 /* ===== podium regalia: trophy-in-hand (rank 1-3) / medal-on-neck (rank 4-5) =====
    Composited onto buildCharacterSvg()'s own output as an overlay group, so the
    character engine itself stays untouched — this is a pure add-on layer used
    only by the weekly podium. */
-function wpRegaliaGeometry(isFemale){
-  const torsoW = isFemale ? 58 : 66;
+function wpRegaliaGeometry(isFemale, isLarge){
+  const torsoW = isLarge ? 64 : (isFemale ? 58 : 66);
   const torsoX = 130 - torsoW/2;
-  const armRx = torsoX + torsoW + 1;
-  const armW = 20;
+  const armRx = torsoX + torsoW + (isLarge ? 4 : 1);
+  const armW = isLarge ? 23 : 20;
   const handX = armRx + armW/2;   // character's right hand (viewer's right side)
   const handY = 218 + 86;         // armY + sleeve/forearm offset, matches arm() in buildCharacterSvg
   return {handX, handY};
 }
-function wpTrophyOverlay(isFemale){
-  const {handX, handY} = wpRegaliaGeometry(isFemale);
+function wpTrophyOverlay(isFemale, isLarge){
+  const {handX, handY} = wpRegaliaGeometry(isFemale, isLarge);
   const cx = handX + 6, baseY = handY - 34;
   return `
   <g transform="translate(${cx-18},${baseY-46})">
@@ -4722,7 +4810,7 @@ function wpMedalOverlay(ribbonColor){
 }
 function wpCharacterWithRegalia(gear, rank){
   const svg = buildCharacterSvg(gear);
-  const overlay = rank<=3 ? wpTrophyOverlay(gear.body==='female') : wpMedalOverlay(rank===4 ? '#7F3F98' : '#C2551F');
+  const overlay = rank<=3 ? wpTrophyOverlay(gear.body==='female', gear.body==='large') : wpMedalOverlay(rank===4 ? '#7F3F98' : '#C2551F');
   return svg.replace('</svg>', overlay + '</svg>');
 }
 
@@ -4968,10 +5056,32 @@ function renderAvatarFor(gear, name, size){
 }
 
 /* head-only crop of the chibi character, for small circular avatars */
+/* Small avatars are drawn with a STILL aura: the animated aura has ~100 SMIL <animate> nodes per copy, and a screen
+   full of small avatars (frame picker = 12 copies, lists, feed) ran 1000+ animations at once — ~9 fps on phones.
+   The big character on the creator stage / podium keeps the moving aura. Results are memoised per gear+size. */
+const _headshotCache = new Map();
+/* freeze every SMIL animation on its first keyframe: a 10 ms one-shot that holds (fill="freeze") instead of an
+   endless loop, so the aura is still drawn (several layers start transparent and only fade in through <animate>) but
+   costs nothing per frame afterwards */
+function stripSvgAnim(svg){
+  return svg.replace(/<(animate(?:Transform|Motion)?)\b([^>]*)\/>/g, (m, tag, attrs)=>{
+    const v = attrs.match(/\bvalues="([^"]*)"/), fr = attrs.match(/\bfrom="([^"]*)"/), to = attrs.match(/\bto="([^"]*)"/);
+    const first = v ? v[1].split(';')[0].trim() : (fr ? fr[1] : (to ? to[1] : null));
+    if(first==null || tag==='animateMotion') return '';
+    const rest = attrs.replace(/\s(?:values|from|to|by|dur|repeatCount|repeatDur|keyTimes|keySplines|calcMode|begin|end|fill|restart)="[^"]*"/g, '');
+    return `<${tag}${rest} values="${first}" dur="0.01s" fill="freeze"/>`;
+  });
+}
 function headshotSvg(gear, px){
-  return buildCharacterSvg(gear)
+  const key = px + '|' + JSON.stringify(gear||{});
+  let out = _headshotCache.get(key);
+  if(out) return out;
+  out = stripSvgAnim(buildCharacterSvg(gear))
     .replace('viewBox="0 0 260 470" width="178" height="322" class="creator-char"',
              `viewBox="46 6 168 196" width="${px}" height="${px}"`);
+  if(_headshotCache.size > 400) _headshotCache.clear();
+  _headshotCache.set(key, out);
+  return out;
 }
 
 /* circular avatar (photo or character head) at any size */
@@ -5022,7 +5132,7 @@ const CREATOR_CATEGORIES = [
   {key:'special', label:'พิเศษ', ic:'✨'},
 ];
 const CREATOR_OPTS = {
-  body: [{id:'male',ic:'👨',label:'ชาย'},{id:'female',ic:'👩',label:'หญิง'}],
+  body: [{id:'male',ic:'👨',label:'ชาย'},{id:'female',ic:'👩',label:'หญิง'},{id:'large',ic:'🧑',label:'ท้วม (85 กก.+)'}],
   hair: [{id:'short',ic:'💇',label:'ทรงสั้น'},{id:'spiky',ic:'🦔',label:'ทรงหนาม'},{id:'long',ic:'👱',label:'ทรงยาว'},{id:'curly',ic:'🧑‍🦱',label:'ผมหยิก'},{id:'ponytail',ic:'👱‍♀️',label:'หางม้า'},{id:'twintail',ic:'👧',label:'สองหาง'},{id:'bald',ic:'👨‍🦲',label:'โล้น'}],
   eyes: [{id:'round',ic:'😊',label:'ตากลม'},{id:'sharp',ic:'😼',label:'ตาคม'},{id:'star',ic:'🤩',label:'ตาประกาย'},{id:'sleepy',ic:'😌',label:'ตาง่วง'},{id:'wink',ic:'😉',label:'ขยิบตา'}],
   mouth: [{id:'smile',ic:'🙂',label:'ยิ้ม'},{id:'grin',ic:'😄',label:'ยิ้มกว้าง'},{id:'small',ic:'😐',label:'ปากเล็ก'},{id:'open',ic:'😮',label:'อ้าปาก'},{id:'frown',ic:'🙁',label:'ปากคว่ำ'}],
@@ -5046,7 +5156,9 @@ function openCharacterCreator(name){
   creatorCategory = 'body';
   const profile = profiles[name] || {gear:defaultGear()};
   window._creatorGear = Object.assign(defaultGear(), profile.gear||{});
+  _creatorCtx = null;
   document.getElementById('creator-overlay').classList.add('open');
+  setBackdropPaused(true);
   renderCreator();
 }
 
@@ -5062,8 +5174,19 @@ function refreshAfterProfileChange(){
   try{ renderSearch(); }catch(e){}
 }
 
+/* While a full-screen overlay is open the page behind it is invisible but its podium/aura SVGs kept animating
+   (hundreds of SMIL nodes) and stealing frames from the creator. Hide it and freeze those SVGs until it closes. */
+function setBackdropPaused(on){
+  document.body.classList.toggle('ov-pause', !!on);
+  document.querySelectorAll('.page svg').forEach(sv=>{
+    if(!sv.querySelector('animate,animateTransform')) return;
+    try{ on ? sv.pauseAnimations() : sv.unpauseAnimations(); }catch(e){}
+  });
+}
 function closeCreator(){
   document.getElementById('creator-overlay').classList.remove('open');
+  setBackdropPaused(false);
+  _creatorCtx = null;
   openAthlete(creatorAthleteName);
 }
 
@@ -5149,11 +5272,13 @@ function openShareCard(entryId){
   document.getElementById('sc-photo').onchange = scHandlePhoto;
   scBindDrag();
   document.getElementById('share-overlay').classList.add('open');
+  setBackdropPaused(true);
   scDraw();
 }
 
 function closeShareCard(){
   document.getElementById('share-overlay').classList.remove('open');
+  setBackdropPaused(false);
   shareState = null;
 }
 
@@ -5565,31 +5690,63 @@ function setCreatorCategory(key){
   renderCreator();
 }
 
+/* Picking an option used to rebuild the whole creator (header, stage, every tab, every frame preview) on each tap
+   and on every tick of a colour-picker drag — which also destroyed the picker the finger was on and reset scroll.
+   Now a pick only redraws the parts that show the look, at most once per animation frame, and flips the
+   highlighted card/swatch in place. */
+let _creatorRaf = 0;
 function creatorSelect(field, value){
   window._creatorGear[field] = value;
-  renderCreator();
+  if(_creatorRaf) return;
+  _creatorRaf = requestAnimationFrame(()=>{ _creatorRaf = 0; updateCreatorPreview(); });
+}
+function updateCreatorPreview(){
+  const root = document.getElementById('creator-content');
+  if(!root || !document.getElementById('creator-stage-char')){ renderCreator(); return; }
+  const g = window._creatorGear, name = creatorAthleteName;
+  document.getElementById('creator-stage-char').innerHTML = buildCharacterSvg(g);
+  const bike = document.getElementById('creator-stage-bike'); if(bike) bike.innerHTML = svgBike(g);
+  const hdr = document.getElementById('creator-hdr-av'); if(hdr) hdr.innerHTML = framedAvatar(name, g, 72);
+  const fn = document.getElementById('cp-frame-name'); if(fn) fn.textContent = '🖼️ ' + frameById(g.frame).name;
+  root.querySelectorAll('[data-f]').forEach(el=>{
+    el.classList.toggle(el.classList.contains('creator-swatch') ? 'selected' : 'active', String(g[el.dataset.f])===el.dataset.v);
+  });
+  root.querySelectorAll('input.creator-color-picker[data-pf]').forEach(inp=>{
+    if(inp!==document.activeElement && g[inp.dataset.pf] && inp.value!==g[inp.dataset.pf]) inp.value = g[inp.dataset.pf];
+  });
 }
 
 function creatorColorSwatches(field, current){
   return PALETTE.map(c=>`<div class="creator-swatch ${c===current?'selected':''}" style="background:${c}"
     onclick="creatorSelect('${field}','${c}')"></div>`).join('') +
-    `<input type="color" class="creator-color-picker" value="${current}" oninput="creatorSelect('${field}', this.value)">`;
+    `<input type="color" class="creator-color-picker" data-pf="${field}" value="${current}" oninput="creatorSelect('${field}', this.value)">`;
 }
 
+let _creatorCtx = null;      // level / stats / unlocks don't change while the creator is open — compute once
+function creatorCtx(){
+  if(_creatorCtx && _creatorCtx.name===creatorAthleteName) return _creatorCtx;
+  const name = creatorAthleteName;
+  const mine = entries.filter(e=>e.name===name && (e.status==='approved'||e.status==='flagged'));
+  _creatorCtx = {
+    name, li: levelInfo(name), crownTitles: wpChampionTitles(name), ap: auraProgress(name),
+    rideKm: mine.filter(e=>e.type==='ride').reduce((s,e)=>s+e.distanceKm,0),
+    runKm:  mine.filter(e=>e.type==='run').reduce((s,e)=>s+e.distanceKm,0),
+    office: (mine[0] && mine[0].office)
+      || (currentUser && `${currentUser.firstName} ${currentUser.lastName}`===name ? currentUser.office : '')
+      || 'ยังไม่ระบุสังกัด',
+  };
+  return _creatorCtx;
+}
 function renderCreator(){
   const name = creatorAthleteName;
-  const li = levelInfo(name);
+  const cx = creatorCtx();
+  const li = cx.li;
   const level = li.level;
   const saiyanUnlocked = level >= SAIYAN_UNLOCK_LEVEL;
-  const crownTitles = wpChampionTitles(name);
+  const crownTitles = cx.crownTitles;
   const g = window._creatorGear;
   const cat = creatorCategory;
-  const mine = entries.filter(e=>e.name===name && (e.status==='approved'||e.status==='flagged'));
-  const rideKm = mine.filter(e=>e.type==='ride').reduce((s,e)=>s+e.distanceKm,0);
-  const runKm  = mine.filter(e=>e.type==='run').reduce((s,e)=>s+e.distanceKm,0);
-  const office = (mine[0] && mine[0].office)
-    || (currentUser && `${currentUser.firstName} ${currentUser.lastName}`===name ? currentUser.office : '')
-    || 'ยังไม่ระบุสังกัด';
+  const rideKm = cx.rideKm, runKm = cx.runKm, office = cx.office;
 
   let optionsHtml = '';
   let colorHtml = '';
@@ -5629,7 +5786,7 @@ function renderCreator(){
   } else if(cat==='skin'){
     optionsHtml = SKIN_PRESETS.map(o=>`<div class="creator-opt-card ${g.skinColor===o.id?'active':''}"
       onclick="creatorSelect('skinColor','${o.id}')"><span class="opt-ic" style="background:${o.id}; width:22px; height:22px; border-radius:50%; display:inline-block;"></span>${o.label}</div>`).join('');
-    colorHtml = `<div class="creator-color-label">สีผิวแบบกำหนดเอง</div><div class="creator-swatches"><input type="color" class="creator-color-picker" value="${g.skinColor}" oninput="creatorSelect('skinColor', this.value)"></div>`;
+    colorHtml = `<div class="creator-color-label">สีผิวแบบกำหนดเอง</div><div class="creator-swatches"><input type="color" class="creator-color-picker" data-pf="skinColor" value="${g.skinColor}" oninput="creatorSelect('skinColor', this.value)"></div>`;
   } else if(cat==='bike'){
     optionsHtml = '';
     colorHtml = `
@@ -5657,12 +5814,12 @@ function renderCreator(){
     }).join('');
     colorHtml = `<div class="creator-lock">ปลดล็อกกรอบใหม่ทุกๆ 10 เลเวล — ตอนนี้เลเวล ${level}</div>`;
   } else if(cat==='special'){
-    const ap = auraProgress(name);
+    const ap = cx.ap;
     const card = (val, icon, label, unlocked)=>`<div class="creator-opt-card ${g.skin===val?'active':''}" style="${unlocked?'':'opacity:.4;'}" onclick="${unlocked?`creatorSelect('skin','${val}')`:''}"><span class="opt-ic">${icon}</span>${label}</div>`;
     optionsHtml = card('none','🙂','ปกติ',true)
       + card('superSaiyan','✨','ออร่าซุปเปอร์ไซย่า',saiyanUnlocked)
       + Object.keys(AURA_CHALLENGES).map(k=>card(k, AURA_CHALLENGES[k].icon, AURA_CHALLENGES[k].name, ap[k].done)).join('')
-      + `<div class="creator-opt-card ${g.crown==='gold'?'active':''}" style="${crownTitles?'':'opacity:.4;'}" onclick="${crownTitles?`creatorSelect('crown',window._creatorGear.crown==='gold'?'none':'gold')`:''}"><span class="opt-ic">👑</span>มงกุฎทองแชมป์</div>`;
+      + `<div class="creator-opt-card ${g.crown==='gold'?'active':''}" data-f="crown" data-v="gold" style="${crownTitles?'':'opacity:.4;'}" onclick="${crownTitles?`creatorSelect('crown',window._creatorGear.crown==='gold'?'none':'gold')`:''}"><span class="opt-ic">👑</span>มงกุฎทองแชมป์</div>`;
     const locks = [];
     if(!saiyanUnlocked) locks.push(`🔒 ปลดล็อกออร่าซุปเปอร์ไซย่าที่เลเวล ${SAIYAN_UNLOCK_LEVEL} (ตอนนี้เลเวล ${level})`);
     Object.keys(AURA_CHALLENGES).forEach(k=>{
@@ -5676,6 +5833,8 @@ function renderCreator(){
     colorHtml = `<div class="creator-lock" style="text-align:left;">ออร่าใส่ได้ทีละ 1 แบบ · นับเฉพาะรายการที่แอดมินอนุมัติแล้ว</div>` + locks.map(t=>`<div class="creator-lock" style="text-align:left;">${t}</div>`).join('');
   }
 
+  const tagSel = h => h.replace(/onclick="creatorSelect\('(\w+)','([^']*)'\)"/g, (m,f,v)=>`${m} data-f="${f}" data-v="${v}"`);
+  optionsHtml = tagSel(optionsHtml); colorHtml = tagSel(colorHtml);
   const content = document.getElementById('creator-content');
   content.innerHTML = `
     <div class="creator-header">
@@ -5685,7 +5844,7 @@ function renderCreator(){
 
     <div class="creator-profile">
       <div style="display:flex; align-items:center; gap:11px; margin-bottom:8px;">
-        <div style="flex:0 0 auto;">${framedAvatar(name, g, 72)}</div>
+        <div style="flex:0 0 auto;" id="creator-hdr-av">${framedAvatar(name, g, 72)}</div>
         <div style="flex:1; min-width:0;">
           <div class="cp-top">
             <div class="cp-name">${esc(name)}</div>
@@ -5699,13 +5858,13 @@ function renderCreator(){
       <div class="cp-stats">
         <span>🚴 ${rideKm.toFixed(1)} กม.</span>
         <span>🏃 ${runKm.toFixed(1)} กม.</span>
-        <span>🖼️ ${frameById(g.frame).name}</span>
+        <span id="cp-frame-name">🖼️ ${frameById(g.frame).name}</span>
       </div>
     </div>
 
     <div class="creator-stage">
       <div id="creator-stage-char">${buildCharacterSvg(g)}</div>
-      <div>${svgBike(g)}</div>
+      <div id="creator-stage-bike">${svgBike(g)}</div>
     </div>
     <div class="creator-tabs">
       ${CREATOR_CATEGORIES.map(c=>`<div class="creator-tab ${cat===c.key?'active':''}" onclick="setCreatorCategory('${c.key}')"><span class="ic">${c.ic}</span>${c.label}</div>`).join('')}
