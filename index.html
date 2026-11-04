@@ -33,7 +33,7 @@
 <meta name="apple-mobile-web-app-title" content="PEADAL LEGEND">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&family=Bebas+Neue&family=Cinzel+Decorative:wght@900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
@@ -445,6 +445,63 @@
     .nav-item .ic{display:inline; margin:0 3px 0 0; font-size:15px;}
   }
   @media (prefers-reduced-motion:reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+  /* ===== THEME: "PEADAL LEGEND" fantasy-RPG look (from the club poster) =====
+     palette pulled from the poster: grape purple #6C1291 / wine #3E195C / amethyst #932DB2, royal gold #FDDA7E,
+     parchment cream #FFF3CD, sky #166AFC, sakura #DB83CA. Text colours were darkened from the poster's so every
+     label stays AA-readable on cream. Scenes are one static SVG per page (no animation, no image downloads). */
+  :root{
+    --bg:#FBF3DC; --panel:#FFF8E4; --panel-2:#FBEBC4; --line:#DDB45E;
+    --purple:#6C1291; --purple-dk:#3E195C; --purple-lt:#932DB2; --purple-pale:#F3E3F6;
+    --lime:#6C1291; --text:#33183F; --text-dim:#674A5C; --field:#FFFCF2;
+    --gold:#FDDA7E; --gold-dk:#B9852A; --gold-deep:#8A5A12;
+    --fantasy:'Cinzel Decorative','Cinzel',Georgia,'Times New Roman',serif;
+    --scene-h:230px;
+  }
+  body{background:#FBF3DC !important;}
+  #scene{position:absolute; left:0; right:0; top:calc(var(--nav-h, 60px)); height:var(--scene-h); z-index:0; pointer-events:none;
+    background-repeat:no-repeat; background-position:center bottom; background-size:cover;}
+  #scene::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:60px; background:linear-gradient(180deg,rgba(251,243,220,0),#FBF3DC);}
+  #app{position:relative; z-index:1;}
+
+  /* top navigation = game menu bar */
+  .nav{background:linear-gradient(180deg,#7A1FA3,#4B0F6E) !important; border-bottom:3px solid var(--gold) !important;
+    box-shadow:0 3px 0 var(--gold-deep),0 6px 18px rgba(40,10,70,.35) !important;}
+  .nav-item{color:#EBDDF3 !important;}
+  .nav-item.active{color:var(--gold) !important; text-shadow:0 1px 0 #2A0D40;}
+
+  /* app header = crest logo over the scene */
+  .eyebrow{flex-direction:column; align-items:center !important; justify-content:center !important; gap:2px; margin:6px 0 14px !important; text-transform:none !important; letter-spacing:0 !important;}
+  .eyebrow #brand-tap{display:flex; align-items:center; justify-content:center; gap:4px; cursor:default;}
+  .logo-t{font-family:var(--fantasy); font-weight:900; font-size:clamp(30px,10vw,42px); line-height:.92; text-align:center; letter-spacing:.01em;
+    background:linear-gradient(180deg,#FFF8D2 0%,#FDDA7E 46%,#D3922A 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    -webkit-text-stroke:2px #3E195C; filter:drop-shadow(0 3px 0 #3E195C) drop-shadow(0 6px 8px rgba(30,10,60,.35));}
+  .logo-wing{width:46px; height:40px; flex:0 0 auto;}
+  .logo-wing.r{transform:scaleX(-1);}
+  .logo-ribbon{margin-top:8px; padding:6px 28px; background:linear-gradient(180deg,#932DB2,#5A0F80); color:#FFF4D6; font-weight:800; font-family:var(--fantasy);
+    letter-spacing:.1em; font-size:13px; border-top:2px solid var(--gold); border-bottom:2px solid var(--gold); box-shadow:0 3px 0 #3E195C;
+    clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%);}
+  .eyebrow #date-now{margin-top:6px; font-family:var(--mono); font-size:11px; color:#fff; background:rgba(62,25,92,.55); padding:2px 10px; border-radius:999px; letter-spacing:.06em;}
+  .eyebrow .dot{display:none;}
+
+  /* parchment cards with a double gold frame (podium boards keep their own colours) */
+  .card:not([id^="sec-weekly-podium"]):not([style*="background"]), .user-header{background:linear-gradient(180deg,#FFF9E6,#FCEEC9) !important; border:2px solid var(--gold-dk) !important;
+    box-shadow:inset 0 0 0 3px #FFF4D2, inset 0 0 0 4px #E8C877, 0 3px 0 #B98A2E, 0 6px 14px rgba(80,40,10,.15) !important; border-radius:14px !important;}
+  h2{font-family:var(--fantasy) !important; font-weight:900 !important; color:var(--purple-dk) !important; letter-spacing:.03em !important; text-transform:none !important;}
+  #sec-weekly-podium, #sec-weekly-podium-run, .wp-box{border:3px solid var(--gold) !important; box-shadow:0 4px 0 #9C6A1C, 0 8px 18px rgba(40,10,70,.3) !important;}
+  .global-banner{background:linear-gradient(180deg,#932DB2,#5A0F80) !important; border:2px solid var(--gold); box-shadow:0 3px 0 #3E195C !important;}
+  .season-banner{border:2px solid var(--gold); box-shadow:0 3px 0 #3E195C !important;}
+  .season-banner.upcoming{background:linear-gradient(135deg,#7A1FA3,#3E195C) !important;}
+  .card[style*="background"]{border:2px solid var(--gold) !important; box-shadow:0 3px 0 #3E195C !important;}
+
+  /* buttons = gold-rimmed capsules */
+  .submit-btn{background:linear-gradient(180deg,#932DB2,#5A0F80) !important; border:2px solid var(--gold) !important; border-radius:999px !important;
+    box-shadow:0 3px 0 #3E195C !important; color:#FFF4D6 !important;}
+  .qbtn.approve{background:linear-gradient(180deg,#932DB2,#5A0F80) !important; border:2px solid var(--gold) !important; box-shadow:0 2px 0 #3E195C !important;}
+  .stat{background:#FFF3CD !important; border:1.5px solid #E2C06E !important;}
+  .stat .v{color:var(--purple) !important;}
+  .type-btn.active, .seg-btn.active{box-shadow:inset 0 0 0 2px var(--gold);}
+  @media (max-width:360px){ .logo-wing{width:34px; height:30px;} }
 </style>
 </head>
 <body>
@@ -454,8 +511,9 @@
   <button id="pwa-install-btn" onclick="pwaInstallClick()" style="display:none; background:#fff; color:var(--purple); border:none; border-radius:8px; padding:6px 14px; font-weight:700; font-size:13px; cursor:pointer;">ติดตั้ง</button>
   <button onclick="pwaDismissBanner()" aria-label="ปิด" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">✕</button>
 </div>
+<div id="scene" aria-hidden="true"></div>
 <div id="app">
-  <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><span class="dot"></span>PEADAL LEGEND</span><span id="date-now"></span></div>
+  <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><svg class="logo-wing l" viewBox="0 0 46 40" aria-hidden="true"><path d="M44,22 C34,8 18,2 2,6 C10,9 14,12 16,15 C9,14 4,16 1,20 C9,20 13,22 15,25 C9,26 6,29 5,33 C14,30 24,30 32,32 Z" fill="#FFFFFF" stroke="#B9852A" stroke-width="2" stroke-linejoin="round"/><path d="M16,15 C24,16 32,18 40,21 M15,25 C22,25 29,26 36,28" stroke="#E2C06E" stroke-width="1.5" fill="none"/></svg><span class="logo-t">PEADAL<br>LEGEND</span><svg class="logo-wing r" viewBox="0 0 46 40" aria-hidden="true"><path d="M44,22 C34,8 18,2 2,6 C10,9 14,12 16,15 C9,14 4,16 1,20 C9,20 13,22 15,25 C9,26 6,29 5,33 C14,30 24,30 32,32 Z" fill="#FFFFFF" stroke="#B9852A" stroke-width="2" stroke-linejoin="round"/><path d="M16,15 C24,16 32,18 40,21 M15,25 C22,25 29,26 36,28" stroke="#E2C06E" stroke-width="1.5" fill="none"/></svg></span><div class="logo-ribbon">PEA BIKE CLUB</div><span id="date-now"></span></div>
   <div id="global-banner" style="display:none;"></div>
   <div class="user-header" id="user-header" onclick="goPage('me')"></div>
 
@@ -724,7 +782,8 @@
           <div class="type-btn" data-t="run" onclick="setSubType('run')">🏃 วิ่ง</div>
         </div>
 
-        <div class="field"><label>วันที่ทำกิจกรรม</label><input type="date" id="s-date" lang="th-TH" onchange="renderDateEvidence()"></div>
+        <div class="field"><label>วันที่ทำกิจกรรม</label><input type="date" id="s-date" lang="th-TH" onchange="renderDateEvidence(); renderSameDayNotice()"></div>
+        <div id="same-day-notice"></div>
 
         <div class="field">
           <label>หลักฐาน — สกรีนช็อตแอป หรือรูปหน้าจอนาฬิกา/ไมล์</label>
@@ -952,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-10-26-02';
+const BUILD_STAMP = '2026-11-04-01';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1804,6 +1863,7 @@ function goToSubmitForm(){
   document.getElementById('me-profile-section').style.display = 'none';
   document.getElementById('me-submit-section').style.display = 'block';
   document.getElementById('s-date').value = localDateKey();
+  renderSameDayNotice();
 }
 
 function backToMeProfile(){
@@ -2235,7 +2295,95 @@ function renderFeed(){
   if(focusedId){ const inp=document.getElementById(focusedId); if(inp) inp.focus(); }
 }
 
+
+/* ===== PAGE SCENES — a static backdrop behind the crest logo, one per tab =====
+   dashboard = castle town · Age Ranking = arena · feed = market street + airship · Road to Legend = mountain pass ·
+   Account = guild hall · rules = library temple. Plain SVG drawn once per tab switch (cached), no animation. */
+const PAGE_SCENE = {dashboard:'castle', age:'arena', feed:'town', rtl:'mountain', me:'guild', rules:'temple', admin:'castle'};
+const _sceneCache = {};
+function sceneSvg(kind){
+  const W = 480, G = 262;                                   // width, ground line
+  const cloud = (x,y,s)=>`<g fill="#fff" opacity=".9" transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="30" ry="12"/><ellipse cx="-20" cy="4" rx="18" ry="9"/><ellipse cx="22" cy="5" rx="20" ry="9"/><ellipse cx="2" cy="-8" rx="16" ry="11"/></g>`;
+  const blossoms = (cx,cy,flip)=>{
+    let s = `<g transform="translate(${cx} ${cy}) scale(${flip?-1:1} 1)"><path d="M-10,-30 C30,0 50,10 95,22 M30,2 C40,-12 52,-18 66,-20 M60,14 C70,24 74,36 76,50" stroke="#7B4A55" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    const pts = [[0,-22],[16,-6],[34,4],[52,10],[72,16],[90,22],[40,-8],[58,-16],[68,-22],[64,22],[72,34],[76,46],[10,-34],[26,-14],[82,8]];
+    pts.forEach(([x,y],i)=>{ s += `<circle cx="${x}" cy="${y}" r="${9+(i%3)*2}" fill="${i%2?'#F6B8DE':'#E99BD3'}"/><circle cx="${x-3}" cy="${y-3}" r="3" fill="#FFE3F4"/>`; });
+    return s + '</g>';
+  };
+  const ground = `<rect x="0" y="${G}" width="${W}" height="${300-G}" fill="#DCCFC2"/>`
+    + Array.from({length:24},(_,i)=>`<ellipse cx="${(i*41)%W+ (Math.floor(i/12)%2)*20}" cy="${G+10+Math.floor(i/12)*18}" rx="16" ry="6" fill="#C7B8A9"/>`).join('')
+    + `<rect x="0" y="${G-3}" width="${W}" height="4" fill="#9FB067"/>`;
+  const hills = `<path d="M0,${G-40} C80,${G-90} 150,${G-70} 220,${G-50} C300,${G-95} 380,${G-80} ${W},${G-55} L${W},${G} L0,${G} Z" fill="#A9BDE8"/>`
+    + `<path d="M0,${G-18} C90,${G-50} 170,${G-30} 260,${G-24} C340,${G-48} 420,${G-36} ${W},${G-20} L${W},${G} L0,${G} Z" fill="#9CC58C"/>`;
+  const flag = (x,y,c)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-22}" stroke="#5A3A2A" stroke-width="2"/><path d="M${x},${y-22} l16,4 l-16,5 Z" fill="${c||'#932DB2'}"/>`;
+  const tower = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#CFC8D8"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#8E86A0" stroke-width="1.5"/>`
+    + `<path d="M${x-4},${y} L${x+w/2},${y-30} L${x+w+4},${y} Z" fill="#6C1291"/>${flag(x+w/2,y-30)}`
+    + `<rect x="${x+w/2-4}" y="${y+14}" width="8" height="12" rx="4" fill="#4A3A5E"/>`;
+  const house = (x,w,h,roof,awn)=>`<rect x="${x}" y="${G-h}" width="${w}" height="${h}" fill="#F5E4C8"/><path d="M${x},${G-h} L${x+w},${G-h} M${x+w/2},${G-h} L${x+w/2},${G} M${x},${G-h/2} L${x+w},${G-h/2}" stroke="#8A6A55" stroke-width="2"/>`
+    + `<path d="M${x-6},${G-h} L${x+w/2},${G-h-26} L${x+w+6},${G-h} Z" fill="${roof}"/><rect x="${x+8}" y="${G-h+10}" width="12" height="12" fill="#7FB0E8" stroke="#8A6A55"/>`
+    + (awn ? Array.from({length:Math.floor(w/10)},(_,i)=>`<rect x="${x+i*10}" y="${G-26}" width="10" height="8" fill="${i%2?'#fff':awn}"/>`).join('') : '');
+  let mid = '';
+  if(kind==='castle'){
+    mid = house(18,46,52,'#B4553E') + house(70,40,44,'#8E3FA8','#C2551F')
+      + `<rect x="250" y="${G-80}" width="190" height="80" fill="#D9D2E0"/><path d="M250,${G-80} h190" stroke="#8E86A0" stroke-width="2"/>`
+      + Array.from({length:10},(_,i)=>`<rect x="${250+i*19}" y="${G-90}" width="11" height="10" fill="#D9D2E0"/>`).join('')
+      + `<path d="M318,${G} v-44 a27,27 0 0 1 54,0 v44 Z" fill="#5E4A6E"/>`
+      + tower(232,G-130,40,130) + tower(420,G-140,44,140) + tower(326,G-170,38,90)
+      + `<rect x="300" y="${G-70}" width="16" height="30" fill="#932DB2"/><rect x="374" y="${G-70}" width="16" height="30" fill="#932DB2"/>`;
+  } else if(kind==='arena'){
+    mid = `<path d="M60,${G} L60,${G-96} Q240,${G-140} 420,${G-96} L420,${G} Z" fill="#E6D5BC"/>`
+      + Array.from({length:3},(_,r)=>Array.from({length:12},(_,i)=>`<path d="M${80+i*28},${G-14-r*30} v-14 a8,8 0 0 1 16,0 v14 Z" fill="#B79D80"/>`).join('')).join('')
+      + Array.from({length:6},(_,i)=>flag(90+i*60,G-112-(i%2)*6, i%2?'#FDDA7E':'#932DB2')).join('')
+      + `<path d="M196,${G} v-38 a44,44 0 0 1 88,0 v38 Z" fill="#6E5A48"/>`;
+  } else if(kind==='town'){
+    mid = house(10,60,70,'#B4553E','#C2551F') + house(78,52,58,'#6C1291','#932DB2') + house(138,64,78,'#2E7D6B','#E3B23C')
+      + house(210,56,64,'#B4553E','#C2551F') + house(274,62,72,'#6C1291','#DB83CA') + house(344,54,60,'#2E7D6B','#C2551F') + house(406,62,76,'#B4553E','#932DB2')
+      + `<g transform="translate(330 60)"><ellipse cx="0" cy="0" rx="60" ry="20" fill="#EFE6F7" stroke="#8E7BB8" stroke-width="2"/><path d="M-60,0 l-16,-14 v28 Z" fill="#932DB2"/>`
+      + `<rect x="-14" y="22" width="28" height="12" rx="3" fill="#8A6A55"/><line x1="-10" y1="18" x2="-10" y2="22" stroke="#8A6A55"/><line x1="10" y1="18" x2="10" y2="22" stroke="#8A6A55"/>`
+      + `<text x="0" y="6" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="16" fill="#6C1291">PEA</text></g>`;
+  } else if(kind==='mountain'){
+    mid = `<path d="M0,${G} L110,${G-150} L200,${G} Z" fill="#8E7BB8"/><path d="M90,${G-122} L110,${G-150} L130,${G-120} L118,${G-126} L110,${G-118} Z" fill="#fff"/>`
+      + `<path d="M150,${G} L300,${G-200} L450,${G} Z" fill="#6C5AA0"/><path d="M270,${G-160} L300,${G-200} L330,${G-158} L314,${G-166} L300,${G-152} L286,${G-166} Z" fill="#fff"/>`
+      + `<path d="M380,${G} L450,${G-110} L${W},${G-60} L${W},${G} Z" fill="#8E7BB8"/>`
+      + `<path d="M230,${G} C260,${G-40} 330,${G-50} 290,${G-90} C260,${G-120} 320,${G-140} 300,${G-196}" stroke="#F3E2B8" stroke-width="7" fill="none" stroke-linecap="round"/>`
+      + flag(300,G-200,'#FDDA7E');
+  } else if(kind==='guild'){
+    mid = house(16,50,56,'#B4553E','#C2551F') + house(414,50,56,'#2E7D6B')
+      + `<rect x="130" y="${G-110}" width="220" height="110" fill="#F2E2C4" stroke="#8A6A55" stroke-width="2"/>`
+      + `<path d="M116,${G-110} L240,${G-180} L364,${G-110} Z" fill="#6C1291" stroke="#3E195C" stroke-width="2"/>`
+      + `<circle cx="240" cy="${G-136}" r="16" fill="#FDDA7E" stroke="#B9852A" stroke-width="3"/><path d="M232,${G-136} h16 M240,${G-144} v16" stroke="#6C1291" stroke-width="3"/>`
+      + `<path d="M218,${G} v-48 a22,22 0 0 1 44,0 v48 Z" fill="#6E4A3A"/>`
+      + `<rect x="150" y="${G-90}" width="22" height="40" fill="#932DB2"/><rect x="308" y="${G-90}" width="22" height="40" fill="#932DB2"/>`
+      + `<path d="M150,${G-50} l11,8 l11,-8 M308,${G-50} l11,8 l11,-8" fill="#932DB2"/>`;
+  } else if(kind==='temple'){
+    mid = `<rect x="110" y="${G-20}" width="260" height="20" fill="#E6DCCB"/><rect x="126" y="${G-34}" width="228" height="14" fill="#EFE6D6"/>`
+      + Array.from({length:6},(_,i)=>`<rect x="${140+i*40}" y="${G-120}" width="16" height="86" fill="#F4EDE0" stroke="#C8BBA5"/>`).join('')
+      + `<path d="M118,${G-120} L240,${G-170} L362,${G-120} Z" fill="#EFE6D6" stroke="#C8BBA5" stroke-width="2"/>`
+      + `<ellipse cx="240" cy="${G-178}" rx="36" ry="24" fill="#6C1291"/><rect x="236" y="${G-214}" width="8" height="16" fill="#FDDA7E"/>`
+      + `<path d="M40,${G} v-60 h40 v60 Z M400,${G} v-60 h40 v60 Z" fill="#D9CDB8"/>`
+      + `<rect x="46" y="${G-56}" width="28" height="36" rx="3" fill="#FFF3CD" stroke="#B9852A"/><rect x="406" y="${G-56}" width="28" height="36" rx="3" fill="#FFF3CD" stroke="#B9852A"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 300" preserveAspectRatio="xMidYMax slice">`
+    + `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F6FF0"/><stop offset=".55" stop-color="#8FB3F3"/><stop offset="1" stop-color="#DCE8FA"/></linearGradient></defs>`
+    + `<rect width="${W}" height="300" fill="url(#sky)"/>`
+    + cloud(70,40,1) + cloud(250,24,.8) + cloud(410,54,1.1)
+    + hills + mid + ground + blossoms(-6,30,false) + blossoms(486,30,true)
+    + `</svg>`;
+}
+function setScene(page){
+  const el = document.getElementById('scene');
+  if(!el) return;
+  const kind = PAGE_SCENE[page] || 'castle';
+  if(el.dataset.kind===kind) return;
+  if(!_sceneCache[kind]) _sceneCache[kind] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sceneSvg(kind)) + '")';
+  el.style.backgroundImage = _sceneCache[kind];
+  el.dataset.kind = kind;
+}
+
+setScene('dashboard');
+
 function goPage(p){
+  setScene(p);
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===p));
@@ -2387,6 +2535,38 @@ function toggleAdmin(){
 function setSubType(t){
   subType = t;
   document.querySelectorAll('.type-btn').forEach(el=>el.classList.toggle('active', el.dataset.t===t));
+  renderSameDayNotice();
+}
+
+/* ===== "you already sent something for this day" =====
+   Real problem: an entry that went to admin review disappeared from the member's own history (it only listed approved
+   ones), so people thought the upload had failed and sent the same ride again and again. The form now shows what is
+   already on file for the chosen day — pending ones included — and asks before a second one of the same type. */
+const STATUS_TH = {approved:'✅ อนุมัติแล้ว', pending:'⏳ รอแอดมินตรวจสอบ', flagged:'🚩 ถูกแจ้งตรวจสอบ', rejected:'❌ ไม่ผ่าน'};
+function myEntriesOn(date){
+  if(!currentUser || !date) return [];
+  const name = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+  return entries.filter(x=>(x.employeeId ? x.employeeId===currentUser.employeeId : x.name===name) && x.date===date && x.status!=='rejected');
+}
+function renderSameDayNotice(){
+  const el = document.getElementById('same-day-notice');
+  if(!el) return;
+  const date = (document.getElementById('s-date')||{}).value;
+  const list = myEntriesOn(date);
+  if(!list.length){ el.innerHTML = ''; return; }
+  const waiting = list.some(x=>x.status!=='approved');
+  el.innerHTML = `<div class="exif-badge ${waiting?'warn':'neutral'}" style="margin:-4px 0 12px;"><div>
+      📋 วันที่ ${esc(date)} คุณส่งไว้แล้ว ${list.length} รายการ:
+      ${list.map(x=>`<br>• ${x.type==='ride'?'🚴 ปั่น':'🏃 วิ่ง'} ${x.distanceKm.toFixed(2)} กม. — ${STATUS_TH[x.status]||x.status}`).join('')}
+      ${waiting ? `<br><b>รายการที่รอตรวจสอบไม่ต้องส่งซ้ำ</b> แอดมินจะตรวจจากรูปเดิมและแก้ระยะให้ถ้าอ่านผิด ส่งเพิ่มเฉพาะเมื่อเป็นกิจกรรมคนละครั้งกัน` : 'ส่งเพิ่มได้ถ้าเป็นกิจกรรมคนละครั้งกัน'}
+    </div></div>`;
+}
+/* plain-language list of why an entry is waiting for an admin (flags are already Thai, just trimmed) */
+function reviewReasonsText(flags, max){
+  const f = (flags||[]).filter(x=>!/^แอดมินแก้ระยะ/.test(x));
+  if(!f.length) return '';
+  const short = f.slice(0, max||3).map(x=>'• '+String(x).replace(/^AI:\s*/,'').slice(0,140));
+  return short.join('\n') + (f.length>(max||3) ? `\n• และอีก ${f.length-(max||3)} ข้อ` : '');
 }
 
 
@@ -2873,7 +3053,7 @@ const OCR_TH_MONTHS_FULL = [   // full spelled-out month names (Apple Health/Fit
   [7,'กรกฎาคม'],[8,'สิงหาคม'],[9,'กันยายน'],[10,'ตุลาคม'],[11,'พฤศจิกายน'],[12,'ธันวาคม']];
 const OCR_TH_MONTHS = [   // order matters: มี.ค. (Mar) before ม.ค. (Jan)
   [3,'มี[.\\s]{0,3}ค'],[1,'ม[.\\s]{0,3}ค'],[2,'ก[.\\s]{0,3}พ'],[4,'เม[.\\s]{0,3}ย'],[5,'พ[.\\s]{0,3}ค'],[6,'มิ[.\\s]{0,3}ย'],
-  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'[กค][\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s]{0,3}ย'],[12,'ธ[.\\s]{0,3}ค']];
+  [7,'ก[.\\s]{0,3}ค'],[8,'ส[.\\s]{0,3}ค'],[9,'[กค][\\u0E30-\\u0E4E.\\s]{0,4}[ยขบ]'],[10,'ต[.\\s]{0,3}ค'],[11,'พ[.\\s\\u0E30-\\u0E4E]{0,5}[ยข]'],[12,'ธ[.\\s]{0,3}ค']];
 const OCR_EN_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 function ocrExtractDate(text, refMs){
   const ref = new Date(refMs || Date.now());
@@ -2937,14 +3117,25 @@ function ocrExtractDate(text, refMs){
   //    Thai month abbreviation does not. Month is then inferred as the most recent day-of-month match on/before the
   //    screenshot date (this month or last, never in the future) — a screenshot of an activity is never from later
   //    than the moment it was taken, and the date-evidence rule still demands it equals today, so nothing is loosened.
-  if((m = t.match(/(?<![\d:.,\/])(\d{1,2})\s?[^\s@:]{1,6}\s?@\s?\d{1,2}\s?[:.]\s?\d{2}/))){
-    const d = +m[1];
-    if(d>=1 && d<=31){
-      const limit = localDateKey(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()+1));
-      for(let back=0; back<=1; back++){
-        const mi = ref.getMonth()-back, y = ref.getFullYear() + (mi<0 ? -1 : 0), mo = ((mi%12)+12)%12 + 1;
-        const iso = ocrIso(y, mo, d);
-        if(iso && iso <= limit) return iso;
+  //    The month letters can also break into several tokens or digits ("1 พ . ข . @ 06:31", "1 W.2. @ 06:31") — real
+  //    case: the stray "2" (a misread ย) was taken as the day and a 1 Nov ride was dated 2 Nov. So look at every number
+  //    in the stretch before "@": a number followed by letters (the month) wins over one followed only by a dot, the
+  //    one nearest the "@" wins among those, and the day can never be after the screenshot was taken.
+  {
+    const limit = localDateKey(ref);
+    const at = /@\s?\d{1,2}\s?[:.]\s?\d{2}/g; let mm;
+    while((mm = at.exec(t))){
+      const win = t.slice(Math.max(0, mm.index-18), mm.index);
+      const nums = [...win.matchAll(/(?<![\d:.,\/])(\d{1,2})(?![\d:,\/])/g)].map(n=>{ const after = win.slice(n.index+n[1].length);
+        return {d:+n[1], letter:/^\s?[^\s\d.,:@]/.test(after), dotted:/^\./.test(after)}; });
+      const ordered = nums.filter(n=>n.letter).reverse().concat(nums.filter(n=>!n.letter));   // nearest day+month to the "@" first (a ride title can end in a number too)
+      for(const {d, dotted} of ordered){
+        if(!(d>=1 && d<=31)) continue;
+        for(let back=0; back<=(dotted?0:1); back++){   // "2." is more likely a misread month letter than a day: this month only
+          const mi = ref.getMonth()-back, y = ref.getFullYear() + (mi<0 ? -1 : 0), mo = ((mi%12)+12)%12 + 1;
+          const iso = ocrIso(y, mo, d);
+          if(iso && iso <= limit) return iso;
+        }
       }
     }
   }
@@ -3045,6 +3236,8 @@ function ocrAnalyze(rawText, refMs){
   let actDate = ocrExtractDate(rawText, refMs);
   // an activity can't be in the future — a "date" past tomorrow is a misread (e.g. "2026-10-10" read as "2026-12-18")
   if(actDate){ const t=new Date(); t.setDate(t.getDate()+1); if(actDate > localDateKey(t)) actDate = null; }
+  // ...nor after the screenshot itself was taken (real case: 1 Nov ride, screenshot 1 Nov, date misread as 2 Nov)
+  if(actDate && refMs && actDate > localDateKey(new Date(refMs))) actDate = null;
   let duration = ocrExtractDuration(rawText);
   const pace = ocrExtractPace(rawText);
 
@@ -3194,10 +3387,9 @@ async function runAiRead(dataUrl, refMs){
     };
     renderAiResult(pendingAiRead);
   }catch(err){
-    aiDiv.innerHTML = `<div class="exif-badge warn">อ่านรูปไม่สำเร็จ (${esc(err.message||'error')}) — ตรวจสอบอินเทอร์เน็ต (ต้องโหลดตัวอ่านภาษาไทยจากอินเทอร์เน็ตครั้งแรก) แล้วอัปโหลดรูปใหม่</div>`;
-    const distField = document.getElementById('s-dist');
-    distField.disabled = true;
-    distField.placeholder = 'อัปโหลดรูปใหม่เพื่อให้อ่านอีกครั้ง';
+    aiDiv.innerHTML = `<div class="exif-badge warn">อ่านรูปไม่สำเร็จ (${esc(err.message||'error')}) — ตรวจสอบอินเทอร์เน็ต (ต้องโหลดตัวอ่านภาษาไทยจากอินเทอร์เน็ตครั้งแรก) แล้วลองอัปโหลดรูปใหม่ หรือกรอกระยะทางเองแล้วส่งให้แอดมินตรวจ</div>`;
+    pendingAiRead = {distance_km:null, activity_date:null, confidence:'low', note:'อ่านรูปไม่สำเร็จ: '+String(err.message||'error').slice(0,80), ocrFailed:true};
+    enableManualDistance('ระบบอ่านรูปไม่สำเร็จ');
   }
 }
 
@@ -3216,19 +3408,29 @@ function renderAiResult(parsed){
   applyAiRead();
 }
 
+/* When OCR can't produce a number the member used to be stuck (submit refused) and kept re-uploading. Now they can
+   type the distance from their photo; the entry is always held for an admin, who checks it against the same photo. */
+function enableManualDistance(why){
+  const distField = document.getElementById('s-dist');
+  distField.disabled = false; distField.readOnly = false; distField.value = '';
+  distField.placeholder = 'พิมพ์ระยะทางตามรูป เช่น 33.34';
+  window._manualDistWhy = why;
+  document.getElementById('dist-mismatch').innerHTML = `<div class="exif-badge warn" style="margin:-4px 0 12px;"><div>✍️ ${esc(why)} — พิมพ์ระยะทางตามที่เห็นในรูปได้เลย รายการนี้จะ<b>รอแอดมินตรวจกับรูป</b>ก่อนนับสถิติ (ไม่ต้องอัปโหลดซ้ำ)</div></div>`;
+}
 function applyAiRead(){
   if(!pendingAiRead) return;
   const distField = document.getElementById('s-dist');
   if(pendingAiRead.distance_km!=null){
+    window._manualDistWhy = null;
     distField.value = pendingAiRead.distance_km;
-    distField.disabled = true;
+    distField.disabled = true; distField.readOnly = true;
     document.getElementById('dist-mismatch').innerHTML = '';
   } else {
-    distField.disabled = true;
-    distField.placeholder = 'OCR อ่านค่าไม่ได้ — กรุณาอัปโหลดรูปที่ชัดกว่านี้';
+    enableManualDistance('OCR อ่านระยะทางจากรูปไม่ได้');
   }
   if(pendingAiRead.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(pendingAiRead.activity_date)) document.getElementById('s-date').value = pendingAiRead.activity_date;
   renderDateEvidence();
+  renderSameDayNotice();
 }
 
 
@@ -3250,16 +3452,32 @@ async function _submitEntryInner(){
   if(!pendingPhotoDataUrl){
     alert('กรุณาแนบรูปหลักฐานก่อนส่งผล'); return;
   }
-  if(!pendingAiRead || pendingAiRead.distance_km==null){
-    alert('AI ยังอ่านระยะทางจากรูปไม่ได้ — กรุณาอัปโหลดรูปที่ชัดเจนกว่านี้ก่อนส่งผล (ระบบไม่รับกรอกระยะทางเอง)');
+  if(!pendingAiRead){
+    alert('ระบบยังอ่านรูปไม่เสร็จ — รอสักครู่แล้วกดส่งอีกครั้งครับ');
     return;
   }
-  const dist = pendingAiRead.distance_km;   // always the AI-read value — the field is locked, not user-editable
+  // the AI-read value whenever there is one (field locked); a typed value only when OCR could not read the photo
+  let manualDist = false, dist = pendingAiRead.distance_km;
+  if(dist==null){
+    const typed = parseFloat(String(document.getElementById('s-dist').value||'').replace(',','.'));
+    if(!(typed>0 && typed<=1000)){ alert('ระบบอ่านระยะทางจากรูปไม่ได้ — กรุณาพิมพ์ระยะทางตามที่เห็นในรูป (กม.) แล้วกดส่ง รายการจะรอแอดมินตรวจกับรูป'); return; }
+    dist = Math.round(typed*100)/100; manualDist = true;
+  }
   if(!date || !dist || dist<=0){
     alert('กรอกวันที่ให้ครบก่อนนะครับ'); return;
   }
   if(date > localDateKey()){ alert('วันที่ที่กรอกเป็นวันในอนาคต — กรุณาเลือกวันที่ทำกิจกรรมจริงครับ'); return; }
   { const w = seasonSubmitWarning(date); if(w && !confirm(w)) return; }
+  { // already something of the same type on this day (pending included)?
+    const same = myEntriesOn(date).filter(x=>x.type===subType);
+    if(same.length){
+      const lines = same.map(x=>`• ${x.distanceKm.toFixed(2)} กม. — ${STATUS_TH[x.status]||x.status}`).join('\n');
+      const waiting = same.some(x=>x.status!=='approved');
+      if(!confirm(`วันที่ ${date} คุณส่ง${subType==='ride'?'ปั่นจักรยาน':'วิ่ง'}ไว้แล้ว:\n${lines}\n\n`
+        + (waiting ? 'รายการที่รอตรวจสอบไม่ต้องส่งซ้ำ — แอดมินจะตรวจและแก้ระยะให้จากรูปเดิม\n\n' : '')
+        + 'ส่งรายการนี้เพิ่มเป็น "กิจกรรมอีกครั้งหนึ่ง" ใช่ไหม?\n(กด "ยกเลิก" ถ้าเป็นกิจกรรมเดียวกัน)')) return;
+    }
+  }
   if(!currentUser.consent){
     alert('บัญชีของคุณยังไม่ได้ยินยอมเปิดเผยข้อมูล กรุณาไปที่ "เปลี่ยนบัญชี" เพื่อติ๊กยินยอมก่อนส่งผล'); return;
   }
@@ -3273,6 +3491,7 @@ async function _submitEntryInner(){
   else if(pendingAiRead.crossCheckFailed) flags.push('AI: ' + (pendingAiRead.note||'ระยะทางไม่สอดคล้องกับเวลา/ความเร็วในรูป'));
   if(pendingAiRead.confidence==='low') flags.push('AI อ่านรูปด้วยความมั่นใจต่ำ');
   if(pendingAiRead.integerOnly) flags.push('AI: ระยะทางที่อ่านได้ ('+pendingAiRead.distance_km+' กม.) เป็นเลขจำนวนเต็มไม่มีทศนิยมและไม่มีเวลา×ความเร็วยืนยัน — ตรวจสอบกับรูปก่อนอนุมัติ');
+  if(manualDist) flags.push(`ผู้ใช้พิมพ์ระยะทางเอง ${dist} กม. (${window._manualDistWhy||'OCR อ่านไม่ได้'}) — ตรวจกับรูปก่อนอนุมัติ`);
   if(pendingAiRead.unitUnconfirmed) flags.push('AI: อ่านตัวเลขระยะทางได้แต่ไม่เห็นหน่วย (กม.) ชัดเจนในรูป — ตรวจสอบก่อนอนุมัติ');
 
   // likely double-submit of the same activity (same person, type, day and ~same distance)
@@ -3318,7 +3537,7 @@ async function _submitEntryInner(){
 
   // reset form
   ['s-dist','s-note'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('s-dist').disabled = true;
+  document.getElementById('s-dist').disabled = true; document.getElementById('s-dist').readOnly = true;
   document.getElementById('s-dist').placeholder = 'อัปโหลดรูปเพื่อให้ AI อ่านค่าให้อัตโนมัติ';
   document.getElementById('exif-result').innerHTML='';
   document.getElementById('ai-result').innerHTML='';
@@ -3329,7 +3548,10 @@ async function _submitEntryInner(){
   pendingPhotoDataUrl=null; pendingExifDate=null; pendingShotDate=null; pendingAiRead=null;
   document.getElementById('dist-mismatch').innerHTML='';
 
-  alert(flags.length ? 'ส่งผลเรียบร้อย — มีรายการที่ต้องตรวจสอบ รอแอดมินอนุมัติก่อนขึ้นกระดานผู้นำ' : 'ส่งผลเรียบร้อย — อนุมัติอัตโนมัติ ขึ้นกระดานผู้นำแล้ว!');
+  window._manualDistWhy = null;
+  alert(flags.length
+    ? `ส่งผลเรียบร้อย ✓ (${dist} กม.) — รายการนี้รอแอดมินตรวจสอบก่อนนับสถิติ เพราะ:\n${reviewReasonsText(flags)}\n\nไม่ต้องอัปโหลดซ้ำ — ดูสถานะได้ที่ "กิจกรรมรอตรวจสอบ" ในหน้าโปรไฟล์ และแก้ระยะ/ยกเลิกเองได้ระหว่างรอ`
+    : 'ส่งผลเรียบร้อย — อนุมัติอัตโนมัติ ขึ้นกระดานผู้นำแล้ว!');
   backToMeProfile();
 }
 
@@ -6141,6 +6363,25 @@ function buildAthleteProfileHtml(name, opts){
       <div>${allAchievements.map(a=>`<div class="achievement-item">🏅 ${esc(a)}</div>`).join('')}</div>
     `;
     })()}
+
+    ${owner ? (()=>{
+      const cutoff = localDateKey(new Date(Date.now()-30*86400000));
+      const waiting = entries.filter(e=>e.name===name && (e.status==='pending' || (e.status==='rejected' && e.date>=cutoff)))
+        .sort((a,b)=>(b.date+(b.submittedAt||'')).localeCompare(a.date+(a.submittedAt||'')));
+      if(!waiting.length) return '';
+      return `<div class="lb-sub" style="margin:10px 0 6px;">⏳ กิจกรรมรอตรวจสอบ — ยังไม่นับในสถิติ (${waiting.filter(e=>e.status==='pending').length} รายการ)</div>
+        <div>${waiting.map(e=>{
+          const why = (e.flags||[]).filter(x=>!/^แอดมินแก้ระยะ/.test(x)).map(x=>String(x).replace(/^AI:\s*/,''))[0] || '';
+          return `<div class="lb-row" onclick="openDetail('${escAttr(e.id)}')" style="${e.status==='rejected'?'opacity:.7;':''}">
+            <div style="font-size:16px;">${e.type==='ride'?'🚴':'🏃'}</div>
+            <div class="lb-info" style="min-width:0;"><div class="lb-name">${esc(e.date)}</div>
+              <div class="lb-sub" style="white-space:normal; font-weight:700;">${STATUS_TH[e.status]||esc(e.status)}</div>
+              ${why ? `<div class="lb-sub" style="white-space:normal;">${esc(why.slice(0,110))}${why.length>110?'…':''}</div>` : ''}</div>
+            <div style="flex:1"></div>
+            <div class="lb-val">${e.distanceKm.toFixed(1)} กม.</div>
+          </div>`; }).join('')}</div>
+        <div class="note-small" style="text-align:left; margin:4px 0 10px;">แตะรายการเพื่อดูรายละเอียด แก้ระยะ หรือยกเลิก — ไม่ต้องอัปโหลดซ้ำ แอดมินจะตรวจจากรูปเดิม</div>`;
+    })() : ''}
 
     <div class="lb-sub" style="margin:10px 0 6px;">ประวัติการลงข้อมูล — ${athleteState.type==='ride'?'ปั่นจักรยาน':'วิ่ง'}</div>
     <div>${typeMine.length ? typeMine.map(e=>`
