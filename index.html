@@ -446,6 +446,47 @@
   }
   @media (prefers-reduced-motion:reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
 
+
+
+  .nav-item.nav-ss{color:#FFE48A !important; font-weight:700;}
+  .nav-item.nav-ss.active{text-shadow:0 0 8px rgba(255,214,120,.7), 0 1px 0 #2A0D40;}
+  .nav-item{overflow-wrap:anywhere;}
+  #page-ss .ss-bar{margin-top:0;}
+  .ss-rules{display:flex; flex-direction:column; gap:6px; font-size:13px; line-height:1.5;}
+  .ss-gap{text-align:center; color:var(--text-dim); font-size:14px; line-height:1; padding:2px 0;}
+  .ss-more{text-align:center; font-size:12.5px; font-weight:700; color:var(--purple); padding:10px 0 2px; cursor:pointer;}
+  .lb-row.lb-me{background:rgba(253,203,85,.22); border-radius:10px;}
+  /* ===== SS bar: quest panel under the crest ===== */
+  .ss-bar{position:relative; margin:-4px 0 12px; padding:10px 12px 11px; border-radius:14px; cursor:pointer; color:#FFF4D6;
+    background:radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255,214,120,.22), rgba(255,214,120,0) 70%), linear-gradient(180deg,#5A1A82,#2E0A48);
+    border:2px solid #FDCB55; box-shadow:inset 0 0 0 2px #8A5A12, inset 0 0 0 4px rgba(253,203,85,.25), 0 4px 0 #2A0840, 0 8px 18px rgba(30,8,50,.35);}
+  .ss-bar:focus-visible{outline:3px solid #FFE48A; outline-offset:2px;}
+  .ss-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .ss-tag{font-family:var(--fantasy); font-weight:900; font-size:13px; letter-spacing:.06em; color:#1F0A30; background:linear-gradient(180deg,#FFF1B8,#FDCB55 55%,#D99A2B); padding:2px 9px; border-radius:6px; box-shadow:0 2px 0 #8A5A12;}
+  .ss-name{font-weight:800; font-size:12px; color:#FFE48A;}
+  .ss-status{margin-left:auto; font-size:12px; color:#EADCF5;}
+  .ss-status b{color:#FFE48A; font-size:14px;}
+  .ss-time{height:6px; border-radius:6px; background:rgba(255,255,255,.18); margin:7px 0 2px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.35);}
+  .ss-time i{display:block; height:100%; background:linear-gradient(90deg,#FDCB55,#FFF1B8); border-radius:6px;}
+  .ss-exp{display:flex; align-items:baseline; justify-content:center; gap:6px; margin-top:6px;}
+  .ss-num{font-family:var(--fantasy); font-weight:900; font-size:34px; line-height:1; background:linear-gradient(180deg,#FFFBE0,#FFE48A 45%,#F0A92E); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 2px 0 #1F0A30);}
+  .ss-unit{font-family:var(--mono); font-size:11px; font-weight:700; color:#FFE48A; letter-spacing:.08em;}
+  .ss-sub{text-align:center; font-size:12px; color:#EADCF5; margin-top:3px;}
+  .ss-pend{color:#FFB37A; font-weight:700;}
+  .ss-badges{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:9px;}
+  .ss-badge{background:rgba(255,255,255,.08); border:1.5px solid rgba(253,203,85,.55); border-radius:10px; padding:5px 4px; text-align:center; min-width:0;}
+  .ss-bl{font-size:10.5px; color:#EADCF5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ss-bv{font-family:var(--fantasy); font-weight:900; font-size:18px; color:#FFE48A; line-height:1.15;}
+  .ss-bv small{font-family:var(--sans); font-size:11px; color:#D9C6EA; font-weight:700;}
+  .ss-goal{margin-top:8px; font-size:12px; text-align:center; color:#FFF4D6; background:rgba(0,0,0,.18); border-radius:8px; padding:5px 8px;}
+  .ss-cta{margin-top:8px; text-align:center; font-size:13px; font-weight:700; color:#FFE48A;}
+  .ss-mini{position:fixed; left:50%; transform:translate(-50%,-140%); top:calc(var(--nav-h, 60px) + 6px); z-index:29; padding:6px 14px; border-radius:999px; font-size:12.5px; color:#FFF4D6;
+    background:linear-gradient(180deg,#5A1A82,#2E0A48); border:2px solid #FDCB55; box-shadow:0 3px 0 #2A0840, 0 6px 14px rgba(30,8,50,.35); white-space:nowrap; cursor:pointer;
+    transition:transform .25s ease; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis;}
+  .ss-mini.show{transform:translate(-50%,0);}
+  .ss-mini b{color:#FFE48A; font-size:14px;}
+  .ss-mini .ss-tag{font-size:11px; padding:1px 7px; margin-right:4px;}
+  @media (prefers-reduced-motion:reduce){ .ss-mini{transition:none;} }
   /* ===== THEME: "PEADAL LEGEND" fantasy-RPG look (from the club poster) =====
      palette pulled from the poster: grape purple #6C1291 / wine #3E195C / amethyst #932DB2, royal gold #FDDA7E,
      parchment cream #FFF3CD, sky #166AFC, sakura #DB83CA. Text colours were darkened from the poster's so every
@@ -645,6 +686,10 @@
   </div>
 
   <!-- RULES -->
+  <div class="page" id="page-ss">
+    <div id="ss-bar" class="ss-bar" style="display:none;"></div>
+    <div id="ss-boards"></div>
+  </div>
   <div class="page" id="page-rules">
     <div class="card">
       <h2>📜 กติกาการเข้าร่วมกิจกรรม</h2>
@@ -992,6 +1037,7 @@
 
 <div class="nav">
   <div class="nav-item active" data-page="dashboard" onclick="goPage('dashboard')"><span class="ic">📊</span>แดชบอร์ด</div>
+  <div class="nav-item nav-ss" data-page="ss" onclick="goPage('ss')"><span class="ic">⚔️</span><span id="nav-ss-label">SS1</span></div>
   <div class="nav-item" data-page="age" onclick="goPage('age')"><span class="ic">🏅</span>Age Ranking</div>
   <div class="nav-item" data-page="feed" onclick="goPage('feed')"><span class="ic">🏠</span>ฟีด</div>
   <div class="nav-item" data-page="rtl" onclick="goPage('rtl')"><span class="ic">🏆</span>Road to Legend</div>
@@ -1044,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-05';
+const BUILD_STAMP = '2026-11-04-07';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -1538,9 +1584,133 @@ function seasonBannerHtml(){
   return `<div class="season-banner final" onclick="openWinners()"><div class="sb-t">🏆 ซีซัน ${x.number}${nm} — ผลสุดท้าย</div><div class="sb-s">แตะเพื่อดูผู้ชนะ ·${nxt}</div></div>`;
 }
 function renderSeasonSlots(){
-  const h = seasonBannerHtml();
+  // upcoming / running season now live in the SS bar under the crest; the dashboard card stays only for review & results
+  const md = seasonState().mode;
+  const h = (md==='upcoming' || md==='active') && document.getElementById('ss-bar') ? '' : seasonBannerHtml();
+  const ssp = document.getElementById('page-ss');
+  if(ssp && ssp.classList.contains('active')) renderSSPage(); else renderSSBar();
   document.querySelectorAll('.season-slot').forEach(el=>{ el.innerHTML = h; el.style.display = h ? 'block' : 'none'; });
 }
+
+
+/* ===== SEASON EXP BAR — "SS1" quest panel under the crest, on every tab =====
+   top row: season + countdown + time bar · middle: my season EXP (ride/run split, still under review, this week) ·
+   bottom: three rank badges (division, office, overall). Collapses into a one-line strip under the menu when scrolled. */
+function ssBarData(){
+  const st = seasonState();
+  if(st.mode==='none') return null;
+  const x = st.season, now = new Date();
+  const out = {mode:st.mode, x, tag:seasonTag(x)};
+  if(st.mode==='upcoming') out.daysToStart = Math.max(0, Math.ceil((seasonStartAt(x)-now)/DAY_MS));
+  if(st.mode==='active'){
+    const total = Math.max(1, Math.round((seasonEndAt(x)-seasonStartAt(x))/DAY_MS));
+    out.dayNo = Math.min(total, Math.max(1, Math.floor((now-seasonStartAt(x))/DAY_MS)+1)); out.days = total;
+    out.left = Math.max(0, Math.ceil((seasonEndAt(x)-now)/DAY_MS));
+  }
+  if(st.mode==='ended') out.reviewing = !x.final && now < seasonReviewEndAt(x);
+  if(!currentUser) return out;
+  const name = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+  const mine = e=>(e.employeeId ? e.employeeId===currentUser.employeeId : e.name===name);
+  out.loggedIn = true;
+  if(st.mode==='upcoming') return out;
+  const D = seasonData(x), me = D.people.find(p=>p.name===name) || null;
+  out.exp = me ? me.total : 0; out.rideExp = me ? me.rideExp : 0; out.runExp = me ? me.runExp : 0;
+  out.pending = entries.filter(e=>mine(e) && e.status==='pending' && e.date>=x.startDate && e.date<=x.endDate).reduce((s,e)=>s+expOfEntry(e),0);
+  const mon = localDateKey(wpMondayOf(now));
+  out.week = entries.filter(e=>mine(e) && seasonCounts(e,x) && e.date>=mon).reduce((s,e)=>s+expOfEntry(e),0);
+  const R = seasonRankInfo(name) || {};
+  Object.assign(out, {divRank:R.divRank, divSize:R.divSize, divLabel:R.divLabel, gap:R.gap, officeRank:R.officeRank, officeCount:R.officeCount, office: me ? me.office : currentUser.office});
+  const all = D.people.slice().sort((a,b)=>b.total-a.total), oi = all.findIndex(p=>p.name===name);
+  if(oi>=0){ out.allRank = oi+1; out.allSize = all.length; }
+  return out;
+}
+function ssFmt(n){ return Math.round(n).toLocaleString('en-US'); }
+function renderSSBar(){
+  const el = document.getElementById('ss-bar'), mini = document.getElementById('ss-mini');
+  if(!el) return;
+  const d = ssBarData();
+  if(!d){ el.style.display = 'none'; if(mini) mini.innerHTML = ''; const nl=document.getElementById('nav-ss-label'); if(nl) nl.textContent='ซีซัน'; return; }
+  el.style.display = '';
+  const nm = d.x.name ? `<span class="ss-name">${esc(d.x.name)}</span>` : '';
+  let status = '', bar = '';
+  if(d.mode==='upcoming') status = `เริ่ม ${thaiDate(d.x.startDate)} · อีก <b>${d.daysToStart}</b> วัน`;
+  if(d.mode==='active'){ status = `เหลือ <b>${d.left}</b> วัน · วันที่ ${d.dayNo}/${d.days}`; bar = `<div class="ss-time"><i style="width:${(d.dayNo/d.days*100).toFixed(1)}%"></i></div>`; }
+  if(d.mode==='ended') status = d.reviewing ? 'ปิดรับแล้ว · แอดมินกำลังตรวจผล' : '🏆 สรุปผลแล้ว';
+  let body = '';
+  if(!d.loggedIn){
+    body = `<div class="ss-cta">เข้าสู่ระบบเพื่อเก็บ EXP ${d.tag} ›</div>`;
+  } else if(d.mode==='upcoming'){
+    body = `<div class="ss-cta">ทุกกิจกรรมตั้งแต่ ${thaiDate(d.x.startDate)} นับเข้า EXP ${d.tag} อัตโนมัติ · เตรียมตัวให้พร้อม! ⚔️</div>`;
+  } else {
+    const sub = [`🚴 ${ssFmt(d.rideExp)}`, `🏃 ${ssFmt(d.runExp)}`];
+    if(d.week>0) sub.push(`สัปดาห์นี้ +${ssFmt(d.week)}`);
+    if(d.pending>0) sub.push(`<span class="ss-pend">+${ssFmt(d.pending)} รอตรวจ</span>`);
+    const badge = (ic, label, v)=>`<div class="ss-badge"><div class="ss-bl">${ic} ${label}</div><div class="ss-bv">${v}</div></div>`;
+    body = `<div class="ss-exp"><span class="ss-num">${ssFmt(d.exp)}</span><span class="ss-unit">EXP ${d.tag}</span></div>
+      <div class="ss-sub">${sub.join(' · ')}</div>
+      <div class="ss-badges">
+        ${badge('🏅', d.divLabel ? esc(d.divLabel) : 'รุ่นอายุ', d.divRank ? `#${d.divRank}<small>/${d.divSize}</small>` : (missingDivisionInfo(`${currentUser.firstName} ${currentUser.lastName}`.trim()).length ? '<small>กรอกข้อมูลก่อน</small>' : '—'))}
+        ${badge('🏢', esc(d.office||'สังกัด'), d.officeRank ? `#${d.officeRank}<small>/${d.officeCount}</small>` : '—')}
+        ${badge('👑', 'รวมทุกคน', d.allRank ? `#${d.allRank}<small>/${d.allSize}</small>` : '—')}
+      </div>
+      ${d.divRank>1 && d.gap!=null && d.gap>0 ? `<div class="ss-goal">🎯 อีก ${ssFmt(Math.ceil(d.gap))} EXP แซงอันดับ #${d.divRank-1} ในรุ่น (≈ ปั่น ${Math.ceil(d.gap/EXP_PER_KM.ride)} กม. หรือวิ่ง ${Math.ceil(d.gap/EXP_PER_KM.run)} กม.)</div>` : (d.divRank===1 ? `<div class="ss-goal">🥇 คุณนำอยู่ในรุ่น — รักษาตำแหน่งไว้!</div>` : '')}`;
+  }
+  el.innerHTML = `<div class="ss-top"><span class="ss-tag">⚔️ SEASON ${d.x.number}</span>${nm}<span class="ss-status">${status}</span></div>${bar}${body}`;
+  el.onclick = ()=>{ if(!d.loggedIn) goPage('me'); else if(d.mode==='ended') openWinners(); };
+  el.style.cursor = (!d.loggedIn || d.mode==='ended') ? 'pointer' : 'default';
+  const nl = document.getElementById('nav-ss-label'); if(nl) nl.textContent = 'SS' + d.x.number;
+  if(mini){
+    mini.innerHTML = `<span class="ss-tag">SS${d.x.number}</span>` + (d.loggedIn && d.mode!=='upcoming'
+      ? ` <b>${ssFmt(d.exp)}</b> EXP${d.divRank?` · #${d.divRank} รุ่น`:''}${d.mode==='active'?` · เหลือ ${d.left} วัน`:''}`
+      : (d.mode==='upcoming' ? ` เริ่มอีก ${d.daysToStart} วัน` : (d.mode==='active' ? ` เหลือ ${d.left} วัน` : ' สรุปผลแล้ว')));
+    mini.onclick = el.onclick;
+  }
+}
+/* ===== SS tab: my season panel + the season boards (overall, my division, offices) + how EXP is counted ===== */
+function renderSSPage(){
+  renderSSBar();
+  const box = document.getElementById('ss-boards'); if(!box) return;
+  const st = seasonState();
+  if(st.mode==='none'){ box.innerHTML = `<div class="card"><div class="empty">ยังไม่มีซีซันที่ประกาศ — รอแอดมินตั้งซีซันใหม่</div></div>`; return; }
+  const x = st.season, tag = seasonTag(x), meName = currentUser ? `${currentUser.firstName} ${currentUser.lastName}`.trim() : null;
+  const rules = `<div class="card"><h2>📜 กติกา ${tag}</h2>
+    <div class="ss-rules">
+      <div>📅 ช่วงซีซัน <b>${thaiDate(x.startDate)} – ${thaiDate(x.endDate)}</b></div>
+      <div>⏰ ส่งกิจกรรมได้ถึง <b>${thaiDate(x.endDate)} 24:00 น.</b> (นับเวลาที่เซิร์ฟเวอร์ได้รับ)</div>
+      <div>⚡ ปั่นจักรยาน <b>${EXP_PER_KM.ride} EXP/กม.</b> · วิ่ง <b>${EXP_PER_KM.run} EXP/กม.</b></div>
+      <div>✅ นับเฉพาะกิจกรรมที่แอดมินอนุมัติ · รายการรอตรวจยังไม่นับ</div>
+      <div>🏅 รุ่นอายุล็อกตั้งแต่กิจกรรมแรกในซีซัน · ตรวจผลหลังปิดซีซัน ${x.reviewDays==null?1:x.reviewDays} วัน</div>
+    </div></div>`;
+  if(st.mode==='upcoming'){ box.innerHTML = `<div class="card"><div class="empty">⚔️ ${tag} ยังไม่เริ่ม — อันดับจะขึ้นที่นี่ตั้งแต่ ${thaiDate(x.startDate)}</div></div>` + rules; return; }
+  const D = seasonData(x);
+  const row = (p,i,label,sub)=>`<div class="lb-row${p.name===meName?' lb-me':''}" onclick="openAthlete('${escAttr(p.name)}')">
+      <div class="lb-rank ${i<3?'top medal':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="lb-thumb">${avatarThumb(p.name, 40)}</div>
+      <div class="lb-info"><div class="lb-name">${esc(label)}</div><div class="lb-sub">${sub}</div></div>
+      <div class="lb-val">${Math.round(p.total).toLocaleString('en-US')} EXP</div></div>`;
+  const topList = (list, n)=>{
+    const L = list.slice().sort((a,b)=>b.total-a.total), mi = meName ? L.findIndex(p=>p.name===meName) : -1;
+    let h = L.slice(0,n).map((p,i)=>row(p,i,p.name,`${esc(p.office)} · 🚴 ${Math.round(p.rideExp)} · 🏃 ${Math.round(p.runExp)}`)).join('');
+    if(mi>=n) h += `<div class="ss-gap">⋯</div>` + row(L[mi],mi,L[mi].name,`${esc(L[mi].office)} · 🚴 ${Math.round(L[mi].rideExp)} · 🏃 ${Math.round(L[mi].runExp)}`);
+    return h || `<div class="empty">ยังไม่มีกิจกรรมที่อนุมัติใน${tag}</div>`;
+  };
+  const me = meName ? D.people.find(p=>p.name===meName) : null;
+  const myDiv = me && me.div ? `<div class="card"><h2>🏅 รุ่นของฉัน — ${esc(ageDivisionLabel(me.div)||'')}</h2>${topList(divMembers(D.people, me.div), 5)}
+      <div class="ss-more" onclick="goPage('age')">ดูทุกรุ่นใน Age Ranking ›</div></div>` : '';
+  const O = D.offices.slice().sort((a,b)=>b.total-a.total);
+  const offices = `<div class="card"><h2>🏢 อันดับสังกัด</h2>${O.length ? O.slice(0,10).map((o,i)=>`<div class="lb-row${me && o.office===me.office?' lb-me':''}" onclick="openOfficeDetail('${escAttr(o.office)}')">
+      <div class="lb-rank ${i<3?'top medal':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="lb-info"><div class="lb-name">${esc(o.office)}</div><div class="lb-sub">${o.n} คน · 🚴 ${Math.round(o.rideKm)} กม. · 🏃 ${Math.round(o.runKm)} กม.</div></div>
+      <div class="lb-val">${Math.round(o.total).toLocaleString('en-US')} EXP</div></div>`).join('') : `<div class="empty">ยังไม่มีข้อมูล</div>`}</div>`;
+  box.innerHTML = `<div class="card"><h2>👑 อันดับรวม ${tag}${D.frozen?' (ผลสุดท้าย)':''}</h2>${topList(D.people, 10)}</div>` + myDiv + offices + rules;
+}
+/* compact strip appears under the menu once the full panel has scrolled out of view */
+(function(){
+  const el = document.getElementById('ss-bar'), mini = document.getElementById('ss-mini');
+  if(!el || !mini || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(es=>{ es.forEach(en=>{ mini.classList.toggle('show', !en.isIntersecting && el.style.display!=='none' && !!mini.innerHTML); }); },
+    {rootMargin:'-70px 0px 0px 0px'}).observe(el);
+})();
 
 function toggleBoard(id){
   boardExpanded[id] = !boardExpanded[id];
@@ -1603,6 +1773,7 @@ async function saveCurrentUser(){
 
 function renderUserHeader(){
   updateAdminButton();
+  try{ renderSSBar(); }catch(e){}
   const el = document.getElementById('user-header');
   if(currentUser){
     const fullName = `${currentUser.firstName} ${currentUser.lastName}`;
@@ -2333,7 +2504,7 @@ function renderFeed(){
    Drawn at the scene's height and centred, so a phone sees the hero building in the middle and a desktop sees the
    whole valley (v1 was scaled to the screen width and a desktop only got a giant close-up of the cobbles).
    Static SVG, built once per tab and cached; the only motion is the petal layer (CSS, off for reduced-motion). */
-const PAGE_SCENE = {dashboard:'castle', age:'arena', feed:'town', rtl:'mountain', me:'guild', rules:'temple', admin:'castle'};
+const PAGE_SCENE = {ss:'arena', dashboard:'castle', age:'arena', feed:'town', rtl:'mountain', me:'guild', rules:'temple', admin:'castle'};
 const _sceneCache = {};
 function sceneSvg(kind){
   const W = 2800, H = 360, G = 300, CX = 1400;
@@ -2628,6 +2799,7 @@ function goPage(p){
     renderSearch();
   }
   if(p==='rtl') renderRTL();
+  if(p==='ss') renderSSPage();
   if(p==='feed' && feedState.posts.length===0 && !feedState.loading) loadFeedPage(true);
 }
 
