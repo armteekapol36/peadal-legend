@@ -1044,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-02';
+const BUILD_STAMP = '2026-11-04-05';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2502,6 +2502,119 @@ function setScene(page){
 })();
 
 setScene('dashboard');
+
+/* ===== podium backdrops — real pixel art (classic online-RPG look) =====
+   Each scene is painted pixel-by-pixel on a tiny 160×120 canvas, then scaled up with image-rendering:pixelated,
+   so it reads as genuine 16-bit pixel art at any size. ride = castle tournament courtyard, run = forest adventure
+   trail. Painted once at start-up (~1 ms), no downloads, no animation. */
+(function(){
+  const W = 160, H = 120, OY = 34;   // scenes are composed on 160×120; OY rows of extra sky on top make the canvas
+  // roughly square like the podium card, so 'cover' no longer crops the sides away
+  function painter(){
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H + OY;
+    const c = cv.getContext('2d');
+    if(!c) return null;
+    const P = {
+      r(x,y,w,h,col){ c.fillStyle = col; c.fillRect(x|0,(y|0)+OY,w|0,h|0); },
+      p(x,y,col){ c.fillStyle = col; c.fillRect(x|0,(y|0)+OY,1,1); },
+      circ(cx,cy,rad,col){ c.fillStyle = col; for(let y=-rad;y<=rad;y++){ const w = Math.round(Math.sqrt(rad*rad-y*y)); c.fillRect(cx-w, cy+y+OY, w*2+1, 1); } },
+      tri(cx,top,base,half,col){ c.fillStyle = col; for(let y=top;y<=base;y++){ const w = Math.round(half*(y-top)/(base-top)); c.fillRect(cx-w,y+OY,w*2+1,1); } },
+      /* banded sky with a 1-row checker dither between bands — the classic 16-bit gradient */
+      sky(bands, bandH){ c.fillStyle = bands[0]; c.fillRect(0,0,W,OY+1); bands.forEach((col,i)=>{ P.r(0,i*bandH,W,bandH,col); if(i){ for(let x=0;x<W;x+=2) P.p(x+((i)%2), i*bandH, bands[i-1]); } }); },
+      cloud(x,y,s){ const wh='#FFFFFF', sh='#D6E6FA';
+        P.r(x+2*s,y+2*s,12*s,3*s,wh); P.r(x,y+3*s,16*s,3*s,wh); P.r(x+4*s,y,6*s,3*s,wh); P.r(x+9*s,y+1*s,4*s,2*s,wh); P.r(x+1*s,y+6*s,14*s,1*s,sh); },
+      spark(x,y,col){ P.p(x,y,col); P.p(x-1,y,col); P.p(x+1,y,col); P.p(x,y-1,col); P.p(x,y+1,col); },
+      url(){ return cv.toDataURL('image/png'); }
+    };
+    return P;
+  }
+  function sakura(P,x,base,flip){
+    const tr='#7A4A3A', trd='#5A3428';
+    P.r(x-2,base-26,4,26,tr); P.r(x-2,base-26,1,26,trd);
+    const d = flip?-1:1;
+    P.r(x, base-20, 8*d||1, 2, tr);
+    const blobs=[[0,-34,9],[8*d,-30,7],[-7*d,-28,7],[3*d,-24,8],[12*d,-22,5],[-11*d,-20,5]];
+    blobs.forEach(([bx,by,r])=>P.circ(x+bx,base+by,r,'#F29BCF'));
+    blobs.forEach(([bx,by,r])=>P.circ(x+bx-1,base+by-1,r-2,'#F8BFE0'));
+    blobs.forEach(([bx,by])=>{ P.p(x+bx-2,base+by-3,'#FFF0F8'); P.p(x+bx+1,base+by-4,'#FFF0F8'); });
+  }
+  function pine(P,x,base,h,c1,c2){ P.r(x-1,base-3,3,3,'#6A4A30'); P.tri(x,base-h,base-3,Math.round(h/2.6),c1); P.tri(x,base-h,base-h*0.45,Math.round(h/5.5),c2); }
+  function flag(P,x,y,col){ P.r(x,y,1,10,'#5A3A2A'); P.r(x+1,y,5,3,col); P.r(x+1,y+3,3,1,col); }
+  function slime(P,x,y,body,shade){
+    P.r(x+2,y,6,1,body); P.r(x+1,y+1,8,1,body); P.r(x,y+2,10,5,body); P.r(x+1,y+7,8,1,shade); P.r(x,y+6,10,1,shade);
+    P.r(x+2,y+1,2,1,'#FFFFFF'); P.r(x+2,y+3,1,2,'#20202A'); P.r(x+6,y+3,1,2,'#20202A'); P.r(x+4,y+5,2,1,'#20202A');
+    P.r(x+4,y-2,1,2,'#5FA84E'); P.r(x+5,y-3,2,1,'#7FC86A');               /* leaf sprout — our own club slime */
+  }
+  function chest(P,x,y){ P.r(x,y,12,8,'#9A5A2A'); P.r(x,y,12,3,'#B9743A'); P.r(x,y+3,12,1,'#5A3418'); P.r(x+5,y+2,2,3,'#FDCB55'); P.r(x,y,1,8,'#5A3418'); P.r(x+11,y,1,8,'#5A3418'); P.r(x,y+7,12,1,'#5A3418'); P.p(x+2,y+1,'#FFE7A0'); }
+
+  /* The scenery is the "view" around the backdrop: kept calm (no props in the middle) so the athletes stand out. */
+  function ride(){
+    const P = painter(); if(!P) return null;
+    P.sky(['#3F8EF5','#5AA2FA','#78B7FD','#9CCCFF','#C2E0FF'], 13);
+    P.r(0,65,W,H-65,'#C2E0FF');
+    P.circ(80,10,8,'#FFE36E'); P.circ(80,10,6,'#FFF4B8');
+    P.cloud(4,8,1); P.cloud(120,14,1); P.cloud(40,24,1);
+    P.tri(28,38,72,36,'#9AA6E8'); P.tri(132,34,72,40,'#8C98E0'); P.tri(132,34,42,8,'#FFFFFF'); P.tri(28,38,45,7,'#FFFFFF'); P.tri(80,44,72,30,'#A8B2EC');
+    P.r(0,64,W,10,'#8CCB7E'); for(let x=0;x<W;x+=6) P.r(x,62+((x/6)%2),6,2,'#8CCB7E');
+    /* castle towers framing both sides */
+    const st='#D5CFE4', so='#6E6690', ro='#7A1FA3', rl='#A64BD6';
+    [[6,30,14],[140,30,14],[24,44,10],[126,44,10]].forEach(([x,y,w])=>{ const h=74-y;
+      P.r(x,y,w,h,st); P.r(x,y,1,h,so); P.r(x+w-1,y,1,h,'#B6AECB');
+      P.tri(x+w/2,y-12,y,w/2+2,ro); P.tri(x+w/2-1,y-10,y-2,Math.max(1,w/4),rl); flag(P,x+w/2,y-22,'#FDCB55');
+      P.r(x+w/2-1,y+7,3,4,'#FFD866'); P.p(x+w/2,y+7,'#FFF4C0'); });
+    sakura(P,10,86,false); sakura(P,150,86,true);
+    P.r(0,74,W,10,'#5FA84E'); for(let x=0;x<W;x+=4) P.r(x,73-(x%8?0:1),4,2,'#6FBA5C');
+    for(let i=0;i<10;i++){ const x=(i*37)%W; P.p(x,76,['#F8BFE0','#FFF2A0','#FFFFFF'][i%3]); }
+    for(let y=84;y<H;y+=6) for(let x=-((y/6)%2)*6;x<W;x+=12){ P.r(x,y,12,6,((x+y)/6)%2?'#DCCFBA':'#CFC0A8'); P.r(x,y,12,1,'#B5A488'); P.r(x,y,1,6,'#B5A488'); }
+    P.r(0,84,W,1,'#8A7A60');
+    return P.url();
+  }
+  function run(){
+    const P = painter(); if(!P) return null;
+    P.sky(['#45A6F2','#5FB6F6','#7EC7F8','#A3D8FA','#CBEBFC'], 13);
+    P.r(0,65,W,H-65,'#CBEBFC');
+    P.circ(80,10,8,'#FFE36E'); P.circ(80,10,6,'#FFF4B8');
+    P.cloud(6,12,1); P.cloud(118,8,1); P.cloud(44,26,1);
+    P.tri(30,34,72,40,'#8FA0DE'); P.tri(130,28,72,44,'#7E8FD4'); P.tri(130,28,40,9,'#FFFFFF'); P.tri(30,34,44,8,'#FFFFFF');
+    P.r(0,62,W,12,'#78C46E');
+    [4,14,24,34,126,136,146,156].forEach((x,i)=>pine(P,x,74,18+(i%3)*5,i%2?'#2E8A5C':'#257A50','#4FB078'));
+    P.r(0,74,W,H-74,'#7FCB62');
+    for(let y=74;y<H;y++){ const t=(y-74)/(H-74), cx=80+Math.sin(t*3.2)*10, w=Math.round(4+t*26); P.r(cx-w,y,w*2,1,'#E3C084'); P.p(cx-w,y,'#B8925A'); P.p(cx+w-1,y,'#B8925A'); }
+    for(let i=0;i<24;i++){ const x=(i*53)%W, y=78+((i*29)%40); if(Math.abs(x-80)>34){ P.p(x,y,'#5FAE48'); P.p(x,y-1,'#5FAE48'); } }
+    for(let i=0;i<10;i++){ const x=(i*41+7)%W, y=82+((i*23)%34); if(Math.abs(x-80)>36) P.p(x,y,['#FFFFFF','#FFE36E','#F8A0D0'][i%3]); }
+    return P.url();
+  }
+  try{
+    const a = ride(), b = run();
+    if(!a || !b) return;
+    const shade = 'linear-gradient(180deg, rgba(36,10,60,.5) 0%, rgba(36,10,60,.18) 20%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(20,8,30,.55) 100%)';
+    const shadeRun = 'linear-gradient(180deg, rgba(6,48,44,.5) 0%, rgba(6,48,44,.18) 20%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(6,36,30,.55) 100%)';
+    const MEDAL = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40"><path d="M10,30 C2,22 2,10 8,4 M54,30 C62,22 62,10 56,4" stroke="#FDCB55" stroke-width="3" fill="none" stroke-linecap="round"/><g fill="#FDCB55"><ellipse cx="6" cy="12" rx="4" ry="2" transform="rotate(-60 6 12)"/><ellipse cx="5" cy="20" rx="4" ry="2" transform="rotate(-80 5 20)"/><ellipse cx="58" cy="12" rx="4" ry="2" transform="rotate(60 58 12)"/><ellipse cx="59" cy="20" rx="4" ry="2" transform="rotate(80 59 20)"/></g><circle cx="32" cy="20" r="15" fill="#FDCB55" stroke="#8A5A12" stroke-width="2"/><circle cx="32" cy="20" r="10" fill="#FFE9A0"/><path d="M32,12 l2.4,5 5.4,.6 -4,3.7 1.1,5.3 -4.9,-2.7 -4.9,2.7 1.1,-5.3 -4,-3.7 5.4,-.6 Z" fill="#C9861E"/></svg>') + '")';
+    const st = document.createElement('style');
+    st.textContent = `#sec-weekly-podium, .wp-box{background:${shade}, url(${a}) center bottom/cover no-repeat, #3F8EF5 !important; image-rendering:pixelated;}
+      #sec-weekly-podium-run, .wp-box.wp-run{background:${shadeRun}, url(${b}) center bottom/cover no-repeat, #45A6F2 !important; image-rendering:pixelated;}
+      #sec-weekly-podium .wp-char svg, #sec-weekly-podium-run .wp-char svg, .wp-box .wp-char svg{image-rendering:auto;}
+      /* the backdrop: an arched gold-framed panel right behind the athletes, so they read clearly against one calm colour */
+      #sec-weekly-podium .wp-row, #sec-weekly-podium-run .wp-row, .wp-box .wp-row{position:relative; padding-top:22px;}
+      #sec-weekly-podium .wp-slot, #sec-weekly-podium-run .wp-slot, .wp-box .wp-slot{position:relative; z-index:1;}
+      #sec-weekly-podium .wp-row::before, #sec-weekly-podium-run .wp-row::before, .wp-box .wp-row::before{content:""; position:absolute; z-index:0; left:15%; right:15%; top:0; bottom:40px;
+        border-radius:48% 48% 10px 10px / 20% 20% 10px 10px; border:3px solid #FDCB55;
+        background:radial-gradient(ellipse 70% 55% at 50% 72%, rgba(255,232,160,.55), rgba(255,232,160,0) 70%),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 3px, rgba(0,0,0,0) 3px 18px, rgba(0,0,0,.08) 18px 21px, rgba(0,0,0,0) 21px 36px),
+          linear-gradient(180deg,#8A33BC 0%,#5A1484 55%,#3A0A5C 100%);
+        box-shadow:inset 0 0 0 2px #8A5A12, inset 0 0 0 5px rgba(253,203,85,.35), 0 0 0 2px rgba(58,10,92,.5), 0 8px 22px rgba(20,6,40,.45);}
+      #sec-weekly-podium-run .wp-row::before, .wp-box.wp-run .wp-row::before{background:radial-gradient(ellipse 70% 55% at 50% 72%, rgba(230,255,200,.5), rgba(230,255,200,0) 70%),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 3px, rgba(0,0,0,0) 3px 18px, rgba(0,0,0,.08) 18px 21px, rgba(0,0,0,0) 21px 36px),
+          linear-gradient(180deg,#2FA898 0%,#17675E 55%,#0B3F39 100%);}
+      #sec-weekly-podium .wp-row::after, #sec-weekly-podium-run .wp-row::after, .wp-box .wp-row::after{content:""; position:absolute; z-index:0; left:50%; top:-14px; width:64px; height:40px; transform:translateX(-50%);
+        background:${MEDAL} center/contain no-repeat; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));}
+      #sec-weekly-podium .wp-vacant .wp-char svg, #sec-weekly-podium-run .wp-vacant .wp-char svg, .wp-box .wp-vacant .wp-char svg{filter:drop-shadow(0 0 1px rgba(20,8,40,.9)) drop-shadow(0 0 3px rgba(20,8,40,.6)) !important; opacity:.95 !important;}
+      #sec-weekly-podium .wp-title, #sec-weekly-podium-run .wp-title, .wp-box .wp-title{text-shadow:0 2px 0 rgba(0,0,0,.45), 0 0 10px rgba(0,0,0,.35);}
+      #sec-weekly-podium .wp-sub, #sec-weekly-podium-run .wp-sub, .wp-box .wp-sub, #sec-weekly-podium .wp-eyebrow, #sec-weekly-podium-run .wp-eyebrow, .wp-box .wp-eyebrow{text-shadow:0 1px 2px rgba(0,0,0,.6);}
+      #sec-weekly-podium .wp-name, #sec-weekly-podium-run .wp-name, .wp-box .wp-name, #sec-weekly-podium .wp-dist, #sec-weekly-podium-run .wp-dist, .wp-box .wp-dist, #sec-weekly-podium .wp-foot, #sec-weekly-podium-run .wp-foot, .wp-box .wp-foot{text-shadow:0 1px 2px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.5);}`;
+    document.head.appendChild(st);
+  }catch(e){ /* no canvas (very old webview) → keep the plain gradient */ }
+})();
 
 function goPage(p){
   setScene(p);
