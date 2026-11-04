@@ -1096,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-08';
+const BUILD_STAMP = '2026-11-04-09';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2512,7 +2512,7 @@ function renderFeed(){
    Static SVG, built once per tab and cached; the only motion is the petal layer (CSS, off for reduced-motion). */
 const PAGE_SCENE = {ss:'arena', dashboard:'castle', age:'arena', feed:'town', rtl:'mountain', me:'guild', rules:'temple', admin:'castle'};
 const _sceneCache = {};
-function sceneSvg(kind){
+function sceneSvg(kind, crop){
   const W = 2800, H = 360, G = 300, CX = 1400;
   let seed = 11; const rnd = ()=>{ seed = (seed*16807)%2147483647; return (seed-1)/2147483646; };
   const n = v=>Math.round(v*10)/10;
@@ -2653,6 +2653,22 @@ function sceneSvg(kind){
 
   const sak = sakura(CX-470,G+8,1.15,false) + sakura(CX+470,G+8,1.15,true) + sakura(CX-1060,G+8,1.2,true) + sakura(CX+1120,G+8,1.1,false);
 
+  if(crop){
+    /* a portrait window onto the same valley (used behind the podiums): extra sky above, a few more clouds up there */
+    const t = crop.top, x0 = CX - crop.w/2;
+    const up = `<rect x="0" y="${t}" width="${W}" height="${-t+2}" fill="#2A63E8"/>` + cloud(CX-270,t+250,.9) + cloud(CX+280,t+300,1);
+    // extra courtyard below the ground line lifts the horizon to the podium steps (names sit on the cobbles)
+    const B = crop.below || 0;
+    let low = `<rect x="0" y="${H}" width="${W}" height="${B}" fill="${kind==='mountain'?'#E8D9BC':'#EADFCC'}"/>`;
+    for(let r=0;r<Math.ceil(B/22);r++) for(let i=0;i<70;i++){ const x=i*42+(r%2)*21, y=H+12+r*22; low += `<ellipse cx="${x}" cy="${y}" rx="18" ry="6" fill="#D6C6B0" opacity=".6"/>`; }
+    // tall landmarks just outside the backdrop panel, so the view shows on both sides of the athletes
+    const frame = kind==='castle'
+      ? sakura(CX-250,G+10,1.4,false) + sakura(CX+250,G+10,1.4,true)
+        + tower(CX-306,G-250,56,250,'#FDCB55') + tower(CX+250,G-250,56,250,'#FDCB55')
+      : sakura(CX-250,G+10,1.3,false) + sakura(CX+250,G+10,1.3,true)
+        + tree(CX-282,G,3.4,'#2F7F52') + tree(CX+282,G,3.4,'#2F7F52');
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${t} ${crop.w} ${H-t+B}" preserveAspectRatio="xMidYMax slice">${defs}${up}${sky}${far}${hills}${trees}${sides}${hero}${frame}${ground}${low}</svg>`;
+  }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${defs}${sky}${far}${hills}${trees}${sides}${hero}${ground}${sak}</svg>`;
 }
 function setScene(page){
@@ -2762,14 +2778,16 @@ setScene('dashboard');
     return P.url();
   }
   try{
-    const a = ride(), b = run();
+    /* same crisp vector valley as the app header (was chunky pixel art): castle for ride, mountain pass for run */
+    const svgUrl = svg=>'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+    const a = svgUrl(sceneSvg('castle',{w:820,top:-360,below:200})), b = svgUrl(sceneSvg('mountain',{w:820,top:-360,below:200}));
     if(!a || !b) return;
     const shade = 'linear-gradient(180deg, rgba(36,10,60,.5) 0%, rgba(36,10,60,.18) 20%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(20,8,30,.55) 100%)';
     const shadeRun = 'linear-gradient(180deg, rgba(6,48,44,.5) 0%, rgba(6,48,44,.18) 20%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 62%, rgba(6,36,30,.55) 100%)';
     const MEDAL = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40"><path d="M10,30 C2,22 2,10 8,4 M54,30 C62,22 62,10 56,4" stroke="#FDCB55" stroke-width="3" fill="none" stroke-linecap="round"/><g fill="#FDCB55"><ellipse cx="6" cy="12" rx="4" ry="2" transform="rotate(-60 6 12)"/><ellipse cx="5" cy="20" rx="4" ry="2" transform="rotate(-80 5 20)"/><ellipse cx="58" cy="12" rx="4" ry="2" transform="rotate(60 58 12)"/><ellipse cx="59" cy="20" rx="4" ry="2" transform="rotate(80 59 20)"/></g><circle cx="32" cy="20" r="15" fill="#FDCB55" stroke="#8A5A12" stroke-width="2"/><circle cx="32" cy="20" r="10" fill="#FFE9A0"/><path d="M32,12 l2.4,5 5.4,.6 -4,3.7 1.1,5.3 -4.9,-2.7 -4.9,2.7 1.1,-5.3 -4,-3.7 5.4,-.6 Z" fill="#C9861E"/></svg>') + '")';
     const st = document.createElement('style');
-    st.textContent = `#sec-weekly-podium, .wp-box{background:${shade}, url(${a}) center bottom/cover no-repeat, #3F8EF5 !important; image-rendering:pixelated;}
-      #sec-weekly-podium-run, .wp-box.wp-run{background:${shadeRun}, url(${b}) center bottom/cover no-repeat, #45A6F2 !important; image-rendering:pixelated;}
+    st.textContent = `#sec-weekly-podium, .wp-box{background:${shade}, ${a} center bottom/cover no-repeat, #3F8EF5 !important;}
+      #sec-weekly-podium-run, .wp-box.wp-run{background:${shadeRun}, ${b} center bottom/cover no-repeat, #45A6F2 !important;}
       #sec-weekly-podium .wp-char svg, #sec-weekly-podium-run .wp-char svg, .wp-box .wp-char svg{image-rendering:auto;}
       /* the backdrop: an arched gold-framed panel right behind the athletes, so they read clearly against one calm colour */
       #sec-weekly-podium .wp-row, #sec-weekly-podium-run .wp-row, .wp-box .wp-row{position:relative; padding-top:22px;}
