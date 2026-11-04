@@ -1096,15 +1096,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-09';
+const BUILD_STAMP = '2026-11-04-10';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
-// 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
-const ADMIN_CODE = 'pea2026';
+/* Admin code: no longer in this page. It is stored (SHA-256) in the database by migration_13_security.sql; opening
+   admin mode checks it with verify_admin_key(), then every request carries the hash in an "x-admin-key" header that the
+   database's policies/triggers check before allowing admin-only changes. */
+let ADMIN_KEY = null;
 const SUPABASE_URL      = 'https://fvjwaazckehsouqnsyqs.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_MzIQ8oLGWD_0r_cy_HSV4A_VRAEiIDA';   // publishable key: ออกแบบมาให้ฝังในหน้าเว็บได้ (ห้ามใส่ secret key ตรงนี้)
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function adminKeyOf(code){ return sha256Hex(new TextEncoder().encode(String(code))); }
+function setAdminKey(k){
+  ADMIN_KEY = k || null;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, ADMIN_KEY ? {global:{headers:{'x-admin-key':ADMIN_KEY}}} : undefined);
+  try{ if(ADMIN_KEY) sessionStorage.setItem('pea_admin_key', ADMIN_KEY); else sessionStorage.removeItem('pea_admin_key'); }catch(e){}
+}
+async function verifyAdminCode(code){
+  const key = adminKeyOf(code);
+  try{
+    const {data, error} = await sb.rpc('verify_admin_key', {p_key:key});
+    if(error) return {ok:false, missing:true, error};
+    return {ok:data===true, key};
+  }catch(e){ return {ok:false, missing:true, error:e}; }
+}
 if(SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_ANON_KEY === 'YOUR_ANON_KEY'){
   console.error('PEADAL: SUPABASE_URL / SUPABASE_ANON_KEY are still placeholders');
   appSettings.banner = '⚠️ ยังไม่ได้ตั้งค่า Supabase (SUPABASE_URL / SUPABASE_ANON_KEY) — ข้อมูลจะไม่ถูกโหลดหรือบันทึก';
@@ -2941,13 +2957,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 });
 
-function toggleAdmin(){
+async function toggleAdmin(){
   if(!adminMode){
-    if(!(currentUser && currentUser.isAdmin)){
+    // every admin (appointed accounts too) proves the code once per browser session — the database checks it
+    let key = null; try{ key = sessionStorage.getItem('pea_admin_key'); }catch(e){}
+    if(!key){
       const code = prompt('ใส่รหัสผู้ดูแลระบบเพื่อเปิดโหมดแอดมิน');
       if(code === null) return;
-      if(code !== ADMIN_CODE){ alert('รหัสผู้ดูแลไม่ถูกต้อง'); return; }
+      const v = await verifyAdminCode(code.trim());
+      if(v.missing){ alert('ตรวจรหัสกับฐานข้อมูลไม่ได้ — ตรวจอินเทอร์เน็ต หรือฐานข้อมูลยังไม่ได้รัน migration_13_security.sql'); return; }
+      if(!v.ok){ alert('รหัสผู้ดูแลไม่ถูกต้อง'); return; }
+      key = v.key;
     }
+    setAdminKey(key);
+  } else {
+    setAdminKey(null);
   }
   adminMode = !adminMode;
   if(!adminMode){   // leaving admin mode hides the button again
@@ -3962,6 +3986,13 @@ async function _submitEntryInner(){
     alert('บันทึกผลไม่สำเร็จ — ลองส่งใหม่อีกครั้งครับ (รูปที่เลือกยังอยู่ ไม่ต้องอัปโหลดใหม่)');
     return;
   }
+
+  // the server may hold an auto-approved entry back for review (migration_13) — show what it really stored
+  try{
+    const {data:back} = await sb.from('entries').select('status,flags').eq('id', entryId).single();
+    if(back){ const le = entries.find(x=>x.id===entryId); if(le){ le.status = back.status; le.flags = back.flags||le.flags; }
+      if(back.status!=='approved' && !flags.length) (back.flags||[]).forEach(f=>flags.push(f)); }
+  }catch(e){}
 
   await lockSeasonDivision(name, date);
 
@@ -7109,7 +7140,7 @@ function openDetail(id){
         <button class="qbtn" style="flex:1; background:var(--panel-2); color:var(--text);" onclick="ownerEditDistance('${escAttr(e.id)}')">✎ แก้ระยะของฉัน</button>
         <button class="qbtn reject" style="flex:1;" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ยกเลิกรายการ</button>
       </div>` : ''}
-    ${!canOwnerEditEntry(e) && (adminMode || isOwnerOf(e)) ? `<button class="report-btn" style="color:var(--red);" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ลบรายการนี้${adminMode&&!isOwnerOf(e)?' (แอดมิน)':''}</button>` : ''}
+    ${!canOwnerEditEntry(e) && (adminMode || isOwnerOf(e)) ? `<button class="report-btn" style="color:var(--red);" onclick="deleteEntry('${escAttr(e.id)}')">🗑️ ${adminMode ? 'ลบรายการนี้'+(isOwnerOf(e)?'':' (แอดมิน)') : 'ขอให้แอดมินลบ/แก้รายการนี้'}</button>` : ''}
     <button class="report-btn" onclick="reportEntry('${escAttr(e.id)}')">🚩 แจ้งว่าข้อมูลนี้น่าสงสัย</button>
   `;
   document.getElementById('detail-modal').classList.add('open');
@@ -7187,13 +7218,23 @@ async function deleteEntry(id){
   const ownerPath = canOwnerEditEntry(e);
   const mine = isOwnerOf(e);
   if(!ownerPath && !adminMode && !mine){ alert('ลบได้เฉพาะรายการของตัวเองครับ'); return; }
+  if(!ownerPath && !adminMode && mine){
+    if(!confirm(`รายการนี้อนุมัติแล้ว (${e.distanceKm} กม. · ${e.date}) — ลบเองไม่ได้\nส่งคำขอให้แอดมินลบหรือแก้ไหม? รายการจะเข้าคิวตรวจของแอดมิน`)) return;
+    try{
+      const {data, error} = await sb.rpc('report_entry', {p_id:id, p_reason:'เจ้าของขอให้ลบ/แก้รายการนี้ (ลงผิด)', p_reporter:`${currentUser.firstName} ${currentUser.lastName}`, p_reporter_id:currentUser.employeeId});
+      if(error) throw error;
+      if(data){ e.status = data.status; e.communityFlags = data.community_flags || e.communityFlags; }
+    }catch(err){ dbErr('ownerRemovalRequest', err); alert('ส่งคำขอไม่สำเร็จ — ลองใหม่อีกครั้งครับ'); return; }
+    alert('ส่งคำขอให้แอดมินแล้ว ✓ แอดมินจะลบหรือแก้ระยะให้');
+    render(); openDetail(id); return;
+  }
   const msg = ownerPath
     ? `ยกเลิกรายการ ${e.distanceKm} กม. (${e.date}) ใช่ไหม?\nลบแล้วกู้คืนไม่ได้ ต้องส่งใหม่ถ้าต้องการ`
     : `ลบรายการ${mine?'ของคุณ':'ของ '+e.name} ${e.distanceKm} กม. (${e.date}) สถานะ "${e.status}" ใช่ไหม?\nEXP ที่ได้จากรายการนี้จะถูกหักออก กู้คืนไม่ได้ และมีบันทึกการลบไว้ให้แอดมินเห็น`;
   if(!confirm(msg)) return;
   try{
     // RLS only lets non-approved rows be deleted, so an admin removing an APPROVED entry first flips it to rejected
-    if(e.status==='approved' && (adminMode || mine)){
+    if(e.status==='approved' && adminMode){
       const {error:e1} = await sb.from('entries').update({status:'rejected'}).eq('id', id);
       if(e1) throw e1;
     }
@@ -7206,7 +7247,7 @@ async function deleteEntry(id){
   if(m) deleteStorageFile('evidence', `evidence/${m[1]}`);          // best-effort: don't leave the proof photo orphaned
   entries = entries.filter(x=>x.id!==id);
   adminSelected.delete(id);
-  logDecision(e, 'deleted');   // owner or admin — always leave an audit line
+  if(adminMode) logDecision(e, 'deleted');   // the audit log is admin-only (the database refuses other writes)
   closeDetail();
   render();
 }
@@ -7425,14 +7466,14 @@ async function adminToggleAdmin(employeeId){
   const who = `${acc.firstName} ${acc.lastName}`;
   const code = prompt(`${making?'แต่งตั้ง':'ถอด'} ${who} ${making?'เป็นผู้ดูแลระบบ':'ออกจากผู้ดูแลระบบ'}\nใส่รหัสผู้ดูแลระบบเพื่อยืนยัน`);
   if(code === null) return;
-  if(code !== ADMIN_CODE){ alert('รหัสผู้ดูแลไม่ถูกต้อง — ยังไม่มีการเปลี่ยนแปลง'); return; }
+  if(!ADMIN_KEY || adminKeyOf(code.trim()) !== ADMIN_KEY){ alert('รหัสผู้ดูแลไม่ถูกต้อง — ยังไม่มีการเปลี่ยนแปลง'); return; }
   acc.isAdmin = making;
   markAccountDirty(employeeId);
   const saved = await saveAccounts();
   if(!saved){ acc.isAdmin = !making; alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้งครับ (ยังไม่มีการเปลี่ยนแปลง)'); return; }
   syncCurrentUser(); updateAdminButton();
   adminAccountsRender();
-  alert(making ? `แต่งตั้ง ${who} เป็นผู้ดูแลระบบแล้ว — เขาจะเห็นปุ่มโหมดแอดมินเองโดยไม่ต้องกดโลโก้ 5 ที และไม่ต้องใส่รหัส` : `ถอด ${who} ออกจากผู้ดูแลระบบแล้ว`);
+  alert(making ? `แต่งตั้ง ${who} เป็นผู้ดูแลระบบแล้ว — เขาจะเห็นปุ่มโหมดแอดมินเองโดยไม่ต้องกดโลโก้ 5 ที (ตอนเปิดโหมดยังต้องใส่รหัสแอดมิน)` : `ถอด ${who} ออกจากผู้ดูแลระบบแล้ว`);
 }
 async function adminToggleDisabled(employeeId){
   const acc = accounts[employeeId];
@@ -7640,7 +7681,7 @@ function renderAdminReady(){
   let lb = null; try{ lb = localStorage.getItem('pea_last_backup'); }catch(e){}
   const days = lb ? Math.floor((Date.now()-new Date(lb).getTime())/DAY_MS) : null;
   add(lb && days<=7 ? true : 'warn', lb ? `สำรองข้อมูลล่าสุด ${days===0?'วันนี้':days+' วันก่อน'} (จากเครื่องนี้)` : 'ยังไม่เคยสำรองข้อมูลจากเครื่องนี้', lb && days<=7 ? '' : 'แนะนำกด "สำรองข้อมูล" สัปดาห์ละครั้ง และก่อนเริ่ม/ปิดซีซัน');
-  add(ADMIN_CODE==='pea2026' ? 'warn' : true, ADMIN_CODE==='pea2026' ? 'รหัสแอดมินยังเป็นค่าเริ่มต้น (pea2026)' : 'เปลี่ยนรหัสแอดมินแล้ว', ADMIN_CODE==='pea2026' ? 'แก้บรรทัด ADMIN_CODE ในไฟล์ index.html ก่อนเปิดใช้จริง — ใครดู source ก็เห็นรหัสนี้' : '');
+  add(true, 'รหัสแอดมินเก็บแบบเข้ารหัสในฐานข้อมูล (ไม่อยู่ในหน้าเว็บ)', 'เปลี่ยนรหัสได้โดยรันคำสั่งใน migration_13_security.sql อีกครั้ง');
   add(popupAnn() ? true : 'warn', popupAnn() ? 'มีป๊อปอัปประกาศตอนเปิดแอป' : 'ยังไม่มีป๊อปอัปประกาศตอนเปิดแอป', popupAnn() ? '' : 'ไม่บังคับ — ใช้ประกาศเปิดซีซันได้');
   el.innerHTML = items.join('');
 }
