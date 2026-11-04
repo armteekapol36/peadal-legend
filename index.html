@@ -456,11 +456,18 @@
     --lime:#6C1291; --text:#33183F; --text-dim:#674A5C; --field:#FFFCF2;
     --gold:#FDDA7E; --gold-dk:#B9852A; --gold-deep:#8A5A12;
     --fantasy:'Cinzel Decorative','Cinzel',Georgia,'Times New Roman',serif;
-    --scene-h:230px;
+    --scene-h:272px;
   }
   body{background:#FBF3DC !important;}
-  #scene{position:absolute; left:0; right:0; top:calc(var(--nav-h, 60px)); height:var(--scene-h); z-index:0; pointer-events:none;
-    background-repeat:no-repeat; background-position:center bottom; background-size:cover;}
+  #scene{position:absolute; left:0; right:0; top:calc(var(--nav-h, 60px)); height:var(--scene-h); z-index:0; pointer-events:none; overflow:hidden;
+    background-color:#A9C6F4; background-repeat:no-repeat; background-position:center bottom; background-size:auto 100%;}
+  @media (min-width:700px){ :root{--scene-h:330px;} }
+  .petal{position:absolute; top:-12px; display:block; background:linear-gradient(135deg,#FFE3F3,#F29BCF); border-radius:70% 0 70% 0; opacity:.9;
+    animation:petalFall linear infinite; will-change:transform;}
+  @keyframes petalFall{0%{transform:translate(0,0) rotate(0deg);} 50%{transform:translate(-40px,130px) rotate(180deg);} 100%{transform:translate(-20px,calc(var(--scene-h) + 10px)) rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){ .petal{display:none;} }
+  .crest{width:min(300px,76vw); height:auto; display:block; margin:0 auto; overflow:visible; filter:drop-shadow(0 8px 10px rgba(30,10,60,.35));}
+  @media (min-width:700px){ .crest{width:400px;} }
   #scene::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:60px; background:linear-gradient(180deg,rgba(251,243,220,0),#FBF3DC);}
   #app{position:relative; z-index:1;}
 
@@ -513,7 +520,33 @@
 </div>
 <div id="scene" aria-hidden="true"></div>
 <div id="app">
-  <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><svg class="logo-wing l" viewBox="0 0 46 40" aria-hidden="true"><path d="M44,22 C34,8 18,2 2,6 C10,9 14,12 16,15 C9,14 4,16 1,20 C9,20 13,22 15,25 C9,26 6,29 5,33 C14,30 24,30 32,32 Z" fill="#FFFFFF" stroke="#B9852A" stroke-width="2" stroke-linejoin="round"/><path d="M16,15 C24,16 32,18 40,21 M15,25 C22,25 29,26 36,28" stroke="#E2C06E" stroke-width="1.5" fill="none"/></svg><span class="logo-t">PEADAL<br>LEGEND</span><svg class="logo-wing r" viewBox="0 0 46 40" aria-hidden="true"><path d="M44,22 C34,8 18,2 2,6 C10,9 14,12 16,15 C9,14 4,16 1,20 C9,20 13,22 15,25 C9,26 6,29 5,33 C14,30 24,30 32,32 Z" fill="#FFFFFF" stroke="#B9852A" stroke-width="2" stroke-linejoin="round"/><path d="M16,15 C24,16 32,18 40,21 M15,25 C22,25 29,26 36,28" stroke="#E2C06E" stroke-width="1.5" fill="none"/></svg></span><div class="logo-ribbon">PEA BIKE CLUB</div><span id="date-now"></span></div>
+  <div class="eyebrow"><span id="brand-tap" style="user-select:none;-webkit-user-select:none;"><svg class="crest" viewBox="0 0 360 214" role="img" aria-label="PEADAL LEGEND · PEA BIKE CLUB">
+<defs>
+<linearGradient id="crGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFBE0"/><stop offset=".38" stop-color="#FFE48A"/><stop offset=".62" stop-color="#F6B93B"/><stop offset="1" stop-color="#B9751A"/></linearGradient>
+<linearGradient id="crGear" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"/><stop offset=".5" stop-color="#FDCB55"/><stop offset="1" stop-color="#B9751A"/></linearGradient>
+<linearGradient id="crRib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A63FD0"/><stop offset=".55" stop-color="#7A1FA3"/><stop offset="1" stop-color="#4B0F6E"/></linearGradient>
+<linearGradient id="crWing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E6DDF5"/></linearGradient>
+</defs>
+<g id="crWingL" transform="translate(70 92)">
+ <path d="M10,-6 C-20,-34 -52,-40 -70,-30 C-58,-28 -50,-24 -46,-18 C-62,-18 -72,-10 -76,0 C-62,-4 -52,-2 -46,2 C-58,6 -64,14 -64,24 C-48,14 -30,12 -12,16 Z" fill="url(#crWing)" stroke="#C9861E" stroke-width="3" stroke-linejoin="round"/>
+ <path d="M-46,-18 C-30,-14 -14,-8 4,-2 M-46,2 C-30,4 -16,6 0,8" stroke="#E2C06E" stroke-width="2" fill="none"/>
+</g>
+<use href="#crWingL" transform="translate(360 0) scale(-1 1)"/>
+<g transform="translate(180 40)">
+ <g fill="url(#crGear)" stroke="#8A5A12" stroke-width="2"><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(0)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(30)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(60)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(90)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(120)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(150)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(180)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(210)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(240)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(270)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(300)"/><rect x="-5" y="-40" width="10" height="12" rx="2" transform="rotate(330)"/><circle r="31"/></g>
+ <circle r="23" fill="#3E195C" stroke="#FFE48A" stroke-width="2"/>
+ <g fill="none" stroke="#FFE48A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="-10" cy="5" r="7"/><circle cx="10" cy="5" r="7"/><path d="M-10,5 L-3,-6 L7,-6 L10,5 M-3,-6 L1,5 L7,-6 M-5,-9 h5 M7,-6 l-1,-4 h4"/></g>
+</g>
+<g font-family="'Cinzel Decorative','Cinzel',Georgia,serif" font-weight="900" text-anchor="middle">
+ <text x="180" y="116" font-size="52" textLength="268" lengthAdjust="spacingAndGlyphs" fill="#2A0D40" stroke="#2A0D40" stroke-width="9" stroke-linejoin="round" transform="translate(0 4)">PEADAL</text>
+ <text x="180" y="116" font-size="52" textLength="268" lengthAdjust="spacingAndGlyphs" fill="url(#crGold)" stroke="#3E195C" stroke-width="7" stroke-linejoin="round" paint-order="stroke">PEADAL</text>
+ <text x="180" y="166" font-size="52" textLength="268" lengthAdjust="spacingAndGlyphs" fill="#2A0D40" stroke="#2A0D40" stroke-width="9" stroke-linejoin="round" transform="translate(0 4)">LEGEND</text>
+ <text x="180" y="166" font-size="52" textLength="268" lengthAdjust="spacingAndGlyphs" fill="url(#crGold)" stroke="#3E195C" stroke-width="7" stroke-linejoin="round" paint-order="stroke">LEGEND</text>
+</g>
+<path d="M58,180 h20 v24 h-20 l10,-12 Z M302,180 h-20 v24 h20 l-10,-12 Z" fill="#4B0F6E" stroke="#C9861E" stroke-width="2"/>
+<path d="M72,176 H288 L282,190 L288,206 H72 L78,190 Z" fill="url(#crRib)" stroke="#FDCB55" stroke-width="2.5"/>
+<text x="180" y="197" text-anchor="middle" font-family="'Cinzel','Cinzel Decorative',Georgia,serif" font-weight="900" font-size="15" letter-spacing="2.5" fill="#FFF4D6">PEA BIKE CLUB</text>
+</svg></span><span id="date-now"></span></div>
   <div id="global-banner" style="display:none;"></div>
   <div class="user-header" id="user-header" onclick="goPage('me')"></div>
 
@@ -1011,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-01';
+const BUILD_STAMP = '2026-11-04-02';
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 // 🔧 รหัสเปิด "โหมดแอดมิน" — เปลี่ยนเป็นรหัสของคุณเองก่อนให้คนอื่นใช้ (ใครดู source ของหน้าเว็บก็เห็นรหัสนี้ ใช้เป็นแค่ด่านกั้นเบื้องต้น)
@@ -2296,79 +2329,154 @@ function renderFeed(){
 }
 
 
-/* ===== PAGE SCENES — a static backdrop behind the crest logo, one per tab =====
-   dashboard = castle town · Age Ranking = arena · feed = market street + airship · Road to Legend = mountain pass ·
-   Account = guild hall · rules = library temple. Plain SVG drawn once per tab switch (cached), no animation. */
+/* ===== PAGE SCENES v2 — one wide panorama per tab (2800×360 viewBox) =====
+   Drawn at the scene's height and centred, so a phone sees the hero building in the middle and a desktop sees the
+   whole valley (v1 was scaled to the screen width and a desktop only got a giant close-up of the cobbles).
+   Static SVG, built once per tab and cached; the only motion is the petal layer (CSS, off for reduced-motion). */
 const PAGE_SCENE = {dashboard:'castle', age:'arena', feed:'town', rtl:'mountain', me:'guild', rules:'temple', admin:'castle'};
 const _sceneCache = {};
 function sceneSvg(kind){
-  const W = 480, G = 262;                                   // width, ground line
-  const cloud = (x,y,s)=>`<g fill="#fff" opacity=".9" transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="30" ry="12"/><ellipse cx="-20" cy="4" rx="18" ry="9"/><ellipse cx="22" cy="5" rx="20" ry="9"/><ellipse cx="2" cy="-8" rx="16" ry="11"/></g>`;
-  const blossoms = (cx,cy,flip)=>{
-    let s = `<g transform="translate(${cx} ${cy}) scale(${flip?-1:1} 1)"><path d="M-10,-30 C30,0 50,10 95,22 M30,2 C40,-12 52,-18 66,-20 M60,14 C70,24 74,36 76,50" stroke="#7B4A55" stroke-width="5" fill="none" stroke-linecap="round"/>`;
-    const pts = [[0,-22],[16,-6],[34,4],[52,10],[72,16],[90,22],[40,-8],[58,-16],[68,-22],[64,22],[72,34],[76,46],[10,-34],[26,-14],[82,8]];
-    pts.forEach(([x,y],i)=>{ s += `<circle cx="${x}" cy="${y}" r="${9+(i%3)*2}" fill="${i%2?'#F6B8DE':'#E99BD3'}"/><circle cx="${x-3}" cy="${y-3}" r="3" fill="#FFE3F4"/>`; });
-    return s + '</g>';
+  const W = 2800, H = 360, G = 300, CX = 1400;
+  let seed = 11; const rnd = ()=>{ seed = (seed*16807)%2147483647; return (seed-1)/2147483646; };
+  const n = v=>Math.round(v*10)/10;
+
+  const defs = `<defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A63E8"/><stop offset=".45" stop-color="#6F9BF0"/><stop offset=".8" stop-color="#C9DCF8"/><stop offset="1" stop-color="#F6E9D6"/></linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF6D0" stop-opacity=".95"/><stop offset=".35" stop-color="#FFE9A8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="farM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7E7CC4"/><stop offset="1" stop-color="#AEB6E4"/></linearGradient>
+    <linearGradient id="hillA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8CC98A"/><stop offset="1" stop-color="#5FA067"/></linearGradient>
+    <linearGradient id="hillB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9D98F"/><stop offset="1" stop-color="#78B26F"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9B2C8"/><stop offset=".45" stop-color="#E4DFEC"/><stop offset="1" stop-color="#A49CB6"/></linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4B0F6E"/><stop offset=".5" stop-color="#8A2BB5"/><stop offset="1" stop-color="#3E0C5C"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"/><stop offset=".5" stop-color="#FDCB55"/><stop offset="1" stop-color="#C9861E"/></linearGradient>
+    <linearGradient id="path" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E9DCC6"/><stop offset="1" stop-color="#D2C1A6"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E6D9C6"/><stop offset="1" stop-color="#F3E7D3"/></linearGradient>
+    <radialGradient id="win" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#FFF3B0"/><stop offset="1" stop-color="#F2B640"/></radialGradient>
+  </defs>`;
+
+  /* ---- sky ---- */
+  let sky = `<rect width="${W}" height="${H}" fill="url(#sky)"/><circle cx="${CX+330}" cy="70" r="150" fill="url(#sun)"/><circle cx="${CX+330}" cy="70" r="26" fill="#FFF8DC" opacity=".9"/>`;
+  const cloud = (x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="4" cy="10" rx="62" ry="12" fill="#D8E3F7"/>`
+    + `<ellipse cx="-30" cy="0" rx="30" ry="18" fill="#fff"/><ellipse cx="6" cy="-10" rx="34" ry="26" fill="#fff"/><ellipse cx="42" cy="0" rx="28" ry="18" fill="#fff"/>`
+    + `<ellipse cx="0" cy="6" rx="58" ry="12" fill="#fff"/><ellipse cx="-4" cy="-18" rx="14" ry="8" fill="#fff" opacity=".9"/></g>`;
+  [[180,70,1],[520,40,.8],[860,90,1.1],[1150,36,.7],[1700,96,.9],[2050,44,1.2],[2380,84,.8],[2640,50,1]].forEach(c=>sky+=cloud(...c));
+  const bird = (x,y,s)=>`<path d="M${x},${y} q${6*s},-6 ${12*s},0 q${6*s},-6 ${12*s},0" stroke="#3E3A6A" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  sky += bird(CX-160,70,1) + bird(CX-130,58,.8) + bird(CX-108,76,.7) + bird(CX+520,120,.9);
+
+  /* ---- far mountains + hills ---- */
+  let far = `<path d="M0,210 `;
+  for(let x=0;x<=W;x+=140){ far += `L${x+70},${n(120+rnd()*70)} L${x+140},${n(190+rnd()*30)} `; }
+  far += `L${W},${H} L0,${H} Z" fill="url(#farM)"/>`;
+  // snow caps on a few far peaks
+  far += [300, 980, 1960, 2520].map(x=>`<path d="M${x-26},${n(150)} L${x},${n(126)} L${x+26},${n(150)} L${x+12},${n(144)} L${x},${n(152)} L${x-12},${n(144)} Z" fill="#fff" opacity=".85"/>`).join('');
+  // distant castle silhouettes on the far ridge
+  const farCastle = (x,y)=>`<g fill="#8A86C4" opacity=".9"><rect x="${x}" y="${y}" width="44" height="34"/><rect x="${x-8}" y="${y-18}" width="14" height="52"/><rect x="${x+38}" y="${y-24}" width="14" height="58"/><path d="M${x-10},${y-18} l9,-14 l9,14 Z M${x+36},${y-24} l9,-16 l9,16 Z"/></g>`;
+  far += farCastle(560,170) + farCastle(2260,166);
+  const hills = `<path d="M0,250 C220,190 420,215 640,232 C860,196 1040,210 1240,236 C1460,200 1680,206 1900,232 C2120,194 2380,206 ${W},236 L${W},${H} L0,${H} Z" fill="url(#hillA)"/>`
+    + `<path d="M0,276 C260,240 520,254 780,270 C1040,246 1300,252 1560,272 C1820,246 2120,254 ${W},270 L${W},${H} L0,${H} Z" fill="url(#hillB)"/>`;
+
+  /* ---- trees ---- */
+  const tree = (x,y,s,c)=>`<g transform="translate(${x} ${y}) scale(${s})"><rect x="-4" y="-6" width="8" height="26" fill="#7A5236"/>`
+    + `<circle cx="0" cy="-24" r="22" fill="${c||'#4F8F55'}"/><circle cx="-14" cy="-12" r="15" fill="${c||'#4F8F55'}"/><circle cx="14" cy="-12" r="15" fill="${c||'#4F8F55'}"/>`
+    + `<circle cx="-6" cy="-32" r="9" fill="#fff" opacity=".18"/></g>`;
+  const sakura = (x,y,s,flip)=>{
+    let t = `<g transform="translate(${x} ${y}) scale(${flip?-s:s} ${s})"><path d="M0,0 C4,-40 -6,-70 10,-100 M6,-60 C30,-80 50,-86 74,-84 M2,-80 C-20,-96 -36,-110 -40,-128" stroke="#6B3E4A" stroke-width="9" fill="none" stroke-linecap="round"/>`;
+    const pts=[[10,-108],[30,-118],[52,-104],[74,-92],[92,-84],[60,-80],[-40,-136],[-20,-122],[-48,-114],[0,-130],[20,-96],[40,-128],[84,-104]];
+    pts.forEach(([px,py],i)=>{ t += `<circle cx="${px}" cy="${py}" r="${16+(i%3)*5}" fill="${['#F7C1E2','#EE9FD3','#FAD5EC'][i%3]}"/>`; });
+    pts.forEach(([px,py],i)=>{ if(i%2) t += `<circle cx="${px-5}" cy="${py-6}" r="5" fill="#FFF0F8"/>`; });
+    return t + '</g>';
   };
-  const ground = `<rect x="0" y="${G}" width="${W}" height="${300-G}" fill="#DCCFC2"/>`
-    + Array.from({length:24},(_,i)=>`<ellipse cx="${(i*41)%W+ (Math.floor(i/12)%2)*20}" cy="${G+10+Math.floor(i/12)*18}" rx="16" ry="6" fill="#C7B8A9"/>`).join('')
-    + `<rect x="0" y="${G-3}" width="${W}" height="4" fill="#9FB067"/>`;
-  const hills = `<path d="M0,${G-40} C80,${G-90} 150,${G-70} 220,${G-50} C300,${G-95} 380,${G-80} ${W},${G-55} L${W},${G} L0,${G} Z" fill="#A9BDE8"/>`
-    + `<path d="M0,${G-18} C90,${G-50} 170,${G-30} 260,${G-24} C340,${G-48} 420,${G-36} ${W},${G-20} L${W},${G} L0,${G} Z" fill="#9CC58C"/>`;
-  const flag = (x,y,c)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-22}" stroke="#5A3A2A" stroke-width="2"/><path d="M${x},${y-22} l16,4 l-16,5 Z" fill="${c||'#932DB2'}"/>`;
-  const tower = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#CFC8D8"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#8E86A0" stroke-width="1.5"/>`
-    + `<path d="M${x-4},${y} L${x+w/2},${y-30} L${x+w+4},${y} Z" fill="#6C1291"/>${flag(x+w/2,y-30)}`
-    + `<rect x="${x+w/2-4}" y="${y+14}" width="8" height="12" rx="4" fill="#4A3A5E"/>`;
-  const house = (x,w,h,roof,awn)=>`<rect x="${x}" y="${G-h}" width="${w}" height="${h}" fill="#F5E4C8"/><path d="M${x},${G-h} L${x+w},${G-h} M${x+w/2},${G-h} L${x+w/2},${G} M${x},${G-h/2} L${x+w},${G-h/2}" stroke="#8A6A55" stroke-width="2"/>`
-    + `<path d="M${x-6},${G-h} L${x+w/2},${G-h-26} L${x+w+6},${G-h} Z" fill="${roof}"/><rect x="${x+8}" y="${G-h+10}" width="12" height="12" fill="#7FB0E8" stroke="#8A6A55"/>`
-    + (awn ? Array.from({length:Math.floor(w/10)},(_,i)=>`<rect x="${x+i*10}" y="${G-26}" width="10" height="8" fill="${i%2?'#fff':awn}"/>`).join('') : '');
-  let mid = '';
+
+  /* ---- buildings ---- */
+  const win = (x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w/2}" fill="url(#win)" stroke="#5A3E2E" stroke-width="1.5"/>`;
+  const flag = (x,y,c)=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-30}" stroke="#4A3428" stroke-width="2.5"/><path d="M${x},${y-30} q12,2 22,6 q-10,4 -22,6 Z" fill="${c||'#932DB2'}"/>`;
+  const tower = (x,y,w,h,flagC)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#stone)" stroke="#7E7596" stroke-width="2"/>`
+    + `<path d="M${x-6},${y+2} L${x+w/2},${y-w*0.95} L${x+w+6},${y+2} Z" fill="url(#roof)" stroke="#2E0A45" stroke-width="2"/>`
+    + `<path d="M${x+w/2},${y-w*0.95} L${x+w/2+2},${y+2}" stroke="#B05BD6" stroke-width="2" opacity=".6"/>`
+    + flag(x+w/2,y-w*0.95,flagC) + win(x+w/2-6,y+18,12,20) + (h>120 ? win(x+w/2-6,y+70,12,20) : '');
+  const house = (x,w,h,roof,awn)=>{
+    const y = G-h;
+    let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F6E7CC" stroke="#8A6A55" stroke-width="2"/>`
+      + `<path d="M${x},${y+h*0.45} H${x+w} M${x+w*0.33},${y} V${y+h} M${x+w*0.66},${y} V${y+h}" stroke="#8A6A55" stroke-width="3"/>`
+      + `<path d="M${x-10},${y+2} L${x+w/2},${y-h*0.55} L${x+w+10},${y+2} Z" fill="${roof}" stroke="#3A2020" stroke-width="2"/>`
+      + win(x+w*0.12,y+10,w*0.16,h*0.25) + win(x+w*0.72,y+10,w*0.16,h*0.25)
+      + `<path d="M${x+w*0.4},${G} v-${h*0.38} a${w*0.1},${w*0.1} 0 0 1 ${w*0.2},0 v${h*0.38} Z" fill="#7A4E34"/>`;
+    if(awn){ const k=Math.floor(w/14); for(let i=0;i<k;i++) s += `<path d="M${x+i*14},${y+h*0.5} h14 l-2,12 h-10 Z" fill="${i%2?'#FFF8EC':awn}"/>`; }
+    return s;
+  };
+  const castle = (cx,s)=>{
+    const t = (dx,dy,w,h)=>tower(cx+dx*s, G-(dy+h)*s, w*s, h*s);
+    let c = `<rect x="${cx-150*s}" y="${G-96*s}" width="${300*s}" height="${96*s}" fill="url(#stone)" stroke="#7E7596" stroke-width="2"/>`;
+    for(let i=0;i<15;i++) c += `<rect x="${cx-150*s+i*20*s}" y="${G-108*s}" width="${12*s}" height="${12*s}" fill="#D9D3E3" stroke="#7E7596"/>`;
+    c += `<path d="M${cx-34*s},${G} v-${58*s} a${34*s},${34*s} 0 0 1 ${68*s},0 v${58*s} Z" fill="#4A3560" stroke="#2E1E40" stroke-width="3"/>`
+      + `<path d="M${cx-26*s},${G} v-${52*s} a${26*s},${26*s} 0 0 1 ${52*s},0 v${52*s}" fill="none" stroke="#6E5480" stroke-width="2"/>`
+      + `<rect x="${cx-110*s}" y="${G-80*s}" width="${26*s}" height="${44*s}" fill="#932DB2"/><path d="M${cx-110*s},${G-36*s} l${13*s},${10*s} l${13*s},-${10*s}" fill="#932DB2"/><circle cx="${cx-97*s}" cy="${G-62*s}" r="${7*s}" fill="url(#gold)"/>`
+      + `<rect x="${cx+84*s}" y="${G-80*s}" width="${26*s}" height="${44*s}" fill="#932DB2"/><path d="M${cx+84*s},${G-36*s} l${13*s},${10*s} l${13*s},-${10*s}" fill="#932DB2"/><circle cx="${cx+97*s}" cy="${G-62*s}" r="${7*s}" fill="url(#gold)"/>`;
+    return t(-190,0,52,170) + t(138,0,52,170) + t(-80,96,40,70) + t(40,96,40,70) + c + t(-26,96,52,120);
+  };
+
+  /* ---- hero per page ---- */
+  let hero = '';
   if(kind==='castle'){
-    mid = house(18,46,52,'#B4553E') + house(70,40,44,'#8E3FA8','#C2551F')
-      + `<rect x="250" y="${G-80}" width="190" height="80" fill="#D9D2E0"/><path d="M250,${G-80} h190" stroke="#8E86A0" stroke-width="2"/>`
-      + Array.from({length:10},(_,i)=>`<rect x="${250+i*19}" y="${G-90}" width="11" height="10" fill="#D9D2E0"/>`).join('')
-      + `<path d="M318,${G} v-44 a27,27 0 0 1 54,0 v44 Z" fill="#5E4A6E"/>`
-      + tower(232,G-130,40,130) + tower(420,G-140,44,140) + tower(326,G-170,38,90)
-      + `<rect x="300" y="${G-70}" width="16" height="30" fill="#932DB2"/><rect x="374" y="${G-70}" width="16" height="30" fill="#932DB2"/>`;
+    hero = castle(CX,1.1);
   } else if(kind==='arena'){
-    mid = `<path d="M60,${G} L60,${G-96} Q240,${G-140} 420,${G-96} L420,${G} Z" fill="#E6D5BC"/>`
-      + Array.from({length:3},(_,r)=>Array.from({length:12},(_,i)=>`<path d="M${80+i*28},${G-14-r*30} v-14 a8,8 0 0 1 16,0 v14 Z" fill="#B79D80"/>`).join('')).join('')
-      + Array.from({length:6},(_,i)=>flag(90+i*60,G-112-(i%2)*6, i%2?'#FDDA7E':'#932DB2')).join('')
-      + `<path d="M196,${G} v-38 a44,44 0 0 1 88,0 v38 Z" fill="#6E5A48"/>`;
+    hero = `<path d="M${CX-260},${G} L${CX-260},${G-130} Q${CX},${G-190} ${CX+260},${G-130} L${CX+260},${G} Z" fill="#EAD9BF" stroke="#9E8466" stroke-width="3"/>`;
+    for(let r=0;r<3;r++) for(let i=0;i<14;i++){ const x=CX-236+i*34, y=G-22-r*38; hero += `<path d="M${x},${y} v-20 a10,10 0 0 1 20,0 v20 Z" fill="${r===0?'#8F7357':'#B79D80'}"/>`; }
+    for(let i=0;i<9;i++) hero += flag(CX-240+i*60, G-148-Math.sin(i/8*Math.PI)*28, i%2?'#FDCB55':'#932DB2');
+    hero += `<path d="M${CX-58},${G} v-56 a58,58 0 0 1 116,0 v56 Z" fill="#5E4636" stroke="#3A2A1E" stroke-width="3"/>`
+      + `<rect x="${CX-34}" y="${G-150}" width="68" height="34" rx="6" fill="url(#gold)" stroke="#8A5A12" stroke-width="2"/><path d="M${CX-12},${G-142} h24 v8 a12,12 0 0 1 -24,0 Z M${CX-4},${G-122} h8 v6 h-8 Z" fill="#8A5A12"/>`;
   } else if(kind==='town'){
-    mid = house(10,60,70,'#B4553E','#C2551F') + house(78,52,58,'#6C1291','#932DB2') + house(138,64,78,'#2E7D6B','#E3B23C')
-      + house(210,56,64,'#B4553E','#C2551F') + house(274,62,72,'#6C1291','#DB83CA') + house(344,54,60,'#2E7D6B','#C2551F') + house(406,62,76,'#B4553E','#932DB2')
-      + `<g transform="translate(330 60)"><ellipse cx="0" cy="0" rx="60" ry="20" fill="#EFE6F7" stroke="#8E7BB8" stroke-width="2"/><path d="M-60,0 l-16,-14 v28 Z" fill="#932DB2"/>`
-      + `<rect x="-14" y="22" width="28" height="12" rx="3" fill="#8A6A55"/><line x1="-10" y1="18" x2="-10" y2="22" stroke="#8A6A55"/><line x1="10" y1="18" x2="10" y2="22" stroke="#8A6A55"/>`
-      + `<text x="0" y="6" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="16" fill="#6C1291">PEA</text></g>`;
+    const roofs=['#B4553E','#6C1291','#2E7D6B','#C9861E','#8A2BB5'], awns=['#C2551F','#932DB2','#E3B23C','#DB83CA'];
+    let x = CX-330; for(let i=0;i<8;i++){ const w=70+(i%3)*12, h=80+((i*37)%40); hero += house(x,w,h,roofs[i%5],awns[i%4]); x+=w+12; }
+    hero += `<g transform="translate(${CX+40} 96)"><ellipse cx="0" cy="0" rx="120" ry="38" fill="#F1E8FA" stroke="#7D63B0" stroke-width="3"/>`
+      + `<path d="M-110,-8 Q0,-30 110,-8 M-114,10 Q0,30 114,10" stroke="#C8B7E6" stroke-width="3" fill="none"/>`
+      + `<path d="M-118,0 l-34,-30 v60 Z" fill="#932DB2" stroke="#4B0F6E" stroke-width="2"/>`
+      + `<rect x="-36" y="44" width="72" height="22" rx="6" fill="#8A6A55" stroke="#4A3428" stroke-width="2"/><path d="M-30,38 v6 M30,38 v6 M0,38 v6" stroke="#4A3428" stroke-width="2"/>`
+      + `<text x="0" y="12" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="34" fill="#6C1291">PEA</text></g>`;
   } else if(kind==='mountain'){
-    mid = `<path d="M0,${G} L110,${G-150} L200,${G} Z" fill="#8E7BB8"/><path d="M90,${G-122} L110,${G-150} L130,${G-120} L118,${G-126} L110,${G-118} Z" fill="#fff"/>`
-      + `<path d="M150,${G} L300,${G-200} L450,${G} Z" fill="#6C5AA0"/><path d="M270,${G-160} L300,${G-200} L330,${G-158} L314,${G-166} L300,${G-152} L286,${G-166} Z" fill="#fff"/>`
-      + `<path d="M380,${G} L450,${G-110} L${W},${G-60} L${W},${G} Z" fill="#8E7BB8"/>`
-      + `<path d="M230,${G} C260,${G-40} 330,${G-50} 290,${G-90} C260,${G-120} 320,${G-140} 300,${G-196}" stroke="#F3E2B8" stroke-width="7" fill="none" stroke-linecap="round"/>`
-      + flag(300,G-200,'#FDDA7E');
+    hero = `<path d="M${CX-420},${G} L${CX-170},${G-200} L${CX+40},${G} Z" fill="#7C6BB0"/><path d="M${CX-420},${G} L${CX-170},${G-200} L${CX-140},${G} Z" fill="#6A5A9E"/>`
+      + `<path d="M${CX-120},${G} L${CX+120},${G-280} L${CX+380},${G} Z" fill="#6C5AA0"/><path d="M${CX+120},${G-280} L${CX+380},${G} L${CX+150},${G} Z" fill="#584886"/>`
+      + `<path d="M${CX+80},${G-232} L${CX+120},${G-280} L${CX+162},${G-230} L${CX+140},${G-238} L${CX+120},${G-222} L${CX+100},${G-240} Z" fill="#fff"/>`
+      + `<path d="M${CX-200},${G-170} L${CX-170},${G-200} L${CX-140},${G-168} L${CX-160},${G-176} L${CX-172},${G-164} Z" fill="#fff"/>`
+      + `<path d="M${CX-60},${G} C${CX+20},${G-40} ${CX+170},${G-60} ${CX+90},${G-120} C${CX+30},${G-160} ${CX+170},${G-200} ${CX+120},${G-276}" stroke="#F6E6BE" stroke-width="12" fill="none" stroke-linecap="round"/>`
+      + `<path d="M${CX-60},${G} C${CX+20},${G-40} ${CX+170},${G-60} ${CX+90},${G-120} C${CX+30},${G-160} ${CX+170},${G-200} ${CX+120},${G-276}" stroke="#D9C08A" stroke-width="2" stroke-dasharray="8 10" fill="none"/>`
+      + `<line x1="${CX+120}" y1="${G-278}" x2="${CX+120}" y2="${G-330}" stroke="#4A3428" stroke-width="3"/><path d="M${CX+120},${G-330} q18,4 34,10 q-16,6 -34,10 Z" fill="url(#gold)" stroke="#8A5A12"/>`;
   } else if(kind==='guild'){
-    mid = house(16,50,56,'#B4553E','#C2551F') + house(414,50,56,'#2E7D6B')
-      + `<rect x="130" y="${G-110}" width="220" height="110" fill="#F2E2C4" stroke="#8A6A55" stroke-width="2"/>`
-      + `<path d="M116,${G-110} L240,${G-180} L364,${G-110} Z" fill="#6C1291" stroke="#3E195C" stroke-width="2"/>`
-      + `<circle cx="240" cy="${G-136}" r="16" fill="#FDDA7E" stroke="#B9852A" stroke-width="3"/><path d="M232,${G-136} h16 M240,${G-144} v16" stroke="#6C1291" stroke-width="3"/>`
-      + `<path d="M218,${G} v-48 a22,22 0 0 1 44,0 v48 Z" fill="#6E4A3A"/>`
-      + `<rect x="150" y="${G-90}" width="22" height="40" fill="#932DB2"/><rect x="308" y="${G-90}" width="22" height="40" fill="#932DB2"/>`
-      + `<path d="M150,${G-50} l11,8 l11,-8 M308,${G-50} l11,8 l11,-8" fill="#932DB2"/>`;
+    hero = house(CX-330,90,100,'#B4553E','#C2551F') + house(CX+240,90,96,'#2E7D6B','#E3B23C')
+      + `<rect x="${CX-170}" y="${G-150}" width="340" height="150" fill="#F2E1C2" stroke="#8A6A55" stroke-width="3"/>`
+      + `<path d="M${CX-170},${G-80} H${CX+170}" stroke="#8A6A55" stroke-width="4"/>`
+      + `<path d="M${CX-196},${G-148} L${CX},${G-262} L${CX+196},${G-148} Z" fill="url(#roof)" stroke="#2E0A45" stroke-width="3"/>`
+      + `<circle cx="${CX}" cy="${G-188}" r="30" fill="url(#gold)" stroke="#8A5A12" stroke-width="4"/><path d="M${CX-14},${G-188} h28 M${CX},${G-202} v28" stroke="#6C1291" stroke-width="5" stroke-linecap="round"/>`
+      + `<path d="M${CX-40},${G} v-70 a40,40 0 0 1 80,0 v70 Z" fill="#6E4A3A" stroke="#3A2418" stroke-width="3"/>`
+      + win(CX-140,G-136,26,40) + win(CX+114,G-136,26,40) + win(CX-140,G-66,26,40) + win(CX+114,G-66,26,40)
+      + `<rect x="${CX-96}" y="${G-140}" width="34" height="62" fill="#932DB2"/><path d="M${CX-96},${G-78} l17,12 l17,-12" fill="#932DB2"/><circle cx="${CX-79}" cy="${G-116}" r="9" fill="url(#gold)"/>`
+      + `<rect x="${CX+62}" y="${G-140}" width="34" height="62" fill="#932DB2"/><path d="M${CX+62},${G-78} l17,12 l17,-12" fill="#932DB2"/><circle cx="${CX+79}" cy="${G-116}" r="9" fill="url(#gold)"/>`;
   } else if(kind==='temple'){
-    mid = `<rect x="110" y="${G-20}" width="260" height="20" fill="#E6DCCB"/><rect x="126" y="${G-34}" width="228" height="14" fill="#EFE6D6"/>`
-      + Array.from({length:6},(_,i)=>`<rect x="${140+i*40}" y="${G-120}" width="16" height="86" fill="#F4EDE0" stroke="#C8BBA5"/>`).join('')
-      + `<path d="M118,${G-120} L240,${G-170} L362,${G-120} Z" fill="#EFE6D6" stroke="#C8BBA5" stroke-width="2"/>`
-      + `<ellipse cx="240" cy="${G-178}" rx="36" ry="24" fill="#6C1291"/><rect x="236" y="${G-214}" width="8" height="16" fill="#FDDA7E"/>`
-      + `<path d="M40,${G} v-60 h40 v60 Z M400,${G} v-60 h40 v60 Z" fill="#D9CDB8"/>`
-      + `<rect x="46" y="${G-56}" width="28" height="36" rx="3" fill="#FFF3CD" stroke="#B9852A"/><rect x="406" y="${G-56}" width="28" height="36" rx="3" fill="#FFF3CD" stroke="#B9852A"/>`;
+    hero = `<rect x="${CX-230}" y="${G-26}" width="460" height="26" fill="#E3D8C4" stroke="#B5A68C" stroke-width="2"/><rect x="${CX-206}" y="${G-44}" width="412" height="18" fill="#EFE6D4" stroke="#B5A68C" stroke-width="2"/>`;
+    for(let i=0;i<8;i++) hero += `<rect x="${CX-190+i*52}" y="${G-176}" width="26" height="132" fill="#F7F1E5" stroke="#C3B497" stroke-width="2"/><rect x="${CX-194+i*52}" y="${G-182}" width="34" height="8" fill="#E6DCC8"/>`;
+    hero += `<path d="M${CX-220},${G-180} L${CX},${G-250} L${CX+220},${G-180} Z" fill="#F2EADB" stroke="#B5A68C" stroke-width="3"/>`
+      + `<ellipse cx="${CX}" cy="${G-258}" rx="60" ry="42" fill="url(#roof)" stroke="#2E0A45" stroke-width="3"/><rect x="${CX-6}" y="${G-322}" width="12" height="26" fill="url(#gold)"/><circle cx="${CX}" cy="${G-326}" r="9" fill="url(#gold)"/>`
+      + `<circle cx="${CX}" cy="${G-208}" r="18" fill="url(#gold)" stroke="#8A5A12" stroke-width="2"/>`;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 300" preserveAspectRatio="xMidYMax slice">`
-    + `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F6FF0"/><stop offset=".55" stop-color="#8FB3F3"/><stop offset="1" stop-color="#DCE8FA"/></linearGradient></defs>`
-    + `<rect width="${W}" height="300" fill="url(#sky)"/>`
-    + cloud(70,40,1) + cloud(250,24,.8) + cloud(410,54,1.1)
-    + hills + mid + ground + blossoms(-6,30,false) + blossoms(486,30,true)
-    + `</svg>`;
+
+  /* ---- side buildings shared by all scenes (fill the panorama for desktop) ---- */
+  const sides = house(CX-760,80,86,'#B4553E','#C2551F') + house(CX-660,70,74,'#6C1291') + tower(CX-560,G-150,44,150,'#FDCB55')
+    + house(CX+520,78,84,'#2E7D6B','#E3B23C') + house(CX+612,70,70,'#B4553E') + tower(CX+700,G-140,44,140,'#932DB2')
+    + house(CX-1180,76,80,'#8A2BB5','#DB83CA') + house(CX+1060,80,82,'#C9861E','#C2551F');
+  const trees = [[CX-900,G,1.4],[CX-860,G,1.1],[CX-430,G,1.2],[CX+440,G,1.3],[CX+880,G,1.2],[CX+940,G,1.5],[CX-1300,G,1.3],[CX+1240,G,1.4]]
+    .map(([x,y,s],i)=>tree(x,y,s,['#4F8F55','#5E9C5A','#3F7F4F'][i%3])).join('');
+
+  /* ---- ground ---- */
+  let ground = `<rect x="0" y="${G}" width="${W}" height="${H-G}" fill="url(#ground)"/><rect x="0" y="${G-2}" width="${W}" height="5" fill="#8FB062"/>`
+    + `<path d="M${CX-120},${G} L${CX-260},${H} L${CX+260},${H} L${CX+120},${G} Z" fill="url(#path)"/>`;
+  for(let r=0;r<3;r++) for(let i=0;i<70;i++){ const x=i*42+(r%2)*21, y=G+12+r*16; ground += `<ellipse cx="${x}" cy="${y}" rx="${15+r*2}" ry="${4+r}" fill="#D3C3AE" opacity="${.55+r*.1}"/>`; }
+  const bush = (x,s)=>`<g transform="translate(${x} ${G+6}) scale(${s})"><ellipse cx="0" cy="0" rx="34" ry="16" fill="#6FA45F"/><ellipse cx="-16" cy="-8" rx="16" ry="12" fill="#7FB46B"/><ellipse cx="14" cy="-9" rx="18" ry="13" fill="#7FB46B"/>`
+    + [[-20,-12],[-4,-16],[12,-14],[24,-6],[-28,-2]].map(([a,b],i)=>`<circle cx="${a}" cy="${b}" r="4" fill="${['#F7C1E2','#FFF2A8','#EE9FD3'][i%3]}"/>`).join('') + '</g>';
+  ground += [CX-640,CX-330,CX+300,CX+560,CX-1000,CX+1000].map((x,i)=>bush(x,1+(i%2)*.3)).join('');
+
+  const sak = sakura(CX-470,G+8,1.15,false) + sakura(CX+470,G+8,1.15,true) + sakura(CX-1060,G+8,1.2,true) + sakura(CX+1120,G+8,1.1,false);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${defs}${sky}${far}${hills}${trees}${sides}${hero}${ground}${sak}</svg>`;
 }
 function setScene(page){
   const el = document.getElementById('scene');
@@ -2379,6 +2487,19 @@ function setScene(page){
   el.style.backgroundImage = _sceneCache[kind];
   el.dataset.kind = kind;
 }
+/* drifting sakura petals over the scene — 14 tiny CSS-animated petals, created once */
+(function(){
+  const box = document.getElementById('scene');
+  if(!box || box.querySelector('.petal')) return;
+  for(let i=0;i<14;i++){
+    const p = document.createElement('i'); p.className = 'petal';
+    p.style.left = (i*7.3 + (i%3)*2) + '%';
+    p.style.animationDelay = (-(i*1.37)%9).toFixed(2) + 's';
+    p.style.animationDuration = (8 + (i%5)*1.4).toFixed(1) + 's';
+    const sz = 7 + (i%4)*2; p.style.width = sz+'px'; p.style.height = Math.round(sz*0.8)+'px';
+    box.appendChild(p);
+  }
+})();
 
 setScene('dashboard');
 
