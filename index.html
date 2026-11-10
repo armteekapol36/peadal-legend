@@ -124,6 +124,7 @@
   .lb-info .lb-name{white-space:nowrap; text-overflow:ellipsis; overflow:hidden; display:block;}
   .lb-sub{font-size:10px; color:var(--text-dim); font-family:var(--mono);}
   .lb-val{font-family:var(--mono); font-weight:700; font-size:13px; color:var(--purple-dk); white-space:nowrap;}
+  .lb-unit{font-size:10px; font-weight:700; opacity:.8;}
   .lb-bar-track{flex:1; height:9px; background:var(--panel-2); border-radius:5px; overflow:hidden; margin:0 10px; min-width:30px; display:flex;}
   .lb-bar-fill{height:100%; border-radius:5px; transition:width .4s ease;}
   .lb-bar-fill.amber{background:var(--purple-lt);}
@@ -188,6 +189,18 @@
   .wp-slot.r3 .wp-step{background:linear-gradient(180deg,#E8B98A,#C88852); color:#4A2E12; height:40px;}
   .wp-slot.r4 .wp-step, .wp-slot.r5 .wp-step{background:linear-gradient(180deg,#B9A6D1,#8F76AE); color:#2E2040; height:24px; font-size:12px;}
   .wp-empty{font-size:12.5px; text-align:center; opacity:.9; padding:10px 4px 2px; line-height:1.6;}
+  /* ranks 6-10 (SS1 riding podium): a second, lower tier of smaller characters under the five podium steps */
+  .wp-tier2{margin-top:16px; padding:8px 4px 6px; border-radius:12px; background:rgba(20,8,40,.4); border:1px solid rgba(253,203,85,.38); position:relative; z-index:1;}
+  .wp-tier2-h{text-align:center; font-family:var(--mono); font-size:10px; letter-spacing:.12em; opacity:.9; margin-bottom:6px; text-shadow:0 1px 2px rgba(0,0,0,.7);}
+  .wp-row2{display:flex; gap:3px; justify-content:center;}
+  .wp-slot2{flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; cursor:pointer;}
+  .wp-slot2.wp-vacant{cursor:default;}
+  .wp-slot2 .wp-char{margin-bottom:0;}
+  .wp-slot2 .wp-char svg{max-width:44px;}
+  .wp-slot2 .wp-ghost{opacity:.7;}
+  .wp-slot2 .n2{font-family:var(--mono); font-weight:800; font-size:11px; line-height:15px; min-width:20px; text-align:center; background:linear-gradient(180deg,#FFD866,#E8A81E); color:#4A3000; border-radius:8px; padding:0 6px; margin-top:3px;}
+  .wp-slot2 .wp-name{font-size:10px; margin-top:2px; height:15px; line-height:15px;}
+  .wp-slot2 .wp-dist{font-size:9.5px; height:14px; line-height:14px;}
   .wp-foot{text-align:center; font-size:10px; opacity:.72; font-family:var(--mono); margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.2);}
   .winner-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
   .winner-row:last-child{border-bottom:none;}
@@ -765,7 +778,7 @@
         <div class="rule-h"><span class="n">5</span>ระบบเลเวลและ EXP</div>
         <ul class="rule-list">
           <li>ปั่นจักรยาน 1 กม. = 1 EXP</li>
-          <li>วิ่ง 1 กม. = 3 EXP (ใช้แท่งสะสมเดียวกันในการอัพเลเวล)</li>
+          <li>วิ่ง 1 กม. = 3.5 EXP (ใช้แท่งสะสมเดียวกันในการอัพเลเวล)</li>
           <li>เลเวลสูงสุด 99 — ยิ่งเลเวลสูง ยิ่งต้องใช้ EXP มากขึ้นเรื่อยๆ ต่อ 1 เลเวล</li>
           <li><b>EXP สะสม</b> = EXP ตลอดกาล ใช้คิดเลเวล ไม่ถูกรีเซ็ตและไม่หายไปไหน</li>
           <li><b>EXP ซีซัน (เช่น EXP SS1)</b> = EXP เฉพาะกิจกรรมในช่วงซีซันนั้น ใช้จัดอันดับสังกัดและ Age Ranking — เริ่มนับใหม่ทุกซีซัน ทุกคนนับเข้าซีซันโดยอัตโนมัติ</li>
@@ -881,7 +894,7 @@
           <div class="type-btn" data-t="run" onclick="setSubType('run')">🏃 วิ่ง</div>
         </div>
 
-        <div class="field"><label>วันที่ทำกิจกรรม</label><input type="date" id="s-date" lang="th-TH" onchange="renderDateEvidence(); renderSameDayNotice()"></div>
+        <div class="field"><label>วันที่ทำกิจกรรม</label><input type="date" id="s-date" min="2026-10-01" lang="th-TH" onchange="renderDateEvidence(); renderSameDayNotice()"></div>
         <div id="same-day-notice"></div>
 
         <div class="field">
@@ -1019,6 +1032,13 @@
     </div>
 
     <div class="card">
+      <h2>🔍 ตรวจรูป/ผลซ้ำ</h2>
+      <div class="note-small" style="text-align:left; margin-bottom:10px;">รายการใหม่ถูกตรวจอัตโนมัติตอนส่ง ปุ่มนี้ใช้คำนวณลายนิ้วมือของรูปเก่าที่ยังไม่ถูกลบ (เก็บ 45 วัน) แล้วสแกนหาคู่ที่ซ้ำกันทั้งระบบ</div>
+      <button class="qbtn approve" style="width:100%;" onclick="adminDupeScan(this)">🔍 สแกนหารูป/ผลซ้ำทั้งหมด</button>
+      <div id="dupe-status" class="note-small" style="text-align:left; margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
       <h2>💾 สำรอง / กู้คืนข้อมูล</h2>
       <div class="note-small" style="text-align:left; margin-bottom:10px;">Supabase แบบฟรีไม่มีระบบสำรองข้อมูลให้ แนะนำกดสำรองเก็บไว้สัปดาห์ละครั้ง ไฟล์มีทุกตาราง (สมาชิก โปรไฟล์ รายการปั่น/วิ่ง ประวัติการอนุมัติ ตั้งค่า ฟีด) แต่<b>ไม่รวมตัวไฟล์รูป</b>และรหัสผ่าน<br>การกู้คืน<b>เพิ่มกลับเฉพาะข้อมูลที่หายไป ไม่ทับข้อมูลที่มีอยู่</b> กู้ไฟล์เก่าซ้ำกี่ครั้งก็ไม่ทำให้ข้อมูลใหม่เสียหาย</div>
       <button class="qbtn approve" style="width:100%;" onclick="backupAllData()">💾 ดาวน์โหลดไฟล์สำรองข้อมูล (.json)</button>
@@ -1111,7 +1131,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-04-11';
+const BUILD_STAMP = '2026-11-10-07';
+const MIN_ACTIVITY_DATE = '2026-10-01', MIN_ACTIVITY_TH = '1 ต.ค. 2569';
+
 console.log('PEADAL LEGEND build', BUILD_STAMP);
 
 /* Admin code: no longer in this page. It is stored (SHA-256) in the database by migration_13_security.sql; opening
@@ -1428,6 +1450,90 @@ async function deleteStorageFile(bucket, path){
   catch(e){ dbErr('deleteStorageFile', e); return false; }
 }
 
+/* ===== DUPLICATE EVIDENCE — "has this photo / this activity been sent before?" =====
+   photoHash: the picture shrunk to a 16x16 grid of average brightness (halved step by step so every pixel counts),
+   each cell 0-15 → 256 hex chars, kept inside ai_read.photo_hash (no schema change). Two pictures are compared by the
+   average difference per cell: the same screenshot re-sent, re-saved, recompressed or resized stays close to 0; a
+   different activity, even from the same app layout, differs much more. A "near" match only counts when the distance
+   read from the picture also matches, so two different rides in the same app can't be confused. */
+async function photoHashOf(src){
+  try{
+    if(!src) return null;
+    const img = await new Promise((res, rej)=>{ const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = ()=>res(i); i.onerror = rej;
+      setTimeout(()=>rej(new Error('timeout')), 4000); i.src = src; });   // never let a stuck image block sending
+    let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if(!w || !h) return null;
+    let cur = img;
+    while(w > 256 || h > 256){                                  // halve until small: a proper average, no aliasing
+      w = Math.max(16, Math.ceil(w/2)); h = Math.max(16, Math.ceil(h/2));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.drawImage(cur, 0, 0, w, h); cur = c;
+    }
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d', {willReadFrequently:true}); g.drawImage(cur, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data, N = 16, sum = new Float64Array(N*N), cnt = new Float64Array(N*N);
+    for(let y=0; y<h; y++){ const cy = Math.min(N-1, Math.floor(y*N/h));
+      for(let x=0; x<w; x++){ const cx = Math.min(N-1, Math.floor(x*N/w)), k = (y*w+x)*4;
+        sum[cy*N+cx] += d[k]*0.299 + d[k+1]*0.587 + d[k+2]*0.114; cnt[cy*N+cx]++; } }
+    let hex = '';
+    for(let i=0; i<N*N; i++) hex += Math.min(15, Math.floor((cnt[i] ? sum[i]/cnt[i] : 0)/16)).toString(16);
+    return hex;
+  }catch(e){ return null; }
+}
+/* average difference per cell, 0 (identical) … 15 (opposite); 99 when either side has no hash */
+function photoHashDist(a, b){
+  if(!a || !b || a.length!==b.length || a.length!==256) return 99;
+  let n = 0; for(let i=0; i<256; i++) n += Math.abs(parseInt(a[i],16) - parseInt(b[i],16));
+  return n/256;
+}
+const DUPE_SAME_PIC = 0.2, DUPE_NEAR_PIC = 0.8;    // average difference per cell (0-15 scale)
+/* what an earlier entry has in common with this one: 'photo' (same picture) or 'stats' (same distance AND time) */
+function dupeMatchOf(cand, other){
+  if(!other || other.id===cand.id || other.status==='rejected' || other.demo) return null;
+  const ah = cand.aiRead && cand.aiRead.photo_hash, bh = other.aiRead && other.aiRead.photo_hash;
+  const hd = photoHashDist(ah, bh);
+  const sameRead = cand.aiRead && other.aiRead && cand.aiRead.distance_km!=null && other.aiRead.distance_km!=null
+    && Math.abs(Number(cand.aiRead.distance_km) - Number(other.aiRead.distance_km)) < 0.005;
+  if(hd <= DUPE_SAME_PIC || (hd <= DUPE_NEAR_PIC && sameRead)) return 'photo';
+  if(cand.type===other.type && cand.durationMin && other.durationMin && cand.distanceKm >= 2
+     && Math.abs(cand.distanceKm - other.distanceKm) < 0.005 && Math.abs(cand.durationMin - other.durationMin) < 0.05
+     && !(cand.date===other.date && (cand.employeeId||cand.name)===(other.employeeId||other.name))) return 'stats';
+  return null;
+}
+function dupeFlagText(kind, other, mine){
+  const who = mine ? 'ของคุณเอง' : 'ของสมาชิกอื่น';
+  return kind==='photo'
+    ? `อาจใช้รูปซ้ำ — รูปนี้เหมือนรูปหลักฐานที่เคยส่งแล้ว (${who} วันที่ ${other.date} ${other.distanceKm.toFixed(2)} กม.)`
+    : `ระยะทางและเวลาตรงกับรายการเดิมทุกตัว (${who} วันที่ ${other.date} ${other.distanceKm.toFixed(2)} กม. ${other.durationMin} นาที) — อาจเป็นกิจกรรมเดิมส่งซ้ำ`;
+}
+/* admin: hash older photos that have none yet, then list every matching pair */
+async function adminDupeScan(btn){
+  if(!adminMode){ alert('ต้องเปิดโหมดแอดมินก่อน'); return; }
+  const st = document.getElementById('dupe-status'); if(btn) btn.disabled = true;
+  const todo = entries.filter(e=>e.photoUrl && !(e.aiRead && e.aiRead.photo_hash) && !String(e.photoUrl).startsWith('data:image/svg'));
+  let done = 0, failed = 0;
+  for(const e of todo){
+    st.textContent = `กำลังคำนวณลายนิ้วมือรูปเก่า ${done+failed+1}/${todo.length} …`;
+    const h = await photoHashOf(e.photoUrl);
+    if(!h){ failed++; continue; }
+    const ai = Object.assign({}, e.aiRead||{}, {photo_hash:h});
+    try{ const {error} = await sb.from('entries').update({ai_read:ai}).eq('id', e.id); if(error){ failed++; continue; } }catch(err){ failed++; continue; }
+    e.aiRead = ai; done++;
+  }
+  const list = entries.filter(e=>!e.demo && e.status!=='rejected').sort((a,b)=>String(a.submittedAt||a.date).localeCompare(String(b.submittedAt||b.date)));
+  const pairs = [];
+  for(let i=0; i<list.length; i++) for(let j=0; j<i; j++){
+    const k = dupeMatchOf(list[i], list[j]); if(k) pairs.push({k, a:list[j], b:list[i]});
+  }
+  const row = (e)=>`<a href="javascript:void(0)" onclick="openDetail('${escAttr(e.id)}')">${esc(e.name)} · ${esc(e.date)} · ${e.distanceKm.toFixed(2)} กม.</a> <span style="opacity:.7">(${esc(STATUS_TH[e.status]||e.status)})</span>`;
+  st.innerHTML = `คำนวณรูปเก่าเพิ่ม ${done} รูป${failed?` · อ่านไม่ได้ ${failed} รูป`:''} · มีลายนิ้วมือแล้ว ${entries.filter(e=>e.aiRead&&e.aiRead.photo_hash).length} รายการ<br>`
+    + (pairs.length ? `<b>พบ ${pairs.length} คู่ที่น่าสงสัย</b> (แตะชื่อเพื่อเปิดดู)<ol style="margin:6px 0 0 18px; padding:0;">`
+        + pairs.map(p=>`<li style="margin-bottom:6px;">${p.k==='photo'?'🖼️ รูปเดียวกัน':'🔢 ระยะ+เวลาเท่ากัน'}<br>เดิม: ${row(p.a)}<br>ใหม่: ${row(p.b)}</li>`).join('') + '</ol>'
+      : '✓ ไม่พบรูปหรือผลซ้ำ');
+  if(btn) btn.disabled = false;
+}
+
 async function savePhotoBlob(id, dataUrl){
   try{
     // convert base64 dataUrl → Blob → upload to Supabase Storage
@@ -1704,6 +1810,24 @@ function renderSSBar(){
   }
 }
 /* ===== SS tab: my season panel + the season boards (overall, my division, offices) + how EXP is counted ===== */
+/* SS1 podium backdrop: a sports "sponsor wall" — the season tag and the app name printed over and over on the arch,
+   like the step-and-repeat banner behind athletes at a race. Drawn as a tiled SVG; rebuilt per season so it says SS2, SS3 … later. */
+function ssSponsorStyle(tag){
+  let st = document.getElementById('ss-sponsor-style');
+  if(!st){ st = document.createElement('style'); st.id = 'ss-sponsor-style'; document.head.appendChild(st); }
+  if(st.dataset.tag === tag) return;
+  st.dataset.tag = tag;
+  const F = 'font-family="Arial Black,Arial,Helvetica,sans-serif" font-weight="900" text-anchor="middle"';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="124" height="74" viewBox="0 0 124 74"><g fill="#FFE9A8" fill-opacity=".21">`
+    + `<text x="34" y="28" font-size="24" ${F} letter-spacing="1">${tag}</text>`
+    + `<circle cx="96" cy="19" r="11" fill="none" stroke="#FFE9A8" stroke-opacity=".21" stroke-width="2.5"/><path d="M96,12.5 l2.1,4.4 4.8,.6 -3.5,3.3 .9,4.8 -4.3,-2.4 -4.3,2.4 .9,-4.8 -3.5,-3.3 4.8,-.6 Z"/>`
+    + `<text x="62" y="58" font-size="10.5" ${F} letter-spacing="2">PEADAL LEGEND</text>`
+    + `<rect x="8" y="64" width="108" height="1.6" rx=".8"/></g></svg>`;
+  const url = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+  const stripes = 'repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 3px, rgba(0,0,0,0) 3px 18px, rgba(0,0,0,.07) 18px 21px, rgba(0,0,0,0) 21px 36px)';
+  st.textContent = `.wp-box.wp-ss .wp-row::before{background:${url} 50% 0/84px 50px repeat, radial-gradient(ellipse 70% 55% at 50% 72%, rgba(255,232,160,.45), rgba(255,232,160,0) 70%), ${stripes}, linear-gradient(180deg,#8A33BC 0%,#5A1484 55%,#3A0A5C 100%);}
+    .wp-box.wp-ss.wp-run .wp-row::before{background:${url} 50% 0/84px 50px repeat, radial-gradient(ellipse 70% 55% at 50% 72%, rgba(230,255,200,.4), rgba(230,255,200,0) 70%), ${stripes}, linear-gradient(180deg,#2FA898 0%,#17675E 55%,#0B3F39 100%);}`;
+}
 function renderSSPage(){
   renderSSBar();
   const box = document.getElementById('ss-boards'); if(!box) return;
@@ -1720,26 +1844,42 @@ function renderSSPage(){
     </div></div>`;
   if(st.mode==='upcoming'){ box.innerHTML = `<div class="card"><div class="empty">⚔️ ${tag} ยังไม่เริ่ม — อันดับจะขึ้นที่นี่ตั้งแต่ ${thaiDate(x.startDate)}</div></div>` + rules; return; }
   const D = seasonData(x);
-  const row = (p,i,label,sub)=>`<div class="lb-row${p.name===meName?' lb-me':''}" onclick="openAthlete('${escAttr(p.name)}')">
+  // power bar like the dashboard: full width = the leader of that list, green = ride EXP, coral = run EXP
+  const expBar = (p, max)=>{ const w = p.total/Math.max(max,1)*100, rp = p.total>0 ? p.rideExp/p.total*w : 0, np = p.total>0 ? p.runExp/p.total*w : 0;
+    return `<div class="lb-bar-track"><div class="lb-bar-fill lime" style="width:${rp.toFixed(1)}%; flex:0 0 auto;"></div><div class="lb-bar-fill coral" style="width:${np.toFixed(1)}%; flex:0 0 auto;"></div></div>`; };
+  const row = (p,i,label,sub,max)=>`<div class="lb-row${p.name===meName?' lb-me':''}" onclick="openAthlete('${escAttr(p.name)}')">
       <div class="lb-rank ${i<3?'top medal':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
       <div class="lb-thumb">${avatarThumb(p.name, 40)}</div>
       <div class="lb-info"><div class="lb-name">${esc(label)}</div><div class="lb-sub">${sub}</div></div>
-      <div class="lb-val">${Math.round(p.total).toLocaleString('en-US')} EXP</div></div>`;
+      ${expBar(p, max)}
+      <div class="lb-val">${Math.round(p.total).toLocaleString('en-US')}<span class="lb-unit"> EXP ${tag}</span></div></div>`;
   const topList = (list, n)=>{
-    const L = list.slice().sort((a,b)=>b.total-a.total), mi = meName ? L.findIndex(p=>p.name===meName) : -1;
-    let h = L.slice(0,n).map((p,i)=>row(p,i,p.name,`${esc(p.office)} · 🚴 ${Math.round(p.rideExp)} · 🏃 ${Math.round(p.runExp)}`)).join('');
-    if(mi>=n) h += `<div class="ss-gap">⋯</div>` + row(L[mi],mi,L[mi].name,`${esc(L[mi].office)} · 🚴 ${Math.round(L[mi].rideExp)} · 🏃 ${Math.round(L[mi].runExp)}`);
+    const L = list.slice().sort((a,b)=>b.total-a.total), mi = meName ? L.findIndex(p=>p.name===meName) : -1, mx = L.length ? L[0].total : 1;
+    let h = L.slice(0,n).map((p,i)=>row(p,i,p.name,`${esc(p.office)} · 🚴 ${Math.round(p.rideExp)} · 🏃 ${Math.round(p.runExp)}`,mx)).join('');
+    if(mi>=n) h += `<div class="ss-gap">⋯</div>` + row(L[mi],mi,L[mi].name,`${esc(L[mi].office)} · 🚴 ${Math.round(L[mi].rideExp)} · 🏃 ${Math.round(L[mi].runExp)}`,mx);
     return h || `<div class="empty">ยังไม่มีกิจกรรมที่อนุมัติใน${tag}</div>`;
   };
   const me = meName ? D.people.find(p=>p.name===meName) : null;
   const myDiv = me && me.div ? `<div class="card"><h2>🏅 รุ่นของฉัน — ${esc(ageDivisionLabel(me.div)||'')}</h2>${topList(divMembers(D.people, me.div), 5)}
       <div class="ss-more" onclick="goPage('age')">ดูทุกรุ่นใน Age Ranking ›</div></div>` : '';
-  const O = D.offices.slice().sort((a,b)=>b.total-a.total);
+  const O = D.offices.slice().sort((a,b)=>b.total-a.total), omx = O.length ? O[0].total : 1;
   const offices = `<div class="card"><h2>🏢 อันดับสังกัด</h2>${O.length ? O.slice(0,10).map((o,i)=>`<div class="lb-row${me && o.office===me.office?' lb-me':''}" onclick="openOfficeDetail('${escAttr(o.office)}')">
       <div class="lb-rank ${i<3?'top medal':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
       <div class="lb-info"><div class="lb-name">${esc(o.office)}</div><div class="lb-sub">${o.n} คน · 🚴 ${Math.round(o.rideKm)} กม. · 🏃 ${Math.round(o.runKm)} กม.</div></div>
-      <div class="lb-val">${Math.round(o.total).toLocaleString('en-US')} EXP</div></div>`).join('') : `<div class="empty">ยังไม่มีข้อมูล</div>`}</div>`;
-  box.innerHTML = `<div class="card"><h2>👑 อันดับรวม ${tag}${D.frozen?' (ผลสุดท้าย)':''}</h2>${topList(D.people, 10)}</div>` + myDiv + offices + rules;
+      ${expBar(o, omx)}
+      <div class="lb-val">${Math.round(o.total).toLocaleString('en-US')}<span class="lb-unit"> EXP ${tag}</span></div></div>`).join('') : `<div class="empty">ยังไม่มีข้อมูล</div>`}</div>`;
+  // season podiums: top 5 by EXP from riding and top 5 by EXP from running (all offices, whole season)
+  const expFmt = v=> v==null ? '— EXP' : `${Math.round(v).toLocaleString('en-US')} EXP`;
+  const sport = (key, label, cls, top)=>{
+    const all = D.people.filter(p=>p[key]>0).sort((a,b)=>b[key]-a[key]).slice(0,top).map((p,i)=>({name:p.name, total:p[key], rank:i+1}));
+    const board = all.filter(p=>p.rank<=5);
+    const tier2 = top>5 ? wpTier2Html(all.filter(p=>p.rank>5), expFmt, true, 'อันดับ 6 – 10') : '';
+    const foot = all.length ? `รวมทุกสังกัด · EXP ${label} สะสมทั้งซีซัน ${tag}${top>5?' · 10 อันดับแรก':''}` : `ยังไม่มีผู้ส่งผล${label}ใน${tag} — ใครจะเป็นคนแรก?`;
+    return `<div class="wp-box wp-ss ${cls}" style="margin-bottom:14px;">${wpPodiumHtml(board, `โพเดียม EXP ${tag} — ${label}`, `${thaiDate(x.startDate)} – ${thaiDate(x.endDate)}`, foot, true, expFmt, tier2)}</div>`;
+  };
+  ssSponsorStyle(tag);
+  const podiums = sport('rideExp','ปั่นจักรยาน','',5) + sport('runExp','วิ่ง','wp-run',5);
+  box.innerHTML = podiums + `<div class="card"><h2>👑 อันดับรวม ${tag}${D.frozen?' (ผลสุดท้าย)':''}</h2>${topList(D.people, 10)}</div>` + myDiv + offices + rules;
 }
 /* compact strip appears under the menu once the full panel has scrolled out of view */
 (function(){
@@ -3086,6 +3226,8 @@ function renderDateEvidence(){
   if(!div) return;
   const formDate = document.getElementById('s-date').value;
   if(!pendingPhotoDataUrl && !pendingExifDate && !pendingShotDate){ return; }
+  { const old = tooOldReason(formDate);
+    if(old){ div.innerHTML = `<div class="exif-badge warn" style="border-color:var(--red); color:var(--red);">⛔ ${esc(old)} อยู่ก่อน ${MIN_ACTIVITY_TH} — ระบบไม่รับกิจกรรมก่อนวันนี้ ส่งรายการนี้ไม่ได้</div>`; return; } }
   const ev = dateEvidence(formDate);
   if(ev.mode==='exif'){
     if(!formDate) div.innerHTML = `<div class="exif-badge neutral">พบวันที่ถ่ายภาพ: ${esc(pendingExifDate)} — กรอกวันที่กิจกรรมเพื่อเทียบ</div>`;
@@ -3903,6 +4045,17 @@ function applyAiRead(){
 }
 
 
+/* activities before this date are not accepted at all (refused before upload — no admin review) */
+function tooOldReason(formDate){
+  if(formDate && formDate < MIN_ACTIVITY_DATE) return `วันที่ทำกิจกรรม (${formDate})`;
+  const ai = pendingAiRead && pendingAiRead.activity_date;
+  if(ai && /^\d{4}-\d{2}-\d{2}$/.test(ai) && ai < MIN_ACTIVITY_DATE) return `วันที่ในรูปหลักฐาน (${ai})`;
+  return null;
+}
+function tooOldMessage(why){
+  return `ไม่รับกิจกรรมนี้ — ${why} อยู่ก่อน ${MIN_ACTIVITY_TH}\nระบบรับเฉพาะกิจกรรมตั้งแต่ ${MIN_ACTIVITY_TH} เป็นต้นไป\n\n(ถ้าเป็นกิจกรรมใหม่แต่ระบบอ่านวันที่ในรูปผิด ให้แคปหน้าจอใหม่ให้เห็นวันที่ชัด ๆ หรือติดต่อแอดมิน)`;
+}
+
 async function submitEntry(){
   if(window._submitting) return;          // ignore double-taps while the photo is still uploading
   window._submitting = true;
@@ -3936,6 +4089,7 @@ async function _submitEntryInner(){
     alert('กรอกวันที่ให้ครบก่อนนะครับ'); return;
   }
   if(date > localDateKey()){ alert('วันที่ที่กรอกเป็นวันในอนาคต — กรุณาเลือกวันที่ทำกิจกรรมจริงครับ'); return; }
+  { const old = tooOldReason(date); if(old){ alert(tooOldMessage(old)); return; } }
   { const w = seasonSubmitWarning(date); if(w && !confirm(w)) return; }
   { // already something of the same type on this day (pending included)?
     const same = myEntriesOn(date).filter(x=>x.type===subType);
@@ -3967,6 +4121,19 @@ async function _submitEntryInner(){
   const dupe = entries.find(x=>(x.employeeId ? x.employeeId===currentUser.employeeId : x.name===name) && x.type===subType && x.date===date && x.status!=='rejected' && Math.abs(x.distanceKm-dist)<0.1);
   if(dupe) flags.push('อาจส่งซ้ำ — มีรายการวันเดียวกัน ประเภทเดียวกัน ระยะใกล้เคียงกันอยู่แล้ว');
 
+  // same picture / same distance+time as any earlier entry (anyone, any day)?
+  const photoHash = await photoHashOf(pendingPhotoDataUrl);
+  { const cand = {id:'_new', type:subType, date, distanceKm:dist, durationMin:pendingAiRead.durationMin||null,
+                  employeeId:currentUser.employeeId, name, aiRead:Object.assign({}, pendingAiRead, {photo_hash:photoHash})};
+    let hit = null;
+    for(const o of entries){ const k = dupeMatchOf(cand, o); if(k && (!hit || k==='photo')){ hit = {k, o}; if(k==='photo') break; } }
+    if(hit){
+      const mine = (hit.o.employeeId ? hit.o.employeeId===currentUser.employeeId : hit.o.name===name);
+      flags.push(dupeFlagText(hit.k, hit.o, mine));
+      window._dupeOf = hit.o.id;
+    } else window._dupeOf = null;
+  }
+
   // anomaly thresholds (adjustable by admin)
   if(subType==='ride' && dist>appSettings.thresholdRide) flags.push(`ระยะทางเกิน ${appSettings.thresholdRide} กม./วัน`);
   if(subType==='run' && dist>appSettings.thresholdRun) flags.push(`ระยะวิ่งเกิน ${appSettings.thresholdRun} กม./วัน`);
@@ -3987,7 +4154,7 @@ async function _submitEntryInner(){
     distanceKm: dist,
     note, consent: true,
     exifDate: pendingExifDate,
-    aiRead: Object.assign({}, pendingAiRead, {shot_date: pendingShotDate, date_rule: dateEv.mode}),
+    aiRead: Object.assign({}, pendingAiRead, {shot_date: pendingShotDate, date_rule: dateEv.mode, photo_hash: photoHash||undefined, dupe_of: window._dupeOf||undefined}),
     flags,
     communityFlags: [],
     photoUrl: photoUrl||null,
@@ -4102,7 +4269,7 @@ async function seedDemo(){
 
       const isRun = Math.random() < 0.4;
       const type = isRun ? 'run' : 'ride';
-      // run gives 3 EXP per km, ride gives 1
+      // run gives 3.5 EXP per km, ride gives 1
       let distanceKm = +(share / EXP_PER_KM[type]).toFixed(1);
       if(distanceKm < 0.5) distanceKm = 0.5;
       // keep single sessions within believable limits
@@ -4298,9 +4465,9 @@ function defaultGear(){
 }
 
 /* ===== EXP / level system =====
-   ride 1 km = 1 EXP · run 1 km = 3 EXP
+   ride 1 km = 1 EXP · run 1 km = 3.5 EXP
    level L -> L+1 costs L EXP, so total EXP to reach level L = L(L-1)/2  */
-const EXP_PER_KM = {ride:1, run:3};
+const EXP_PER_KM = {ride:1, run:3.5};
 const MAX_LEVEL = 99;
 
 function expOfEntry(e){ return e.distanceKm * (EXP_PER_KM[e.type] || 1); }
@@ -5585,7 +5752,20 @@ const WP_GHOST_SVG = `<svg viewBox="0 0 260 470" width="178" height="322" aria-h
   </g>
   <text x="130" y="152" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="96" fill="rgba(255,255,255,.75)">?</text>
 </svg>`;
-function wpPodiumHtml(board, title, subLabel, foot, clickable){
+/* ranks 6-10 as a lower tier of small characters (no trophy/medal). board: [{name,total,rank}] holding ranks 6..10 */
+function wpTier2Html(board, fmt, clickable, heading){
+  const byRank = {}; board.forEach(p=>{ byRank[p.rank] = p; });
+  const slot = rank=>{
+    const p = byRank[rank];
+    if(!p) return `<div class="wp-slot2 wp-vacant"><div class="wp-char">${WP_GHOST_SVG}</div><span class="n2">${rank}</span><div class="wp-name">—</div><div class="wp-dist">${fmt(null)}</div></div>`;
+    const gear = Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
+    return `<div class="wp-slot2" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}><div class="wp-char">${buildCharacterSvg(gear)}</div><span class="n2">${rank}</span><div class="wp-name">${esc(p.name)}</div><div class="wp-dist">${fmt(p.total)}</div></div>`;
+  };
+  return `<div class="wp-tier2"><div class="wp-tier2-h">${esc(heading)}</div><div class="wp-row2">${[6,7,8,9,10].map(slot).join('')}</div></div>`;
+}
+function wpPodiumHtml(board, title, subLabel, foot, clickable, fmt, extra){
+  fmt = fmt || (v=>v==null ? '— กม.' : `${Number(v).toFixed(1)} กม.`);
+  const emptyVal = fmt(null);
   const byRank = {}; board.forEach(p=>{ byRank[p.rank] = p; });
   const slot = rank=>{
     const p = byRank[rank];
@@ -5594,14 +5774,14 @@ function wpPodiumHtml(board, title, subLabel, foot, clickable){
         <div class="wp-char">${WP_GHOST_SVG}</div>
         <div class="wp-step"><span class="n">${rank}</span></div>
         <div class="wp-name">รอผู้ท้าชิง</div>
-        <div class="wp-dist">— กม.</div>
+        <div class="wp-dist">${emptyVal}</div>
       </div>`;
     const gear = p.gear ? wpSanitizeGear(p.gear) : Object.assign(defaultGear(), (profiles[p.name] && profiles[p.name].gear) || {});
     return `<div class="wp-slot r${rank}" ${clickable?`onclick="openAthlete('${escAttr(p.name)}')"`:''}>
         <div class="wp-char">${wpCharacterWithRegalia(gear, rank)}</div>
         <div class="wp-step"><span class="n">${rank}</span></div>
         <div class="wp-name">${esc(p.name)}</div>
-        <div class="wp-dist">${Number(p.total).toFixed(1)} กม.</div>
+        <div class="wp-dist">${fmt(p.total)}</div>
       </div>`;
   };
   return `
@@ -5609,6 +5789,7 @@ function wpPodiumHtml(board, title, subLabel, foot, clickable){
     <div class="wp-title">${esc(title)}</div>
     <div class="wp-sub">${esc(subLabel)}</div>
     <div class="wp-row">${[4,2,1,3,5].map(slot).join('')}</div>
+    ${extra||''}
     <div class="wp-foot">${esc(foot)}</div>`;
 }
 const _wpArchiveTried = {};
@@ -7142,6 +7323,7 @@ function openDetail(id){
     <div class="lb-sub" style="margin-top:4px;">📅 วันที่ EXIF ของไฟล์ภาพ: ${esc(e.exifDate||'ไม่พบ')}${e.aiRead && e.aiRead.shot_date ? ` · วันที่แคป/ไฟล์: ${esc(e.aiRead.shot_date)}` : ''}</div>
     ${e.note ? `<div class="lb-sub" style="margin-top:4px;">โน้ต: ${esc(e.note)}</div>` : ''}
     ${e.flags && e.flags.length ? `<div class="queue-flags" style="margin-top:10px;">${e.flags.map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : ''}
+    ${adminMode && e.aiRead && e.aiRead.dupe_of && entries.some(x=>x.id===e.aiRead.dupe_of) ? `<button class="report-btn" style="color:var(--coral); font-weight:700;" onclick="openDetail('${escAttr(e.aiRead.dupe_of)}')">🔍 เปิดดูรายการเดิมที่ตรงกัน</button>` : ''}
     ${reports.length ? `<div class="report-list">${reports.map(r=>`<div class="report-item">🚩 ${esc(r.reason)}</div>`).join('')}</div>` : ''}
     ${adminMode ? `
       <div style="display:flex; gap:8px; margin-top:12px;">
