@@ -1131,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-12-01';
+const BUILD_STAMP = '2026-11-16-01';
 const MIN_ACTIVITY_DATE = '2026-10-01', MIN_ACTIVITY_TH = '1 ต.ค. 2569';
 
 console.log('PEADAL LEGEND build', BUILD_STAMP);
@@ -1495,7 +1495,18 @@ function dupeMatchOf(cand, other){
   const hd = photoHashDist(ah, bh);
   const sameRead = cand.aiRead && other.aiRead && cand.aiRead.distance_km!=null && other.aiRead.distance_km!=null
     && Math.abs(Number(cand.aiRead.distance_km) - Number(other.aiRead.distance_km)) < 0.005;
-  if(hd <= DUPE_SAME_PIC || (hd <= DUPE_NEAR_PIC && sameRead)) return 'photo';
+  // Same person, same route, same app (a weekly stadium loop): the map and layout are almost pixel-identical even
+  // though it's a NEW activity — real case 16 Nov: COROS 7.00 km run flagged as a copy of the 12 Nov 7.00 km run.
+  // A truly re-sent picture also re-reads the SAME date and time printed in it, so if the date or the duration read
+  // from the two pictures disagree, they are two different activities — not a reused photo.
+  const ra = cand.aiRead || {}, rb = other.aiRead || {};
+  const durA = ra.durationMin || cand.durationMin, durB = rb.durationMin || other.durationMin;
+  // (also: Garmin's dark summary screens look alike for ANY ride — 16 Nov: 82.04 km flagged as a copy of a 50.20 km one;
+  // a different distance printed in the picture is a different activity)
+  const differentActivity = (ra.activity_date && rb.activity_date && ra.activity_date!==rb.activity_date)
+    || (durA && durB && Math.abs(durA - durB) >= 0.05)
+    || (ra.distance_km!=null && rb.distance_km!=null && Math.abs(Number(ra.distance_km) - Number(rb.distance_km)) >= 0.005);
+  if(!(differentActivity && hd > 0.03) && (hd <= DUPE_SAME_PIC || (hd <= DUPE_NEAR_PIC && sameRead))) return 'photo';
   if(cand.type===other.type && cand.durationMin && other.durationMin && cand.distanceKm >= 2
      && Math.abs(cand.distanceKm - other.distanceKm) < 0.005 && Math.abs(cand.durationMin - other.durationMin) < 0.05
      && !(cand.date===other.date && (cand.employeeId||cand.name)===(other.employeeId||other.name))) return 'stats';
