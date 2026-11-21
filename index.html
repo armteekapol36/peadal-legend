@@ -1131,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // เวอร์ชันไฟล์นี้ — ขึ้น console ทุกครั้งที่เปิดหน้าเว็บ และโชว์เป็นตัวจางๆ มุมล่างของหน้าแอดมิน ใช้เช็คว่าเว็บที่เปิดอยู่จริงเป็นไฟล์ล่าสุดหรือไม่
-const BUILD_STAMP = '2026-11-16-01';
+const BUILD_STAMP = '2026-11-21-01';
 const MIN_ACTIVITY_DATE = '2026-10-01', MIN_ACTIVITY_TH = '1 ต.ค. 2569';
 
 console.log('PEADAL LEGEND build', BUILD_STAMP);
@@ -1489,26 +1489,42 @@ function photoHashDist(a, b){
 }
 const DUPE_SAME_PIC = 0.2, DUPE_NEAR_PIC = 0.8;    // average difference per cell (0-15 scale)
 /* what an earlier entry has in common with this one: 'photo' (same picture) or 'stats' (same distance AND time) */
+/* RULE (club decision, 21 Nov): the DATE printed in the picture decides.
+   • picture shows the activity's own date, and that date is current (today / the last 2 days, matching the date sent)
+     → a NEW activity, never a duplicate — people ride the same route, same app, same distance again and again.
+   • picture shows an OLD date that also matches an earlier entry → that's the old activity sent again → flag.
+   • picture has NO readable date → only then fall back to other evidence: the picture itself, distance and time. */
+/* flags to show: a "อาจใช้รูปซ้ำ/ตรงกับรายการเดิม" note saved by an older version is dropped when the picture is dated & current */
+function shownFlags(e){
+  const f = e.flags || [];
+  return dupeIsCurrent(e) ? f.filter(x=>!/^อาจใช้รูปซ้ำ|^ระยะทางและเวลาตรงกับรายการเดิม/.test(x)) : f;
+}
+function dupeDateOf(e){ const d = e && e.aiRead && e.aiRead.activity_date; return /^\d{4}-\d{2}-\d{2}$/.test(d||'') ? d : null; }
+function dupeIsCurrent(e){
+  const d = dupeDateOf(e);
+  if(!d || d !== e.date) return false;
+  const sent = e.submittedAt ? new Date(e.submittedAt) : new Date();
+  const days = (Date.parse(localDateKey(sent)) - Date.parse(d)) / DAY_MS;
+  return days >= -1 && days <= 2;
+}
 function dupeMatchOf(cand, other){
   if(!other || other.id===cand.id || other.status==='rejected' || other.demo) return null;
-  const ah = cand.aiRead && cand.aiRead.photo_hash, bh = other.aiRead && other.aiRead.photo_hash;
-  const hd = photoHashDist(ah, bh);
-  const sameRead = cand.aiRead && other.aiRead && cand.aiRead.distance_km!=null && other.aiRead.distance_km!=null
-    && Math.abs(Number(cand.aiRead.distance_km) - Number(other.aiRead.distance_km)) < 0.005;
-  // Same person, same route, same app (a weekly stadium loop): the map and layout are almost pixel-identical even
-  // though it's a NEW activity — real case 16 Nov: COROS 7.00 km run flagged as a copy of the 12 Nov 7.00 km run.
-  // A truly re-sent picture also re-reads the SAME date and time printed in it, so if the date or the duration read
-  // from the two pictures disagree, they are two different activities — not a reused photo.
+  // 1) a dated, current picture is a new activity — full stop
+  if(dupeIsCurrent(cand)) return null;
+  const da = dupeDateOf(cand), db = dupeDateOf(other) || other.date;
+  // 2) a dated picture whose date differs from the earlier activity's date is a different activity
+  if(da && db && da !== db) return null;
+  // 3) no date in the picture (or the same OLD date as the earlier one): weigh the other evidence
   const ra = cand.aiRead || {}, rb = other.aiRead || {};
+  const hd = photoHashDist(ra.photo_hash, rb.photo_hash);
+  const distA = ra.distance_km!=null ? Number(ra.distance_km) : cand.distanceKm, distB = rb.distance_km!=null ? Number(rb.distance_km) : other.distanceKm;
+  const sameDist = distA!=null && distB!=null && Math.abs(distA - distB) < 0.005;
   const durA = ra.durationMin || cand.durationMin, durB = rb.durationMin || other.durationMin;
-  // (also: Garmin's dark summary screens look alike for ANY ride — 16 Nov: 82.04 km flagged as a copy of a 50.20 km one;
-  // a different distance printed in the picture is a different activity)
-  const differentActivity = (ra.activity_date && rb.activity_date && ra.activity_date!==rb.activity_date)
-    || (durA && durB && Math.abs(durA - durB) >= 0.05)
-    || (ra.distance_km!=null && rb.distance_km!=null && Math.abs(Number(ra.distance_km) - Number(rb.distance_km)) >= 0.005);
-  if(!(differentActivity && hd > 0.03) && (hd <= DUPE_SAME_PIC || (hd <= DUPE_NEAR_PIC && sameRead))) return 'photo';
-  if(cand.type===other.type && cand.durationMin && other.durationMin && cand.distanceKm >= 2
-     && Math.abs(cand.distanceKm - other.distanceKm) < 0.005 && Math.abs(cand.durationMin - other.durationMin) < 0.05
+  const durDiffers = durA && durB && Math.abs(durA - durB) >= 0.05;
+  if(!sameDist && hd > 0.03) return null;                  // different distance = different activity (unless literally the same file)
+  if(durDiffers && hd > 0.03) return null;                 // different time = different activity
+  if(hd <= DUPE_SAME_PIC || (hd <= DUPE_NEAR_PIC && sameDist)) return 'photo';
+  if(cand.type===other.type && sameDist && durA && durB && !durDiffers && cand.distanceKm >= 2
      && !(cand.date===other.date && (cand.employeeId||cand.name)===(other.employeeId||other.name))) return 'stats';
   return null;
 }
@@ -7374,7 +7390,7 @@ function openDetail(id){
     ${e.aiRead && e.aiRead.suggestedDistance && Math.abs(e.aiRead.suggestedDistance-e.distanceKm)/e.distanceKm>0.03 ? `<div class="lb-sub" style="color:var(--coral);font-weight:700;">💡 ระบบคำนวณจากเวลา×ความเร็ว/เพซในรูปได้ ≈ ${esc(e.aiRead.suggestedDistance)} กม.</div>` : ''}
     <div class="lb-sub" style="margin-top:4px;">📅 วันที่ EXIF ของไฟล์ภาพ: ${esc(e.exifDate||'ไม่พบ')}${e.aiRead && e.aiRead.shot_date ? ` · วันที่แคป/ไฟล์: ${esc(e.aiRead.shot_date)}` : ''}</div>
     ${e.note ? `<div class="lb-sub" style="margin-top:4px;">โน้ต: ${esc(e.note)}</div>` : ''}
-    ${e.flags && e.flags.length ? `<div class="queue-flags" style="margin-top:10px;">${e.flags.map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : ''}
+    ${shownFlags(e).length ? `<div class="queue-flags" style="margin-top:10px;">${shownFlags(e).map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : ''}
     ${adminMode && e.aiRead && e.aiRead.dupe_of && entries.some(x=>x.id===e.aiRead.dupe_of) ? `<button class="report-btn" style="color:var(--coral); font-weight:700;" onclick="openDetail('${escAttr(e.aiRead.dupe_of)}')">🔍 เปิดดูรายการเดิมที่ตรงกัน</button>` : ''}
     ${reports.length ? `<div class="report-list">${reports.map(r=>`<div class="report-item">🚩 ${esc(r.reason)}</div>`).join('')}</div>` : ''}
     ${adminMode ? `
@@ -7544,7 +7560,7 @@ function confirmApproveWithFlags(flags){
 async function decide(id, status){
   const e = entries.find(x=>x.id===id);
   if(!e) return;
-  if(status==='approved' && !confirmApproveWithFlags(e.flags)) return;
+  if(status==='approved' && !confirmApproveWithFlags(shownFlags(e))) return;
   const prev = e.status;
   e.status = status;
   const ok = await saveEntryStatus([id], status);
@@ -8540,7 +8556,7 @@ function render(){
               <div class="queue-meta">${esc(e.office)} · ${esc(e.date)} · ${e.distanceKm.toFixed(2)} กม.</div></div>
             </label>
           </div>
-          ${e.flags.length ? `<div class="queue-flags">${e.flags.map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : `<div class="queue-flags"><span class="flag ok">✓ ไม่พบความผิดปกติ</span></div>`}
+          ${shownFlags(e).length ? `<div class="queue-flags">${shownFlags(e).map(f=>`<span class="flag warn">⚠ ${esc(f)}</span>`).join('')}</div>` : `<div class="queue-flags"><span class="flag ok">✓ ไม่พบความผิดปกติ</span></div>`}
           ${e.communityFlags && e.communityFlags.length ? `<div class="report-list">${e.communityFlags.map(r=>`<div class="report-item">🚩 ${esc(r.reason)} <span style="opacity:.7;">— แจ้งโดย ${esc(r.reporterName||'ไม่ทราบผู้แจ้ง')}</span></div>`).join('')}</div>` : ''}
           ${entryPhotoImg(e, "queue-img")}
           ${e.aiRead ? `<div class="lb-sub">🤖 AI อ่านได้: ${esc(e.aiRead.distance_km??'-')} กม. · วันที่: ${esc(e.aiRead.activity_date||'-')} · มั่นใจ: ${esc(e.aiRead.confidence||'-')}</div>` : ''}
